@@ -34,7 +34,7 @@ interface ScrapedProduct {
 
 async function fetchPage(url: string): Promise<string> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const res = await fetch(url, {
       signal: controller.signal,
@@ -77,12 +77,11 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
       },
     },
     {
-      label: "cache-google",
-      url: `https://webcache.googleusercontent.com/search?q=cache:${encodeURIComponent(url.replace("fr.aliexpress.com", "www.aliexpress.com"))}`,
+      label: "minimal",
+      url: url.replace("fr.aliexpress.com", "www.aliexpress.com"),
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        Accept: "text/html",
+        "User-Agent": "Mozilla/5.0",
+        Accept: "*/*",
       },
     },
   ];
@@ -102,14 +101,13 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
       const hasData =
         html.includes("og:title") ||
         html.includes("imagePathList") ||
-        html.includes("runParams") ||
-        html.includes("product-title");
+        html.includes("runParams");
       const isBlocked =
         html.includes("Just a moment") ||
         html.includes("cf-browser-verification") ||
         html.includes("challenge-form");
       console.log(
-        `[fetchWithStrategies] ${s.label}: len=${html.length} hasData=${hasData} isBlocked=${isBlocked}`
+        `[fetchWithStrategies] ${s.label}: status=${res.status} len=${html.length} hasData=${hasData} isBlocked=${isBlocked}`
       );
       if (hasData && !isBlocked && html.length > 5000) return html;
     } catch (err) {
@@ -117,152 +115,6 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
     }
   }
   return null;
-}
-
-/* ─── AliExpress API-based scraping (bypass HTML blocking) ─── */
-async function fetchAliExpressViaAPI(url: string): Promise<ScrapedProduct | null> {
-  const idMatch = url.match(/\/item\/(\d+)/);
-  if (!idMatch) return null;
-  const productId = idMatch[1];
-
-  // Strategy 1: AliExpress detail API
-  const apiUrls = [
-    `https://www.aliexpress.com/aeglobal/glo-product-detail-v2/api/product/${productId}`,
-    `https://gw.aliexpress.com/fn/detail/item/${productId}`,
-  ];
-
-  for (const apiUrl of apiUrls) {
-    try {
-      console.log(`[fetchAliExpressViaAPI] Trying: ${apiUrl}`);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(apiUrl, {
-        signal: controller.signal,
-        headers: {
-          ...BROWSER_HEADERS,
-          Accept: "application/json",
-          Referer: "https://www.aliexpress.com/",
-        },
-      });
-      clearTimeout(timeout);
-      if (!res.ok) continue;
-      const json = await res.json();
-      const product = parseAliExpressAPIResponse(json, url);
-      if (product?.title && product.title.length > 3) {
-        console.log(`[fetchAliExpressViaAPI] Success via API`);
-        return product;
-      }
-    } catch (err) {
-      console.log(`[fetchAliExpressViaAPI] API failed: ${err}`);
-    }
-  }
-
-  // Strategy 2: Use 12ft.io or similar cache/proxy
-  const proxyUrls = [
-    `https://www.google.com/search?q=aliexpress+${productId}&num=1`,
-  ];
-
-  for (const proxyUrl of proxyUrls) {
-    try {
-      console.log(`[fetchAliExpressViaAPI] Trying google search for metadata`);
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      const res = await fetch(proxyUrl, {
-        signal: controller.signal,
-        headers: {
-          "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-          Accept: "text/html",
-        },
-      });
-      clearTimeout(timeout);
-      const html = await res.text();
-      // Extract title from Google search results
-      const titleMatch = html.match(/<h3[^>]*>([^<]+)<\/h3>/);
-      if (titleMatch && titleMatch[1].length > 10) {
-        console.log(`[fetchAliExpressViaAPI] Got title from Google: ${titleMatch[1]}`);
-        // We have at least a title, build a minimal product
-        return {
-          title: titleMatch[1].replace(/\s*[-|]\s*(AliExpress|Aliexpress).*$/i, "").trim(),
-          description: "",
-          price: null,
-          currency: url.includes("fr.aliexpress") ? "EUR" : "USD",
-          images: [],
-          brand: null,
-          category: null,
-          url,
-        };
-      }
-    } catch (err) {
-      console.log(`[fetchAliExpressViaAPI] Google search failed: ${err}`);
-    }
-  }
-
-  return null;
-}
-
-function parseAliExpressAPIResponse(json: Record<string, unknown>, url: string): ScrapedProduct | null {
-  try {
-    // Navigate various possible API response structures
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const data = json as any;
-    let title = "";
-    let description = "";
-    let price: string | null = null;
-    const images: string[] = [];
-
-    // Try different paths for title
-    title = data?.data?.productInfoComponent?.subject
-      || data?.data?.title
-      || data?.result?.subject
-      || data?.data?.product?.title
-      || "";
-
-    // Try different paths for description
-    description = data?.data?.productInfoComponent?.briefDescription
-      || data?.data?.description
-      || data?.result?.description
-      || "";
-
-    // Try different paths for price
-    const priceStr = data?.data?.priceComponent?.origPrice?.formattedPrice
-      || data?.data?.priceComponent?.discountPrice?.formattedPrice
-      || data?.data?.price?.formattedPrice
-      || data?.result?.price?.formattedPrice
-      || "";
-    if (priceStr) {
-      const extracted = String(priceStr).replace(/[^\d.,]/g, "").replace(",", ".");
-      if (extracted && parseFloat(extracted) > 0) price = extracted;
-    }
-
-    // Try different paths for images
-    const imgList = data?.data?.imageComponent?.imagePathList
-      || data?.data?.images
-      || data?.result?.images
-      || [];
-    if (Array.isArray(imgList)) {
-      for (const img of imgList) {
-        const src = typeof img === "string" ? img : img?.url;
-        if (src && typeof src === "string") {
-          images.push(src.startsWith("//") ? `https:${src}` : src);
-        }
-      }
-    }
-
-    if (!title || title.length < 3) return null;
-
-    return {
-      title: title.replace(/\s*[-|]\s*(AliExpress|Aliexpress).*$/i, "").trim(),
-      description,
-      price,
-      currency: url.includes("fr.aliexpress") ? "EUR" : "USD",
-      images: images.slice(0, 10),
-      brand: null,
-      category: data?.data?.categoryInfo?.categoryName || null,
-      url,
-    };
-  } catch {
-    return null;
-  }
 }
 
 /* ─── AliExpress-specific: extract data from inline JS ─── */
@@ -293,11 +145,20 @@ function extractAliExpressData(
     const subjectMatch = html.match(/"subject"\s*:\s*"([^"]+)"/);
     if (subjectMatch) partial.title = subjectMatch[1].trim();
   }
+  if (!partial.title || partial.title.length < 5) {
+    const summMatch = html.match(/"summImagePathList":\s*\["([^"]+)"/);
+    if (summMatch) {
+      const decoded = decodeURIComponent(summMatch[1].split('/').pop()?.replace(/\.jpg.*$/, '').replace(/-/g, ' ') ?? '');
+      if (decoded.length > 10) partial.title = decoded;
+    }
+  }
 
   const pricePatterns = [
     /"formattedPrice"\s*:\s*"([^"]+)"/,
     /"minPrice"\s*:\s*"([^"]+)"/,
     /"discountPrice"\s*:\s*"([^"]+)"/,
+    /"actMinPrice"\s*:\s*"([^"]+)"/,
+    /"salePrice"\s*:\s*"([^"]+)"/,
   ];
   for (const p of pricePatterns) {
     const m = html.match(p);
@@ -310,8 +171,12 @@ function extractAliExpressData(
     }
   }
 
-  if (url.includes("fr.aliexpress")) partial.currency = "EUR";
-  else partial.currency = "USD";
+  const currMatch = html.match(/"currencyCode"\s*:\s*"([A-Z]{3})"/);
+  if (currMatch) partial.currency = currMatch[1];
+  if (!partial.currency) {
+    if (url.includes("fr.aliexpress")) partial.currency = "EUR";
+    else partial.currency = "USD";
+  }
 
   const ogDesc = html.match(
     /<meta[^>]+property="og:description"[^>]*content="([^"]+)"/
@@ -325,13 +190,15 @@ function extractAliExpressData(
   return null;
 }
 
-async function fetchAliExpressMobile(
-  url: string
-): Promise<ScrapedProduct | null> {
+/* ─── AliExpress fallback: fetch via mobile + Googlebot ─── */
+async function fetchAliExpressAPI(url: string): Promise<ScrapedProduct | null> {
   const idMatch = url.match(/\/item\/(\d+)/);
   if (!idMatch) return null;
+  const itemId = idMatch[1];
+
+  // Strategy 1: Mobile page (lighter, less blocking)
   try {
-    const mobileUrl = `https://m.aliexpress.com/item/${idMatch[1]}.html`;
+    const mobileUrl = `https://m.aliexpress.com/item/${itemId}.html`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
     const res = await fetch(mobileUrl, {
@@ -339,12 +206,13 @@ async function fetchAliExpressMobile(
       headers: {
         ...BROWSER_HEADERS,
         "User-Agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1",
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
       },
       redirect: "follow",
     });
     clearTimeout(timeout);
     const html = await res.text();
+    console.log("[AliExpress mobile] status:", res.status, "len:", html.length);
     const aliData = extractAliExpressData(html, url);
     if (aliData?.title) {
       return {
@@ -358,9 +226,44 @@ async function fetchAliExpressMobile(
         url,
       };
     }
-  } catch {
-    /* ignore */
+  } catch (e) {
+    console.log("[AliExpress mobile] error:", e instanceof Error ? e.message : e);
   }
+
+  // Strategy 2: Googlebot UA (sites don't block Google)
+  try {
+    const gUrl = `https://www.aliexpress.com/item/${itemId}.html`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(gUrl, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        Accept: "text/html",
+      },
+      redirect: "follow",
+    });
+    clearTimeout(timeout);
+    const html = await res.text();
+    console.log("[AliExpress googlebot] status:", res.status, "len:", html.length);
+    const aliData = extractAliExpressData(html, url);
+    if (aliData?.title) {
+      return {
+        title: aliData.title,
+        description: aliData.description ?? "",
+        price: aliData.price ?? null,
+        currency: aliData.currency ?? "EUR",
+        images: aliData.images ?? [],
+        brand: null,
+        category: aliData.category ?? null,
+        url,
+      };
+    }
+  } catch (e) {
+    console.log("[AliExpress googlebot] error:", e instanceof Error ? e.message : e);
+  }
+
   return null;
 }
 
@@ -698,29 +601,19 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // All HTML strategies failed — try API-based and mobile fallbacks for AliExpress
+          // All HTML strategies failed — try mobile + googlebot fallbacks for AliExpress
           if (isAli) {
-            console.log(`[scrape] HTML strategies failed for AliExpress, trying API...`);
-            const apiProduct = await fetchAliExpressViaAPI(url.trim());
-            if (apiProduct?.title) {
-              results.push(apiProduct);
-              continue;
-            }
-            const mobileProduct = await fetchAliExpressMobile(url.trim());
-            results.push(mobileProduct);
+            console.log(`[scrape] HTML strategies failed for AliExpress, trying mobile+googlebot...`);
+            const aliProduct = await fetchAliExpressAPI(url.trim());
+            results.push(aliProduct);
           } else {
             results.push(null);
           }
         } catch (err) {
           console.log(`[scrape] Error for ${url}: ${err}`);
           if (isAli) {
-            const apiProduct = await fetchAliExpressViaAPI(url.trim());
-            if (apiProduct?.title) {
-              results.push(apiProduct);
-              continue;
-            }
-            const ali = await fetchAliExpressMobile(url.trim());
-            results.push(ali);
+            const aliProduct = await fetchAliExpressAPI(url.trim());
+            results.push(aliProduct);
           } else {
             results.push(null);
           }
