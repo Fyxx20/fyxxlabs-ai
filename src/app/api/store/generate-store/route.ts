@@ -54,16 +54,6 @@ async function fetchPage(url: string): Promise<string> {
 /* ─── Multi-strategy fetch for AliExpress ─── */
 async function fetchWithStrategies(url: string): Promise<string | null> {
   const strategies = [
-    { label: "desktop", url, headers: BROWSER_HEADERS },
-    {
-      label: "googlebot",
-      url: url.replace("fr.aliexpress.com", "www.aliexpress.com"),
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
-        Accept: "text/html",
-      },
-    },
     {
       label: "mobile",
       url: url.replace(
@@ -77,8 +67,18 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
       },
     },
     {
+      label: "googlebot",
+      url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://www.aliexpress.com"),
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        Accept: "text/html",
+      },
+    },
+    { label: "desktop", url, headers: BROWSER_HEADERS },
+    {
       label: "minimal",
-      url: url.replace("fr.aliexpress.com", "www.aliexpress.com"),
+      url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://www.aliexpress.com"),
       headers: {
         "User-Agent": "Mozilla/5.0",
         Accept: "*/*",
@@ -90,7 +90,7 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
     try {
       console.log(`[fetchWithStrategies] Trying ${s.label}: ${s.url}`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(s.url, {
         signal: controller.signal,
         headers: s.headers,
@@ -105,7 +105,8 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
       const isBlocked =
         html.includes("Just a moment") ||
         html.includes("cf-browser-verification") ||
-        html.includes("challenge-form");
+        html.includes("challenge-form") ||
+        html.includes("Maintaining");
       console.log(
         `[fetchWithStrategies] ${s.label}: status=${res.status} len=${html.length} hasData=${hasData} isBlocked=${isBlocked}`
       );
@@ -419,6 +420,11 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
   // AliExpress enrichment from inline JS
   const isAli = url.toLowerCase().includes("aliexpress");
   if (isAli) {
+    // Filter useless AliExpress generic descriptions
+    if (description && /smarter shopping|aliexpress\.com/i.test(description)) {
+      description = "";
+    }
+
     const aliData = extractAliExpressData(html, url);
     if (aliData) {
       if ((!title || title.length < 3) && aliData.title) title = aliData.title;
@@ -427,9 +433,10 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
       if (!price && aliData.price) price = aliData.price;
       if (!currency && aliData.currency) currency = aliData.currency;
       if (!category && aliData.category) category = aliData.category ?? null;
-      if (images.length === 0 && aliData.images) {
+      // Always merge AliExpress imagePathList images (og:image often returns only 1)
+      if (aliData.images && aliData.images.length > 0) {
         for (const img of aliData.images) {
-          if (!seenImgs.has(img)) {
+          if (!seenImgs.has(img) && images.length < 10) {
             seenImgs.add(img);
             images.push(img);
           }

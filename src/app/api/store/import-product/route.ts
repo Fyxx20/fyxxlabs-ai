@@ -58,16 +58,16 @@ async function fetchPage(url: string): Promise<string> {
 /* ─── Multi-strategy fetch for blocked sites (AliExpress, etc.) ─── */
 async function fetchWithStrategies(url: string): Promise<string | null> {
   const strategies = [
-    { label: 'desktop', url, headers: BROWSER_HEADERS },
-    { label: 'googlebot', url: url.replace('fr.aliexpress.com', 'www.aliexpress.com'), headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-      'Accept': 'text/html',
-    }},
     { label: 'mobile', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://m.aliexpress.com'), headers: {
       ...BROWSER_HEADERS,
       'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
     }},
-    { label: 'minimal', url: url.replace('fr.aliexpress.com', 'www.aliexpress.com'), headers: {
+    { label: 'googlebot', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://www.aliexpress.com'), headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Accept': 'text/html',
+    }},
+    { label: 'desktop', url, headers: BROWSER_HEADERS },
+    { label: 'minimal', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://www.aliexpress.com'), headers: {
       'User-Agent': 'Mozilla/5.0',
       'Accept': '*/*',
     }},
@@ -76,7 +76,7 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
   for (const s of strategies) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(s.url, { signal: controller.signal, headers: s.headers, redirect: 'follow' });
       clearTimeout(timeout);
       const html = await res.text();
@@ -84,7 +84,7 @@ async function fetchWithStrategies(url: string): Promise<string | null> {
       
       // Check if it's a real page (has og:title or imagePathList or product data)
       const hasData = html.includes('og:title') || html.includes('imagePathList') || html.includes('runParams');
-      const isBlocked = html.includes('Just a moment') || html.includes('cf-browser-verification') || html.includes('challenge-form');
+      const isBlocked = html.includes('Just a moment') || html.includes('cf-browser-verification') || html.includes('challenge-form') || html.includes('Maintaining');
       
       if (hasData && !isBlocked && html.length > 5000) {
         console.log(`[fetchWithStrategies] ${s.label}: SUCCESS → using this response`);
@@ -474,6 +474,11 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
 
   // ─── AliExpress enrichment: extract data from inline JS ───
   if (source === 'aliexpress') {
+    // Filter useless AliExpress generic descriptions
+    if (description && /smarter shopping|aliexpress\.com/i.test(description)) {
+      description = '';
+    }
+
     const aliData = extractAliExpressData(html, url);
     if (aliData) {
       if ((!title || title.length < 3) && aliData.title) title = aliData.title;
@@ -481,9 +486,10 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
       if (!price && aliData.price) price = aliData.price;
       if (!currency && aliData.currency) currency = aliData.currency;
       if (!category && aliData.category) category = aliData.category;
-      if (images.length === 0 && aliData.images) {
+      // Always merge AliExpress imagePathList images (og:image often returns only 1)
+      if (aliData.images && aliData.images.length > 0) {
         for (const img of aliData.images) {
-          if (!seenImgs.has(img)) { seenImgs.add(img); images.push(img); }
+          if (!seenImgs.has(img) && images.length < 10) { seenImgs.add(img); images.push(img); }
         }
       }
     }
