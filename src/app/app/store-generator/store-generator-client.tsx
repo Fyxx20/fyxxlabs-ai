@@ -465,7 +465,7 @@ export function StoreGeneratorClient({
       {/* Top header */}
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <Store className="h-4 w-4 text-white" />
           </div>
           <div>
@@ -474,12 +474,12 @@ export function StoreGeneratorClient({
           </div>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="w-8 h-8 rounded-full border-2 border-blue-500 flex items-center justify-center">
-            <span className="text-xs font-bold text-blue-600">
+          <div className="w-8 h-8 rounded-full border-2 border-primary flex items-center justify-center">
+            <span className="text-xs font-bold text-primary">
               {step === "import" ? "0" : step === "select" ? "1" : step === "customize" ? "2" : "3"}/3
             </span>
           </div>
-          <span className="text-xs">Génération de boutique</span>
+          <span className="text-xs">Génération</span>
         </div>
       </div>
 
@@ -499,7 +499,7 @@ export function StoreGeneratorClient({
           const Icon = s.icon;
           return (
             <div key={s.key} className="flex items-center gap-1">
-              {i > 0 && <ArrowRight className={`h-3 w-3 ${isActive ? "text-blue-500" : "text-muted-foreground/30"}`} />}
+              {i > 0 && <ArrowRight className={`h-3 w-3 ${isActive ? "text-primary" : "text-muted-foreground/30"}`} />}
               <button
                 onClick={() => {
                   if (thisIdx < currentIdx) setStep(s.key as Step);
@@ -507,9 +507,9 @@ export function StoreGeneratorClient({
                 disabled={thisIdx > currentIdx}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   isCurrent
-                    ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-primary text-primary-foreground shadow-sm"
                     : isActive
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 cursor-pointer hover:bg-blue-100"
+                    ? "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15"
                     : "bg-muted/50 text-muted-foreground"
                 }`}
               >
@@ -532,59 +532,55 @@ export function StoreGeneratorClient({
       {/* ════════════ STEP 1: IMPORT ════════════ */}
       {step === "import" && !loading && (
         <div className="max-w-3xl mx-auto space-y-8">
-          <div className="text-center space-y-3 pt-12">
-            <h2 className="text-3xl font-bold">
-              Créez votre boutique en quelques secondes avec{" "}
-              <span className="text-blue-600">FyxxLabs</span>
-              <Badge className="ml-2 bg-blue-600 text-white text-[10px] align-top">NEW</Badge>
+          <div className="text-center space-y-3 pt-8">
+            <h2 className="text-2xl sm:text-3xl font-bold">
+              Créez votre boutique en quelques secondes
             </h2>
-            <p className="text-muted-foreground text-sm">
-              Transformez un lien de produit en boutique qui convertie. Collez votre lien{" "}
-              <span className="text-orange-500 font-medium">AliExpress</span>,{" "}
-              <span className="font-medium">Shopify</span>{" "}
-              <span className="text-yellow-600 font-medium">Amazon</span>{" "}
-              ci-dessous, générez et personnalisez.
+            <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+              Collez un lien produit <span className="font-medium text-foreground">AliExpress</span>,{" "}
+              <span className="font-medium text-foreground">Shopify</span> ou{" "}
+              <span className="font-medium text-foreground">Amazon</span>{" "}
+              et g\u00e9n\u00e9rez une boutique optimis\u00e9e en un clic.
             </p>
           </div>
 
           {/* URL Input */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex-1">
               <Input
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="Entrez l'URL de votre produit AliExpress..."
-                className="h-12 text-sm pl-4 pr-4 rounded-xl border-2 focus:border-blue-500"
+                placeholder="Collez l'URL de votre produit..."
+                className="h-12 text-sm pl-4 pr-4 rounded-xl border-border/60 focus:border-primary"
                 onKeyDown={(e) => e.key === "Enter" && handleImport()}
               />
             </div>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="h-12 px-3 rounded-xl border-2 bg-background text-sm"
+              className="h-12 px-3 rounded-xl border border-border/60 bg-background text-sm"
             >
-              <option value="fr">🇫🇷 Français</option>
-              <option value="en">🇬🇧 English</option>
-              <option value="es">🇪🇸 Español</option>
-              <option value="de">🇩🇪 Deutsch</option>
+              <option value="fr">\ud83c\uddeb\ud83c\uddf7 Fran\u00e7ais</option>
+              <option value="en">\ud83c\uddec\ud83c\udde7 English</option>
+              <option value="es">\ud83c\uddea\ud83c\uddf8 Espa\u00f1ol</option>
+              <option value="de">\ud83c\udde9\ud83c\uddea Deutsch</option>
             </select>
             <Button
               onClick={handleImport}
               disabled={!url.trim()}
-              className="h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700"
+              className="h-12 px-6 rounded-xl"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              Générer
+              G\u00e9n\u00e9rer
             </Button>
           </div>
 
           {/* Tip */}
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 text-xs text-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 dark:text-yellow-400 px-4 py-2 rounded-full">
-              <span>💡</span>
-              <span>1 produit par boutique pour le moment. Multi-produits bientôt disponible !</span>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              1 produit par boutique pour le moment.
+            </p>
           </div>
 
           {/* ─── HISTORY ─── */}
@@ -650,7 +646,7 @@ export function StoreGeneratorClient({
                           href={`https://${h.shop_domain}/admin/products/${h.shopify_product_id}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
+                          className="p-1.5 rounded-md hover:bg-primary/10 text-primary"
                           title="Voir sur Shopify"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -685,11 +681,11 @@ export function StoreGeneratorClient({
         <div className="max-w-md mx-auto mt-20 text-center space-y-8">
           {/* Animated spinner */}
           <div className="relative mx-auto w-24 h-24">
-            <div className="absolute inset-0 border-[3px] border-blue-500/20 rounded-full" />
-            <div className="absolute inset-0 border-[3px] border-transparent border-t-blue-500 rounded-full animate-spin" style={{ animationDuration: "1.5s" }} />
-            <div className="absolute inset-2.5 border-[3px] border-transparent border-t-purple-400 rounded-full animate-spin" style={{ animationDirection: "reverse", animationDuration: "1s" }} />
+            <div className="absolute inset-0 border-[3px] border-primary/20 rounded-full" />
+            <div className="absolute inset-0 border-[3px] border-transparent border-t-primary rounded-full animate-spin" style={{ animationDuration: "1.5s" }} />
+            <div className="absolute inset-2.5 border-[3px] border-transparent border-t-primary/60 rounded-full animate-spin" style={{ animationDirection: "reverse", animationDuration: "1s" }} />
             <div className="absolute inset-0 flex items-center justify-center">
-              <LinkIcon className="h-8 w-8 text-blue-500" />
+              <LinkIcon className="h-8 w-8 text-primary" />
             </div>
           </div>
 
@@ -708,8 +704,8 @@ export function StoreGeneratorClient({
           <div className="space-y-3 text-left max-w-xs mx-auto">
             {["Connexion au site…", "Extraction des données produit…", "Analyse des images…", "Détection du prix et des infos…"].map((label, i) => (
               <div key={i} className="flex items-center gap-3 animate-pulse" style={{ animationDelay: `${i * 300}ms` }}>
-                <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
-                  <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" />
+                <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
                 </div>
                 <span className="text-sm text-muted-foreground">{label}</span>
               </div>
@@ -762,7 +758,7 @@ export function StoreGeneratorClient({
                     onClick={() => toggleImageSelect(i)}
                     className={`relative group rounded-xl overflow-hidden border-2 transition-all aspect-square ${
                       isSelected
-                        ? "border-blue-500 ring-2 ring-blue-500/30"
+                        ? "border-primary ring-2 ring-primary/30"
                         : "border-gray-200 hover:border-gray-300 opacity-60"
                     }`}
                   >
@@ -779,7 +775,7 @@ export function StoreGeneratorClient({
                     {/* Selection badge */}
                     <div
                       className={`absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center transition-all ${
-                        isSelected ? "bg-blue-500 text-white" : "bg-white/80 border border-gray-300"
+                        isSelected ? "bg-primary text-primary-foreground" : "bg-background/80 border border-border"
                       }`}
                     >
                       {isSelected && <Check className="h-3 w-3" />}
@@ -809,7 +805,7 @@ export function StoreGeneratorClient({
             <Button
               onClick={handleGenerate}
               disabled={selectedImages.size === 0 || loading}
-              className="bg-blue-600 hover:bg-blue-700"
+              className=""
             >
               {loading ? (
                 <>
@@ -835,7 +831,7 @@ export function StoreGeneratorClient({
           <div className="w-[520px] flex-shrink-0 border-r overflow-y-auto flex flex-col">
             {/* Tabs: Content / Styles */}
             <div className="flex border-b sticky top-0 bg-background z-10">
-              <button className="px-4 py-2.5 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
+              <button className="px-4 py-2.5 text-sm font-medium border-b-2 border-primary text-primary">
                 Content
               </button>
               <button className="px-4 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground">
@@ -855,7 +851,7 @@ export function StoreGeneratorClient({
                       onClick={() => setActiveSection(section.id)}
                       className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors text-left ${
                         isActive
-                          ? "bg-blue-50 text-blue-700 border-l-2 border-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
+                          ? "bg-primary/10 text-primary border-l-2 border-primary"
                           : "text-muted-foreground hover:bg-muted/50 border-l-2 border-transparent"
                       }`}
                     >
@@ -872,7 +868,7 @@ export function StoreGeneratorClient({
                 {activeSection === "product-info" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <ShoppingBag className="h-4 w-4 text-blue-600" />
+                      <ShoppingBag className="h-4 w-4 text-primary" />
                       Informations sur le Produit
                     </h3>
 
@@ -992,7 +988,7 @@ export function StoreGeneratorClient({
                 {activeSection === "timeline" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-blue-600" />
+                      <Clock className="h-4 w-4 text-primary" />
                       Timeline
                     </h3>
                     {pageData.timeline.map((t, i) => (
@@ -1076,7 +1072,7 @@ export function StoreGeneratorClient({
                 {activeSection === "hero" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <Type className="h-4 w-4 text-blue-600" />
+                      <Type className="h-4 w-4 text-primary" />
                       Section héro
                     </h3>
                     <div className="space-y-1.5">
@@ -1111,7 +1107,7 @@ export function StoreGeneratorClient({
                 {activeSection === "faq" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <HelpCircle className="h-4 w-4 text-blue-600" />
+                      <HelpCircle className="h-4 w-4 text-primary" />
                       FAQ
                     </h3>
                     {pageData.faq.map((f, i) => (
@@ -1153,7 +1149,7 @@ export function StoreGeneratorClient({
                 {activeSection === "comparison" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <GitCompare className="h-4 w-4 text-blue-600" />
+                      <GitCompare className="h-4 w-4 text-primary" />
                       Comparaison
                     </h3>
                     <div className="space-y-1.5">
@@ -1231,7 +1227,7 @@ export function StoreGeneratorClient({
                 {activeSection === "statistics" && (
                   <div className="space-y-4">
                     <h3 className="font-semibold text-sm flex items-center gap-2">
-                      <BarChart3 className="h-4 w-4 text-blue-600" />
+                      <BarChart3 className="h-4 w-4 text-primary" />
                       Statistiques
                     </h3>
                     {pageData.statistics.map((stat, i) => (
@@ -1348,7 +1344,7 @@ export function StoreGeneratorClient({
           <div className="max-w-md mx-auto text-center px-6 space-y-8">
             {/* Animated spinner rings */}
             <div className="relative mx-auto w-32 h-32">
-              <div className="absolute inset-0 border-[3px] border-blue-500/10 rounded-full" />
+              <div className="absolute inset-0 border-[3px] border-primary/10 rounded-full" />
               <div className="absolute inset-0 border-[3px] border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDuration: "2s" }} />
               <div className="absolute inset-3 border-[3px] border-transparent border-t-purple-400 rounded-full animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
               <div className="absolute inset-6 border-[3px] border-transparent border-t-cyan-400 rounded-full animate-spin" style={{ animationDuration: "1s" }} />
@@ -1395,7 +1391,7 @@ export function StoreGeneratorClient({
                       phase.status === "done"
                         ? "bg-emerald-500/20"
                         : phase.status === "active"
-                        ? "bg-blue-500/20"
+                        ? "bg-primary/20"
                         : "bg-white/5"
                     }`}
                   >
@@ -1444,8 +1440,8 @@ export function StoreGeneratorClient({
               <div className="space-y-10">
                 {/* Main visual: Store being built */}
                 <div className="relative">
-                  <div className="absolute inset-0 -m-12 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
-                  <div className="relative mx-auto w-28 h-28 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
+                  <div className="absolute inset-0 -m-12 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+                  <div className="relative mx-auto w-28 h-28 bg-gradient-to-br from-primary to-primary/70 rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/25">
                     <Store className="h-12 w-12 text-white" />
                     {/* Orbiting particles */}
                     <div className="absolute w-full h-full animate-spin" style={{ animationDuration: "3s" }}>
@@ -1584,7 +1580,7 @@ export function StoreGeneratorClient({
                     href={`https://${shopDomain ?? ""}/admin/products`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-lg shadow-blue-500/20 text-base"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all font-semibold shadow-lg shadow-primary/20 text-base"
                   >
                     <ExternalLink className="h-5 w-5" />
                     Voir sur Shopify
