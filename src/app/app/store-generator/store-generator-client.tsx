@@ -453,7 +453,7 @@ export function StoreGeneratorClient({
           <div className="text-center space-y-3 pt-12">
             <h2 className="text-3xl font-bold">
               Créez votre boutique en quelques secondes avec{" "}
-              <span className="text-blue-600">CopyfyAI</span>
+              <span className="text-blue-600">FyxxLabs</span>
               <Badge className="ml-2 bg-blue-600 text-white text-[10px] align-top">NEW</Badge>
             </h2>
             <p className="text-muted-foreground text-sm">
