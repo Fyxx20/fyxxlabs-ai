@@ -54,6 +54,65 @@ async function fetchPage(url: string): Promise<string> {
   }
 }
 
+/* ─── AliExpress-specific: extract data from inline JS ─── */
+function extractAliExpressData(html: string, url: string): Partial<ScrapedProduct> | null {
+  const partial: Partial<ScrapedProduct> = {};
+
+  const imgMatch = html.match(/"imagePathList":\s*\[([^\]]+)\]/);
+  if (imgMatch) {
+    const imgs = imgMatch[1].match(/"(https?:\/\/[^"]+)"/g)?.map(s => s.replace(/"/g, ''));
+    if (imgs && imgs.length > 0) partial.images = imgs.slice(0, 8);
+  }
+
+  const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]*content="([^"]+)"/);
+  if (ogTitle) {
+    partial.title = ogTitle[1].replace(/\s*[-|]\s*(AliExpress|Aliexpress).*$/i, '').replace(/\s+\d{6,}$/, '').trim();
+  }
+  if (!partial.title || partial.title.length < 5) {
+    const subjectMatch = html.match(/"subject"\s*:\s*"([^"]+)"/);
+    if (subjectMatch) partial.title = subjectMatch[1].trim();
+  }
+
+  const pricePatterns = [/"formattedPrice"\s*:\s*"([^"]+)"/, /"minPrice"\s*:\s*"([^"]+)"/, /"discountPrice"\s*:\s*"([^"]+)"/];
+  for (const p of pricePatterns) {
+    const m = html.match(p);
+    if (m) { const c = m[1].replace(/[^\d.,]/g, '').replace(',', '.'); if (c && parseFloat(c) > 0) { partial.price = c; break; } }
+  }
+
+  if (url.includes('fr.aliexpress')) partial.currency = 'EUR'; else partial.currency = 'USD';
+
+  const ogDesc = html.match(/<meta[^>]+property="og:description"[^>]*content="([^"]+)"/);
+  if (ogDesc) partial.description = ogDesc[1].trim();
+
+  const catMatch = html.match(/"categoryName"\s*:\s*"([^"]+)"/);
+  if (catMatch) partial.category = catMatch[1];
+
+  if (partial.title && partial.title.length >= 3) return partial;
+  return null;
+}
+
+async function fetchAliExpressMobile(url: string): Promise<ScrapedProduct | null> {
+  const idMatch = url.match(/\/item\/(\d+)/);
+  if (!idMatch) return null;
+  try {
+    const mobileUrl = `https://m.aliexpress.com/item/${idMatch[1]}.html`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(mobileUrl, {
+      signal: controller.signal,
+      headers: { ...BROWSER_HEADERS, 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1' },
+      redirect: 'follow',
+    });
+    clearTimeout(timeout);
+    const html = await res.text();
+    const aliData = extractAliExpressData(html, url);
+    if (aliData?.title) {
+      return { title: aliData.title, description: aliData.description ?? '', price: aliData.price ?? null, currency: aliData.currency ?? 'EUR', images: aliData.images ?? [], brand: null, category: aliData.category ?? null, url };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 function scrapeProduct(html: string, url: string): ScrapedProduct {
   const $ = cheerio.load(html);
 
@@ -63,6 +122,8 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
     $("title").first().text().trim() ||
     "";
   title = title.replace(/\s*[-|]\s*(AliExpress|Amazon|Temu|eBay|Alibaba).*$/i, "").trim();
+  // Remove trailing AliExpress product ID
+  title = title.replace(/\s+\d{6,}$/, '').trim();
 
   let description =
     $('meta[property="og:description"]').attr("content")?.trim() ||
@@ -143,7 +204,7 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
     ? (typeof jsonLd.brand === "string" ? jsonLd.brand : String(jsonLd.brand?.name ?? ""))
     : ($('[itemprop="brand"]').first().text().trim() || null);
 
-  const category =
+  let category: string | null =
     $('[itemprop="category"]').first().text().trim() ||
     $(".breadcrumb a, .breadcrumbs a, [class*='breadcrumb'] a").last().text().trim() ||
     null;
@@ -151,6 +212,22 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
   if (!description || description.length < 30) {
     const detailText = $(".product-description, .description, [itemprop='description']").first().text().trim();
     if (detailText && detailText.length > description.length) description = detailText.slice(0, 2000);
+  }
+
+  // AliExpress enrichment from inline JS
+  const isAli = url.toLowerCase().includes('aliexpress');
+  if (isAli) {
+    const aliData = extractAliExpressData(html, url);
+    if (aliData) {
+      if ((!title || title.length < 3) && aliData.title) title = aliData.title;
+      if ((!description || description.length < 10) && aliData.description) description = aliData.description ?? '';
+      if (!price && aliData.price) price = aliData.price;
+      if (!currency && aliData.currency) currency = aliData.currency;
+      if (!category && aliData.category) category = aliData.category ?? null;
+      if (images.length === 0 && aliData.images) {
+        for (const img of aliData.images) { if (!seenImgs.has(img)) { seenImgs.add(img); images.push(img); } }
+      }
+    }
   }
 
   return { title, description, price, currency, images: images.slice(0, 8), brand, category, url };
@@ -239,9 +316,24 @@ export async function POST(req: NextRequest) {
       for (const url of urls) {
         try {
           const html = await fetchPage(url.trim());
-          results.push(scrapeProduct(html, url.trim()));
+          const product = scrapeProduct(html, url.trim());
+          if (product.title && product.title.length >= 3) {
+            results.push(product);
+          } else if (url.toLowerCase().includes('aliexpress')) {
+            // Try mobile fallback for AliExpress
+            const ali = await fetchAliExpressMobile(url.trim());
+            results.push(ali);
+          } else {
+            results.push(null);
+          }
         } catch {
-          results.push(null);
+          // On fetch error, try AliExpress mobile if applicable
+          if (url.toLowerCase().includes('aliexpress')) {
+            const ali = await fetchAliExpressMobile(url.trim());
+            results.push(ali);
+          } else {
+            results.push(null);
+          }
         }
       }
 

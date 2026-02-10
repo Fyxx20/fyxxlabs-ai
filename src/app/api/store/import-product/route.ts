@@ -65,6 +65,129 @@ function detectSource(url: string): string {
   return "generic";
 }
 
+/* ─── AliExpress-specific: extract data from inline JS (CSR page) ─── */
+function extractAliExpressData(html: string, url: string): Partial<ScrapedProduct> | null {
+  const partial: Partial<ScrapedProduct> = {};
+
+  // Images from imagePathList
+  const imgMatch = html.match(/"imagePathList":\s*\[([^\]]+)\]/);
+  if (imgMatch) {
+    const imgs = imgMatch[1].match(/"(https?:\/\/[^"]+)"/g)?.map(s => s.replace(/"/g, ''));
+    if (imgs && imgs.length > 0) partial.images = imgs.slice(0, 8);
+  }
+
+  // Title from og:title or summImagePathList alt or name in script
+  const ogTitle = html.match(/<meta[^>]+property="og:title"[^>]*content="([^"]+)"/);
+  if (ogTitle) {
+    partial.title = ogTitle[1]
+      .replace(/\s*[-|]\s*(AliExpress|Aliexpress).*$/i, '')
+      .replace(/\s+\d{6,}$/, '') // remove trailing product ID
+      .trim();
+  }
+  // Also try script-embedded title
+  if (!partial.title || partial.title.length < 5) {
+    const subjectMatch = html.match(/"subject"\s*:\s*"([^"]+)"/);
+    if (subjectMatch) partial.title = subjectMatch[1].trim();
+  }
+  // Title from URL-encoded image alt text in summImagePathList
+  if (!partial.title || partial.title.length < 5) {
+    const summMatch = html.match(/"summImagePathList":\s*\["([^"]+)"/);
+    if (summMatch) {
+      const decoded = decodeURIComponent(summMatch[1].split('/').pop()?.replace(/\.jpg.*$/, '').replace(/-/g, ' ') ?? '');
+      if (decoded.length > 10) partial.title = decoded;
+    }
+  }
+
+  // Price from various script patterns
+  const pricePatterns = [
+    /"formattedPrice"\s*:\s*"([^"]+)"/,
+    /"minPrice"\s*:\s*"([^"]+)"/,
+    /"discountPrice"\s*:\s*"([^"]+)"/,
+    /"actMinPrice"\s*:\s*"([^"]+)"/,
+    /"salePrice"\s*:\s*"([^"]+)"/,
+  ];
+  for (const p of pricePatterns) {
+    const m = html.match(p);
+    if (m) {
+      const cleaned = m[1].replace(/[^\d.,]/g, '').replace(',', '.');
+      if (cleaned && parseFloat(cleaned) > 0) {
+        partial.price = cleaned;
+        break;
+      }
+    }
+  }
+
+  // Currency
+  const currMatch = html.match(/"currencyCode"\s*:\s*"([A-Z]{3})"/);
+  if (currMatch) partial.currency = currMatch[1];
+  if (!partial.currency) {
+    if (url.includes('fr.aliexpress')) partial.currency = 'EUR';
+    else partial.currency = 'USD';
+  }
+
+  // Category
+  const catMatch = html.match(/"categoryName"\s*:\s*"([^"]+)"/);
+  if (catMatch) partial.category = catMatch[1];
+
+  // Description from og:description
+  const ogDesc = html.match(/<meta[^>]+property="og:description"[^>]*content="([^"]+)"/);
+  if (ogDesc) partial.description = ogDesc[1].trim();
+
+  // Only return if we got at least a title
+  if (partial.title && partial.title.length >= 3) return partial;
+  return null;
+}
+
+/* ─── AliExpress API fallback: fetch item via API endpoint ─── */
+async function fetchAliExpressAPI(url: string): Promise<ScrapedProduct | null> {
+  // Extract item ID from URL
+  const idMatch = url.match(/\/item\/(\d+)/);
+  if (!idMatch) return null;
+  const itemId = idMatch[1];
+
+  // Try the AliExpress detail API
+  const apiUrls = [
+    `https://www.aliexpress.com/aeglodetailweb/api/store/header?itemId=${itemId}`,
+    `https://www.aliexpress.com/fn/search-pc/index?SearchText=${itemId}&catId=0&initiative_id=SB_${Date.now()}`,
+  ];
+
+  // Try fetching the mobile page which is lighter
+  try {
+    const mobileUrl = `https://m.aliexpress.com/item/${itemId}.html`;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    const res = await fetch(mobileUrl, {
+      signal: controller.signal,
+      headers: {
+        ...BROWSER_HEADERS,
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+      },
+      redirect: 'follow',
+    });
+    clearTimeout(timeout);
+    const html = await res.text();
+
+    // Mobile page often has more inline data
+    const aliData = extractAliExpressData(html, url);
+    if (aliData && aliData.title) {
+      return {
+        title: aliData.title,
+        description: aliData.description ?? '',
+        price: aliData.price ?? null,
+        currency: aliData.currency ?? 'EUR',
+        images: aliData.images ?? [],
+        specs: {},
+        brand: null,
+        category: aliData.category ?? null,
+        url,
+        source: 'aliexpress',
+      };
+    }
+  } catch { /* ignore */ }
+
+  return null;
+}
+
 function scrapeProduct(html: string, url: string): ScrapedProduct {
   const $ = cheerio.load(html);
   const source = detectSource(url);
@@ -78,6 +201,7 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
   // Clean title (remove "| AliExpress", "- Amazon", etc.)
   title = title
     .replace(/\s*[-|]\s*(AliExpress|Amazon|Temu|eBay|Alibaba).*$/i, "")
+    .replace(/\s+\d{6,}$/, "") // remove trailing product ID (AliExpress)
     .trim();
 
   // Description
@@ -251,7 +375,7 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
   }
 
   // Category
-  const category =
+  let category: string | null =
     $('[itemprop="category"]').first().text().trim() ||
     $(".breadcrumb a, .breadcrumbs a, [class*='breadcrumb'] a")
       .last()
@@ -269,6 +393,23 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
       .trim();
     if (detailText && detailText.length > description.length) {
       description = detailText.slice(0, 2000);
+    }
+  }
+
+  // ─── AliExpress enrichment: extract data from inline JS ───
+  if (source === 'aliexpress') {
+    const aliData = extractAliExpressData(html, url);
+    if (aliData) {
+      if ((!title || title.length < 3) && aliData.title) title = aliData.title;
+      if ((!description || description.length < 10) && aliData.description) description = aliData.description;
+      if (!price && aliData.price) price = aliData.price;
+      if (!currency && aliData.currency) currency = aliData.currency;
+      if (!category && aliData.category) category = aliData.category;
+      if (images.length === 0 && aliData.images) {
+        for (const img of aliData.images) {
+          if (!seenImgs.has(img)) { seenImgs.add(img); images.push(img); }
+        }
+      }
     }
   }
 
@@ -359,7 +500,13 @@ export async function POST(req: NextRequest) {
 
       try {
         const html = await fetchPage(productUrl);
-        const product = scrapeProduct(html, productUrl);
+        let product = scrapeProduct(html, productUrl);
+
+        // If title extraction failed, try AliExpress API/mobile fallback
+        if ((!product.title || product.title.length < 3) && detectSource(productUrl) === 'aliexpress') {
+          const aliProduct = await fetchAliExpressAPI(productUrl);
+          if (aliProduct) product = aliProduct;
+        }
 
         if (!product.title || product.title.length < 3) {
           return NextResponse.json(
@@ -373,6 +520,11 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ product });
       } catch (err) {
+        // On fetch error, try AliExpress fallback if applicable
+        if (detectSource(productUrl) === 'aliexpress') {
+          const aliProduct = await fetchAliExpressAPI(productUrl);
+          if (aliProduct) return NextResponse.json({ product: aliProduct });
+        }
         return NextResponse.json(
           {
             error: `Erreur lors du scraping : ${err instanceof Error ? err.message : "Inconnue"}`,
