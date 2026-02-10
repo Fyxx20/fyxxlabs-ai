@@ -62,7 +62,7 @@ export default async function IssuesPage() {
     }>;
   } | null;
   const allIssues = issuesPayload?.issues ?? [];
-  const showFullList = entitlements.canSeeFullIssues;
+  const showFullList = entitlements.canViewFullScan;
   const issuesToShow = showFullList ? allIssues : allIssues.slice(0, 1);
   const hasLocked = !showFullList && allIssues.length > 1;
 

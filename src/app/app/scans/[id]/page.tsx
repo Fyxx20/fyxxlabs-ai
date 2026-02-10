@@ -66,7 +66,7 @@ export default async function ScanDetailPage({
 
   const selectBase =
     "id, store_id, status, score_global, scores_json, issues_json, trial_single_advice, summary, scan_data_json, error_message, created_at, started_at, finished_at, mode, confidence, priority_action, checklist, raw, free_preview, result_preview";
-  let scan: Record<string, unknown> | null = null;
+  let scan: any = null;
   let scanError: { message?: string } | null = null;
 
   const res = await supabase
@@ -126,9 +126,12 @@ export default async function ScanDetailPage({
   const confidence = scanRow?.confidence ?? preview?.confidence ?? "medium";
   const raw = scanRow?.raw;
   const aiFailed = raw?.ai?.status === "failed";
+  const scoreGlobal = typeof (scan as { score_global?: unknown }).score_global === "number"
+    ? (scan as { score_global: number }).score_global
+    : null;
   const displayScore = computeDisplayScore(
     (scores as Record<string, unknown>) ?? null,
-    scan.score_global ?? preview?.score ?? 0
+    scoreGlobal ?? preview?.score ?? 0
   );
   const estimatedLift = estimateSalesRateLift(displayScore, issues.length);
 

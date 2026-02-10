@@ -362,12 +362,21 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     },
   };
 
-  const prices = result.raw.price_insights.detected_prices;
+  const priceInsights = result.raw.price_insights ?? {
+    detected_prices: [],
+    own_average_price: null,
+    own_min_price: null,
+    own_max_price: null,
+    product_pages: [],
+    competitor_average_price: null,
+  };
+  result.raw.price_insights = priceInsights;
+  const prices = priceInsights.detected_prices;
   if (prices.length > 0) {
     const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
-    result.raw.price_insights.own_average_price = Number(avg.toFixed(2));
-    result.raw.price_insights.own_min_price = Number(Math.min(...prices).toFixed(2));
-    result.raw.price_insights.own_max_price = Number(Math.max(...prices).toFixed(2));
+    priceInsights.own_average_price = Number(avg.toFixed(2));
+    priceInsights.own_min_price = Number(Math.min(...prices).toFixed(2));
+    priceInsights.own_max_price = Number(Math.max(...prices).toFixed(2));
   }
 
   if (!isOpenAIAvailable()) {

@@ -17,6 +17,7 @@ export function ScanFailedCard({
 }) {
   const [showDetails, setShowDetails] = useState(false);
   const message = errorMessage ?? "Une erreur est survenue lors de l'analyse.";
+  const hasTechnicalDetails = Boolean(errorCode) || debug != null;
 
   return (
     <Card className="border-destructive/50">
@@ -41,7 +42,7 @@ export function ScanFailedCard({
           </Link>
         </div>
 
-        {(errorCode || debug) && (
+        {hasTechnicalDetails && (
           <div className="rounded-lg border border-border">
             <button
               type="button"

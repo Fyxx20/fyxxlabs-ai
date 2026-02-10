@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -12,14 +13,22 @@ import {
   Settings,
 } from "lucide-react";
 
-const TABS = [
+type SubnavTab = {
+  href: string;
+  label: string;
+  icon: ComponentType<{ className?: string }>;
+  exact?: boolean;
+  useLastScanId?: boolean;
+};
+
+const TABS: SubnavTab[] = [
   { href: "/app/scans", label: "Vue générale", icon: LayoutDashboard, exact: true },
   { href: "/app/scans", label: "Résultats", icon: FileCheck, useLastScanId: true },
   { href: "/app/issues", label: "Problèmes détectés", icon: AlertCircle },
   { href: "/app/scans", label: "Historique", icon: History, exact: true },
   { href: "/app/coach", label: "Assistant FyxxLabs", icon: Activity },
   { href: "/app/settings", label: "Paramètres", icon: Settings },
-] as const;
+];
 
 export function ScansSubnav({ lastScanId }: { lastScanId: string | null }) {
   const pathname = usePathname();

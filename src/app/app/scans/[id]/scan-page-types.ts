@@ -47,14 +47,14 @@ export interface ScanRow {
 }
 
 /** Use in page to avoid "as Type" in .tsx (parser ambiguity). */
-export function getScores(scan: { scores_json: unknown }): ScoresJson {
-  const v = scan.scores_json as ScoresJson | null;
+export function getScores(scan: unknown): ScoresJson {
+  const v = (scan as { scores_json?: unknown } | null)?.scores_json as ScoresJson | null | undefined;
   return v ?? {};
 }
 
 /** Use in page to avoid "as Type" in .tsx. */
-export function getIssuesPayload(scan: { issues_json: unknown }): IssuesPayload | null {
-  return scan.issues_json as IssuesPayload | null;
+export function getIssuesPayload(scan: unknown): IssuesPayload | null {
+  return ((scan as { issues_json?: unknown } | null)?.issues_json as IssuesPayload | null | undefined) ?? null;
 }
 
 /** Use in page to avoid "as ScanRow" in .tsx (parser ambiguity). */
