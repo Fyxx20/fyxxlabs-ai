@@ -33,7 +33,7 @@ export default async function StoreGeneratorPage() {
     .maybeSingle();
 
   return (
-    <div className="max-w-5xl mx-auto py-6 px-4">
+    <div className="py-4 px-4">
       <StoreGeneratorClient
         storeId={currentStore.id}
         shopDomain={integration?.shop_domain ?? null}
