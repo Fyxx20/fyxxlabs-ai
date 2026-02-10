@@ -26,6 +26,7 @@ import {
   Store,
   Wand2,
   Sparkles,
+  Rocket,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
@@ -40,6 +41,7 @@ const nav = [
   { href: "/app/scans", label: "Scans", icon: ScanSearch },
   { href: "/app/auto-fix", label: "AI Auto-Fix", icon: Wand2 },
   { href: "/app/import-product", label: "Importer produit", icon: Sparkles },
+  { href: "/app/store-generator", label: "Créer boutique", icon: Rocket },
   { href: "/app/coach", label: "Coach", icon: MessageSquare },
   { href: "/app/integrations", label: "Gérer la boutique", icon: Plug },
   { href: "/app/billing", label: "Facturation", icon: CreditCard },

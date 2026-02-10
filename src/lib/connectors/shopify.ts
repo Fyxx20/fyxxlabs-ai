@@ -363,3 +363,53 @@ export async function createShopifyProduct(
     handle: data.product?.handle,
   };
 }
+
+/** Create a custom collection on Shopify and add product IDs to it */
+export async function createShopifyCollection(
+  storeId: string,
+  collection: {
+    title: string;
+    body_html?: string;
+    image?: { src: string };
+  },
+  productIds: number[]
+): Promise<{ success: boolean; collectionId?: number; error?: string }> {
+  const creds = await getShopifyCredentials(storeId);
+  if (!creds) return { success: false, error: "Shopify non connecté" };
+
+  const { accessToken, shop } = creds;
+  const base = `https://${shop}/admin/api/2024-01`;
+  const headers = {
+    "X-Shopify-Access-Token": accessToken,
+    "Content-Type": "application/json",
+  };
+
+  // Create custom collection
+  const collRes = await fetch(`${base}/custom_collections.json`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ custom_collection: collection }),
+  });
+
+  if (!collRes.ok) {
+    const text = await collRes.text();
+    return { success: false, error: `Collection: Shopify ${collRes.status}: ${text.slice(0, 200)}` };
+  }
+
+  const collData = (await collRes.json()) as { custom_collection?: { id: number } };
+  const collectionId = collData.custom_collection?.id;
+  if (!collectionId) return { success: false, error: "Collection ID manquant" };
+
+  // Add products to collection via collects
+  for (const productId of productIds) {
+    await fetch(`${base}/collects.json`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        collect: { product_id: productId, collection_id: collectionId },
+      }),
+    }).catch(() => {/* ignore individual collect errors */});
+  }
+
+  return { success: true, collectionId };
+}
