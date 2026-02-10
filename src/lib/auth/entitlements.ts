@@ -23,6 +23,8 @@ export interface FreemiumEntitlements {
   isEarlyAccess: boolean;
   canScan: boolean;
   canViewFullScan: boolean;
+  /** Backward-compatible alias for legacy callers. */
+  canSeeFullIssues: boolean;
   canViewPreviewScan: boolean;
   canUseCoach: boolean;
   canRescan: boolean;
@@ -73,6 +75,7 @@ export function getEntitlements(
       isEarlyAccess: false,
       canScan: false,
       canViewFullScan: false,
+      canSeeFullIssues: false,
       canViewPreviewScan: true,
       canUseCoach: false,
       canRescan: false,
@@ -93,6 +96,7 @@ export function getEntitlements(
     isPaidPlan || (isTrialActive && (profile?.scans_used ?? 0) < 1);
   const canRescan = isPaidPlan;
   const canUseCoach = isPaidPlan;
+  const canViewFullScan = isPaidPlan;
 
   const scanLimitPerDay =
     plan === "starter"
@@ -119,7 +123,8 @@ export function getEntitlements(
     isLifetime,
     isEarlyAccess,
     canScan,
-    canViewFullScan: isPaidPlan,
+    canViewFullScan,
+    canSeeFullIssues: canViewFullScan,
     canViewPreviewScan: true,
     canUseCoach,
     canRescan,
