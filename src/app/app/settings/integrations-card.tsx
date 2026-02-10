@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CONNECTABLE_PROVIDERS, PLATFORM_UI_LIST } from "@/lib/connectors/registry";
-import { Plug, Loader2, KeyRound } from "lucide-react";
+import { Plug, Loader2 } from "lucide-react";
 
 function ShopifyDisconnectButton({ storeId, onDone }: { storeId: string; onDone: () => void }) {
   const [loading, setLoading] = useState(false);
@@ -174,18 +174,6 @@ export function IntegrationsCard({ storeId, storeUrl }: { storeId: string | null
               </div>
               <Badge variant="secondary">Actif</Badge>
             </div>
-          </div>
-          <div className="rounded-lg border border-border bg-muted/30 p-3">
-            <p className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <KeyRound className="h-4 w-4" />
-              Recuperer les identifiants Shopify
-            </p>
-            <ul className="space-y-1 text-xs text-muted-foreground">
-              <li>Partner Dashboard - Apps - API credentials.</li>
-              <li>Ajoute SHOPIFY_CLIENT_ID et SHOPIFY_CLIENT_SECRET dans .env.local.</li>
-              <li>URL callback: /api/integrations/shopify/callback.</li>
-              <li>Utilise le domaine Shopify: boutique.myshopify.com (pas le domaine public).</li>
-            </ul>
           </div>
         </CardContent>
       </Card>
