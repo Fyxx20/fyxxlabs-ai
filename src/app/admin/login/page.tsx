@@ -112,7 +112,7 @@ function AdminLoginPageContent() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@storepilot.ai"
+                  placeholder="admin@fyxxlabs.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

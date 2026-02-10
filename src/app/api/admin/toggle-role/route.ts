@@ -1,26 +1,13 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/supabaseAdmin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createServerSupabaseClient();
-    
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return NextResponse.json(
-        { error: "Non authentifié" },
-        { status: 401 }
-      );
-    }
-
-    // Only allow m.harea@storepilot.ia
-    if (user.email !== "m.harea@storepilot.ia") {
-      return NextResponse.json(
-        { error: "Non autorisé" },
-        { status: 403 }
-      );
-    }
+    // Role-based admin check (profiles.role === 'admin' OR in ADMIN_EMAILS env)
+    const adminCheck = await requireAdmin(createServerSupabaseClient);
+    if (!adminCheck.ok) return adminCheck.error;
+    const { user } = adminCheck;
 
     const { newRole } = await request.json();
     
@@ -31,7 +18,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Update profile role
+    // Update profile role using a fresh server client
+    const supabase = await createServerSupabaseClient();
     const { error: updateError } = await supabase
       .from("profiles")
       .update({ role: newRole, updated_at: new Date().toISOString() })

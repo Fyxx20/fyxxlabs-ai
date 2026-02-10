@@ -444,7 +444,7 @@ export function LandingContent({
             <Link href="/privacy" className="hover:text-foreground">
               Confidentialité
             </Link>
-            <a href="mailto:contact@storepilot.ai" className="hover:text-foreground">
+            <a href="mailto:contact@fyxxlabs.com" className="hover:text-foreground">
               Contact
             </a>
           </nav>

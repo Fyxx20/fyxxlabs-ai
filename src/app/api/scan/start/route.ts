@@ -6,7 +6,7 @@ import { canShowPaywall } from "@/lib/paywall/paywallRules";
 import { runScanInBackground } from "@/lib/scan/runScanInBackground";
 
 /** Comptes sans limite : scan illimité, pas de délai 10 min ni plafond jour */
-const UNLIMITED_SCAN_EMAILS = ["m.harea@storepilot.ia"].map((e) => e.toLowerCase());
+const UNLIMITED_SCAN_EMAILS = ["admin@fyxxlabs.com"].map((e) => e.toLowerCase());
 
 function hasUnlimitedScans(email: string | undefined): boolean {
   if (!email) return false;

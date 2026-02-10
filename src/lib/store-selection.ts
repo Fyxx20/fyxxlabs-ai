@@ -1,4 +1,4 @@
-export const STORE_SELECTION_COOKIE = "axis_store_id";
+export const STORE_SELECTION_COOKIE = "fyxxlabs_store_id";
 
 export function resolveSelectedStore<T extends { id: string }>(
   stores: T[] | null | undefined,

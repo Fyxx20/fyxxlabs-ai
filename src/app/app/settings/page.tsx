@@ -48,7 +48,7 @@ export default async function SettingsPage() {
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Pour demander la suppression de tes données, contacte-nous à contact@storepilot.ai.
+            Pour demander la suppression de tes données, contacte-nous à contact@fyxxlabs.com.
           </p>
         </CardContent>
       </Card>
