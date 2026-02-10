@@ -28,6 +28,8 @@ import {
   Minus,
   ChevronDown,
   Eye,
+  History,
+  Trash2,
 } from "lucide-react";
 import { StoreMobilePreview, type StorePageData } from "./store-mobile-preview";
 
@@ -48,6 +50,19 @@ interface CreateResult {
   success: boolean;
   error?: string;
   productId?: number;
+}
+
+interface GeneratedStoreHistory {
+  id: string;
+  brand_name: string;
+  brand_color: string | null;
+  product_title: string;
+  product_price: number | null;
+  product_image: string | null;
+  shopify_product_id: number | null;
+  shop_domain: string | null;
+  source_url: string | null;
+  created_at: string;
 }
 
 type Step = "import" | "select" | "customize" | "create";
@@ -148,6 +163,19 @@ export function StoreGeneratorClient({
   const [createResults, setCreateResults] = useState<CreateResult[]>([]);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [genPhases, setGenPhases] = useState<GenPhase[]>([]);
+
+  // History
+  const [history, setHistory] = useState<GeneratedStoreHistory[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  // Load history on mount
+  useEffect(() => {
+    fetch("/api/store/generated-history")
+      .then((r) => r.json())
+      .then((d) => setHistory(d.stores ?? []))
+      .catch(() => {})
+      .finally(() => setHistoryLoading(false));
+  }, []);
 
   // Cleanup
   useEffect(() => {
@@ -306,6 +334,30 @@ export function StoreGeneratorClient({
               setProgress(100);
               setProgressLabel("✅ Produit créé !");
               setCreateResults(event.results ?? []);
+              // Save to history
+              const firstResult = (event.results ?? [])[0];
+              const imgs = scraped ? scraped.images.filter((_, i) => selectedImages.has(i)) : [];
+              try {
+                await fetch("/api/store/generated-history", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    store_id: storeId,
+                    brand_name: pageData.brand_name,
+                    brand_color: pageData.brand_color,
+                    product_title: pageData.product.title,
+                    product_price: pageData.product.price,
+                    product_image: imgs[0] ?? null,
+                    shopify_product_id: firstResult?.productId ?? null,
+                    shop_domain: shopDomain,
+                    source_url: scraped?.url ?? null,
+                  }),
+                });
+                // Refresh history
+                const hRes = await fetch("/api/store/generated-history");
+                const hData = await hRes.json();
+                setHistory(hData.stores ?? []);
+              } catch { /* silent */ }
               await new Promise((r) => setTimeout(r, 400));
               setLoading(false);
             }
@@ -534,6 +586,97 @@ export function StoreGeneratorClient({
               <span>1 produit par boutique pour le moment. Multi-produits bientôt disponible !</span>
             </div>
           </div>
+
+          {/* ─── HISTORY ─── */}
+          {!historyLoading && history.length > 0 && (
+            <div className="pt-6 border-t">
+              <div className="flex items-center gap-2 mb-4">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Dernières boutiques créées</h3>
+                <span className="text-xs text-muted-foreground">({history.length})</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {history.map((h) => (
+                  <div
+                    key={h.id}
+                    className="group relative flex items-center gap-3 p-3 rounded-xl border bg-card hover:shadow-md transition-all"
+                  >
+                    {/* Product image */}
+                    {h.product_image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={h.product_image}
+                        alt={h.product_title}
+                        className="w-14 h-14 rounded-lg object-cover bg-muted shrink-0"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                        <Store className="h-6 w-6 text-muted-foreground/40" />
+                      </div>
+                    )}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0 border"
+                          style={{ backgroundColor: h.brand_color ?? "#000" }}
+                        />
+                        <span className="text-xs font-bold tracking-wide uppercase truncate">
+                          {h.brand_name}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium truncate">{h.product_title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        {h.product_price != null && (
+                          <span className="text-xs font-semibold text-emerald-600">
+                            {Number(h.product_price).toFixed(2)}€
+                          </span>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">
+                          {new Date(h.created_at).toLocaleDateString("fr-FR", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                    {/* Actions */}
+                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {h.shopify_product_id && h.shop_domain && (
+                        <a
+                          href={`https://${h.shop_domain}/admin/products/${h.shopify_product_id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600"
+                          title="Voir sur Shopify"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await fetch("/api/store/generated-history", {
+                            method: "DELETE",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ id: h.id }),
+                          });
+                          setHistory((prev) => prev.filter((x) => x.id !== h.id));
+                        }}
+                        className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+                        title="Supprimer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
