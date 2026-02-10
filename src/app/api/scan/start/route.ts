@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { getEntitlements, assertCanScan, PaywallError, PAYWALL_SCAN_LIMIT } from "@/lib/auth/entitlements";
@@ -13,7 +14,7 @@ function hasUnlimitedScans(email: string | undefined): boolean {
   return UNLIMITED_SCAN_EMAILS.includes(email.toLowerCase());
 }
 
-export const maxDuration = 30;
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -148,10 +149,12 @@ export async function POST(request: Request) {
     // Table scan_events peut être absente si migration 012 non appliquée
   }
 
-  void runScanInBackground(scan.id, {
-    userId: user.id,
-    isPro: entitlements.isPro,
-  });
+  waitUntil(
+    runScanInBackground(scan.id, {
+      userId: user.id,
+      isPro: entitlements.isPro,
+    })
+  );
 
   return NextResponse.json({ id: scan.id, status: "queued" });
 }
