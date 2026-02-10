@@ -809,15 +809,41 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     // ── Phase 1: Homepage + Shopify products.json in parallel ──
     await emitProgress(input.onProgress, 5, "FETCH_HOME", "Récupération de la page d'accueil et des produits…");
     
-    const [homeHtml, publicProducts] = await Promise.all([
-      fetchHtmlWithHttp(homepageUrl),
-      fetchShopifyPublicProducts(homepageUrl),
-    ]);
+    let homeHtml = "";
+    let homeBlocked = false;
+    const publicProductsPromise = fetchShopifyPublicProducts(homepageUrl);
+
+    // Try homepage, fallback to www variant if blocked/failed
+    try {
+      homeHtml = await fetchHtmlWithHttp(homepageUrl);
+    } catch {
+      // Try www variant
+      try {
+        const parsed = new URL(homepageUrl);
+        const wwwUrl = parsed.hostname.startsWith("www.") 
+          ? homepageUrl.replace("www.", "")
+          : homepageUrl.replace(parsed.hostname, `www.${parsed.hostname}`);
+        homeHtml = await fetchHtmlWithHttp(wwwUrl);
+      } catch {
+        homeHtml = "";
+      }
+    }
+
+    if (homeHtml && isBlockedPage(homeHtml)) {
+      console.log(`[scan] Homepage is behind WAF/Cloudflare — content will be limited`);
+      homeBlocked = true;
+    }
+
+    const publicProducts = await publicProductsPromise;
     
     pagesScanned.push(homepageUrl);
     seenUrls.add(homepageUrl);
-    allSignals.push(extractSignalsFromHtml(homeHtml, homepageUrl));
-    detectedPrices.push(...extractPriceValues(homeHtml));
+
+    // Only extract signals from homepage if it's NOT blocked
+    if (homeHtml && !homeBlocked) {
+      allSignals.push(extractSignalsFromHtml(homeHtml, homepageUrl));
+      detectedPrices.push(...extractPriceValues(homeHtml));
+    }
 
     // Extract products from homepage HTML (many stores embed product JSON-LD)
     const homeProducts = extractProductsFromHtml(homeHtml, homepageUrl);
@@ -849,7 +875,44 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
 
     // ── Phase 2: Discover pages from homepage links ──
     await emitProgress(input.onProgress, 15, "DISCOVER_PAGES", "Détection de toutes les pages du site…");
-    const homeLinks = extractLinks(homeHtml, homepageUrl);
+    const homeLinks = (homeHtml && !homeBlocked) ? extractLinks(homeHtml, homepageUrl) : [];
+    
+    // If homepage was blocked, try to discover links by fetching common pages directly
+    if (homeLinks.length === 0) {
+      console.log(`[scan] No links from homepage (blocked or empty), trying common paths…`);
+      const commonPaths = [
+        "/shop", "/products", "/collections", "/catalogue", "/store",
+        "/boutique", "/nos-produits", "/all", "/categories",
+        "/sitemap.xml", "/robots.txt",
+      ];
+      const commonUrls = commonPaths.map((p) => `${origin}${p}`);
+      const commonResults = await fetchMultipleHttp(commonUrls, 5);
+      for (const { url, html } of commonResults) {
+        if (!isBlockedPage(html)) {
+          const links = extractLinks(html, homepageUrl);
+          homeLinks.push(...links);
+          // Also count as scanned page
+          if (!seenUrls.has(url)) {
+            seenUrls.add(url);
+            pagesScanned.push(url);
+            allSignals.push(extractSignalsFromHtml(html, url));
+            detectedPrices.push(...extractPriceValues(html));
+            // Extract any products from this page
+            const pageProducts = extractProductsFromHtml(html, url);
+            for (const p of pageProducts) {
+              if (!seenUrls.has(p.url)) {
+                seenUrls.add(p.url);
+                productAnalyses.push(p);
+                detectedPrices.push(...p.detected_prices);
+                productPages.push(p.url);
+              }
+            }
+          }
+        }
+      }
+      console.log(`[scan] Common paths discovery found ${homeLinks.length} links`);
+    }
+    
     const keyUrls = discoverKeyPages(homeLinks, homepageUrl, 60);
     console.log(`[scan] Homepage links: ${homeLinks.length} total, ${keyUrls.length} key pages`);
 
@@ -934,9 +997,9 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
         seenUrls.add(url);
         fetchedCount++;
 
-        // Skip Cloudflare / WAF challenge pages
+        // Skip Cloudflare / WAF challenge pages — count but don't analyze
         if (isBlockedPage(html)) {
-          console.log(`[scan] Skipping blocked/challenge page: ${url}`);
+          pagesScanned.push(url); // Still count as scanned
           continue;
         }
 
@@ -994,7 +1057,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
 
           // Skip Cloudflare / WAF challenge pages
           if (isBlockedPage(html)) {
-            console.log(`[scan] Skipping blocked/challenge page (fallback): ${url}`);
+            pagesScanned.push(url); // Still count
             continue;
           }
 
