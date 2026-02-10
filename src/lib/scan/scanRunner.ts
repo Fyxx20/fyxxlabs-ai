@@ -40,6 +40,17 @@ export interface RunScanInput {
   aov?: string | null;
   goal?: string;
   metrics?: { orders?: number; revenue?: number; customers?: number; aov?: number } | null;
+  /** Shopify API products when connected */
+  shopifyProducts?: Array<{
+    id: number;
+    title: string;
+    body_html: string;
+    handle: string;
+    product_type: string;
+    tags: string;
+    images: Array<{ src: string; alt: string | null }>;
+    variants: Array<{ price: string; sku: string }>;
+  }> | null;
   /** Callback pour progression UI (progress 0-100, step, message) */
   onProgress?: (progress: number, step: string, message: string) => void | Promise<void>;
 }
@@ -148,22 +159,59 @@ function extractPriceValues(html: string): number[] {
 }
 
 async function fetchSitemapProductUrls(baseUrl: string): Promise<string[]> {
+  const UA = "Mozilla/5.0 (compatible; FyxxLabsBot/1.0; +https://fyxxlabs.com)";
+
+  async function fetchXml(url: string): Promise<string | null> {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      const res = await fetch(url, { signal: controller.signal, headers: { "User-Agent": UA } });
+      clearTimeout(timeout);
+      if (!res.ok) return null;
+      return await res.text();
+    } catch {
+      return null;
+    }
+  }
+
   try {
     const site = new URL(baseUrl);
-    const sitemapUrl = `${site.origin}/sitemap.xml`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SITEMAP_TIMEOUT_MS);
-    const res = await fetch(sitemapUrl, {
-      signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; FyxxLabsBot/1.0; +https://fyxxlabs.com)" },
+    const productUrls: string[] = [];
+
+    // 1. Fetch main sitemap
+    const mainXml = await fetchXml(`${site.origin}/sitemap.xml`);
+    if (!mainXml) return [];
+
+    const allLocs = Array.from(mainXml.matchAll(/<loc>(.*?)<\/loc>/g)).map((m) => m[1]).filter(Boolean);
+
+    // 2. Check if it's a sitemap index (contains sub-sitemaps)
+    const subSitemaps = allLocs.filter((u) => /sitemap.*\.xml/i.test(u) || u.endsWith(".xml"));
+    const directProducts = allLocs.filter((u) => /\/product|\/products|\/produit/i.test(u) && !u.endsWith(".xml"));
+
+    // Add direct product URLs
+    productUrls.push(...directProducts);
+
+    // 3. Fetch sub-sitemaps that likely contain products
+    const productSitemaps = subSitemaps.filter((u) => /product|produit/i.test(u));
+    // Also try generic sub-sitemaps if no product-specific ones found
+    const toFetch = productSitemaps.length > 0 ? productSitemaps : subSitemaps.slice(0, 3);
+
+    const fetchPromises = toFetch.slice(0, 5).map(async (sitemapUrl) => {
+      const xml = await fetchXml(sitemapUrl);
+      if (!xml) return [];
+      return Array.from(xml.matchAll(/<loc>(.*?)<\/loc>/g))
+        .map((m) => m[1])
+        .filter(Boolean)
+        .filter((u) => !u.endsWith(".xml"));
     });
-    clearTimeout(timeout);
-    if (!res.ok) return [];
-    const xml = await res.text();
-    const matches = Array.from(xml.matchAll(/<loc>(.*?)<\/loc>/g)).map((m) => m[1]).filter(Boolean);
-    return matches
-      .filter((u) => /\/product|\/products|\/produit/i.test(u))
-      .slice(0, MAX_SITEMAP_PRODUCTS);
+
+    const subResults = await Promise.all(fetchPromises);
+    for (const urls of subResults) {
+      productUrls.push(...urls);
+    }
+
+    // Dedupe and return
+    return Array.from(new Set(productUrls)).slice(0, MAX_SITEMAP_PRODUCTS);
   } catch {
     return [];
   }
@@ -255,6 +303,119 @@ async function emitProgress(
   if (onProgress) await Promise.resolve(onProgress(progress, step, message));
 }
 
+/** Extract links from a collection/category page to find more product URLs */
+async function discoverLinksFromPage(url: string, mode: "playwright" | "http", baseOrigin: string): Promise<string[]> {
+  try {
+    const { html } = await fetchHtml(url, mode);
+    return extractLinks(html, baseOrigin);
+  } catch {
+    return [];
+  }
+}
+
+/** Build product analyses from Shopify API data (no crawling needed) */
+function analyzeShopifyApiProducts(products: NonNullable<RunScanInput["shopifyProducts"]>) {
+  return products.map((p) => {
+    const prices = p.variants
+      .map((v) => parseFloat(v.price))
+      .filter((v) => Number.isFinite(v) && v > 0);
+    const avgPrice = prices.length > 0 ? Number((prices.reduce((a, b) => a + b, 0) / prices.length).toFixed(2)) : null;
+    const hasImages = p.images.length >= 3;
+    const hasDescription = (p.body_html ?? "").length > 50;
+    const descLower = (p.body_html ?? "").toLowerCase();
+    const issues: string[] = [];
+    const recommendations: string[] = [];
+
+    if (!hasDescription) {
+      issues.push("Description produit trop courte ou absente.");
+      recommendations.push("Rédiger une description persuasive avec bénéfices, pas juste des caractéristiques.");
+    }
+    if (!hasImages || p.images.length < 3) {
+      issues.push(`Seulement ${p.images.length} image(s) — insuffisant.`);
+      recommendations.push("Ajouter au moins 3-5 images : angles différents, zoom, mise en situation.");
+    }
+    const imagesWithoutAlt = p.images.filter((img) => !img.alt || img.alt.trim().length === 0).length;
+    if (imagesWithoutAlt > 0) {
+      issues.push(`${imagesWithoutAlt} image(s) sans texte alternatif (alt).`);
+      recommendations.push("Ajouter un alt descriptif à chaque image pour le SEO.");
+    }
+    if (prices.length === 0) {
+      issues.push("Aucun prix détecté sur les variantes.");
+      recommendations.push("Vérifier que les variantes ont des prix définis.");
+    }
+    if (!p.tags || p.tags.trim().length === 0) {
+      issues.push("Aucun tag/catégorie défini.");
+      recommendations.push("Ajouter des tags pour améliorer la navigation et le SEO interne.");
+    }
+    if (!/livraison|shipping|retour|return|delivery/i.test(descLower)) {
+      issues.push("Aucune mention livraison/retours dans la description.");
+      recommendations.push("Mentionner les conditions de livraison et retours dans la fiche produit.");
+    }
+    if (!/avis|review|rating|star|étoile/i.test(descLower)) {
+      issues.push("Pas de preuve sociale (avis) visible dans la description.");
+      recommendations.push("Intégrer des avis clients ou une notation sur la fiche produit.");
+    }
+
+    return {
+      url: `shopify://products/${p.handle}`,
+      title: p.title,
+      h1: p.title,
+      meta_description: (p.body_html ?? "").replace(/<[^>]*>/g, "").slice(0, 160) || null,
+      image_count: p.images.length,
+      script_count: 0,
+      detected_prices: prices.slice(0, 20),
+      average_price: avgPrice,
+      has_cta: true, // Shopify products always have add-to-cart
+      has_reviews: /review|avis|rating/i.test(descLower),
+      has_trust_badges: /secure|paiement|garantie|guarantee|trust/i.test(descLower),
+      has_shipping_returns: /livraison|shipping|retour|return/i.test(descLower),
+      issues,
+      recommendations,
+    };
+  });
+}
+
+/** Quick competitor price estimation via Google Shopping / web search */
+async function estimateCompetitorPrices(productTitles: string[], ownAvgPrice: number | null): Promise<number | null> {
+  if (productTitles.length === 0 || !ownAvgPrice) return null;
+  // Take up to 3 product titles for search
+  const queries = productTitles.slice(0, 3);
+  const allPrices: number[] = [];
+
+  for (const query of queries) {
+    try {
+      const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(query + " prix")}`;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(searchUrl, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          "Accept-Language": "fr-FR,fr;q=0.9",
+        },
+      });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+      const html = await res.text();
+      // Extract prices from search results
+      const priceMatches = html.match(/(?:€|\$)\s?\d+(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?\s?(?:€|\$)/g) ?? [];
+      const nums = priceMatches
+        .map((m) => m.replace(/[^\d.,]/g, "").replace(",", "."))
+        .map((v) => parseFloat(v))
+        .filter((v) => Number.isFinite(v) && v > 1 && v < 50000);
+      allPrices.push(...nums);
+    } catch {
+      // skip
+    }
+  }
+
+  if (allPrices.length === 0) return null;
+  // Filter outliers: keep prices within 5x of own average
+  const reasonable = allPrices.filter((p) => p > ownAvgPrice * 0.1 && p < ownAvgPrice * 5);
+  if (reasonable.length === 0) return null;
+  return Number((reasonable.reduce((a, b) => a + b, 0) / reasonable.length).toFixed(2));
+}
+
 export async function runScan(input: RunScanInput): Promise<RunScanResult> {
   const start = Date.now();
   const baseUrl = input.url.replace(/\/$/, "") || input.url;
@@ -275,27 +436,73 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     allSignals.push(extractSignalsFromHtml(homeHtml, homepageUrl));
     detectedPrices.push(...extractPriceValues(homeHtml));
 
-    await emitProgress(input.onProgress, 15, "DISCOVER_PAGES", "Détection des pages clés…");
-    const links = extractLinks(homeHtml, homepageUrl);
-    const keyUrls = discoverKeyPages(links, homepageUrl, 60);
-    const sitemapProductUrls = await fetchSitemapProductUrls(homepageUrl);
-    const productUrls = keyUrls.filter((u) => /\/product|\/products|\/produit/i.test(u));
-    const nonProductUrls = keyUrls.filter((u) => !/\/product|\/products|\/produit/i.test(u));
-    const prioritizedUrls = Array.from(new Set([
-      ...sitemapProductUrls,
-      ...productUrls,
-      ...nonProductUrls,
-    ])).slice(0, MAX_DETAILED_SCAN_PAGES);
+    // ── Phase 1: Discover ALL links from homepage ──
+    await emitProgress(input.onProgress, 10, "DISCOVER_PAGES", "Détection de toutes les pages du site…");
+    const homeLinks = extractLinks(homeHtml, homepageUrl);
+    const keyUrls = discoverKeyPages(homeLinks, homepageUrl, 60);
 
+    // ── Phase 2: Deep crawl — follow collection/category pages to find more product links ──
+    await emitProgress(input.onProgress, 15, "DISCOVER_PAGES", "Exploration des collections et catégories…");
+    const collectionUrls = keyUrls.filter((u) => /\/collection|\/collections|\/categor/i.test(u));
+    const deepLinks: string[] = [];
+    const deepPromises = collectionUrls.slice(0, 8).map((url) =>
+      discoverLinksFromPage(url, overallMode, homepageUrl)
+    );
+    const deepResults = await Promise.all(deepPromises);
+    for (const links of deepResults) {
+      deepLinks.push(...links);
+    }
+    // Find product URLs from deep crawl
+    const deepProductUrls = deepLinks
+      .filter((u) => /\/product|\/products|\/produit/i.test(u))
+      .map((path) => {
+        try { return new URL(path, homepageUrl).href; } catch { return null; }
+      })
+      .filter(Boolean) as string[];
+
+    // ── Phase 3: Sitemap product discovery (fixed for sitemap index) ──
+    await emitProgress(input.onProgress, 20, "DISCOVER_PAGES", "Lecture du sitemap pour trouver tous les produits…");
+    const sitemapProductUrls = await fetchSitemapProductUrls(homepageUrl);
+
+    // ── Phase 4: If Shopify is connected, import products via API ──
+    if (input.shopifyProducts && input.shopifyProducts.length > 0) {
+      await emitProgress(input.onProgress, 25, "DISCOVER_PAGES", `${input.shopifyProducts.length} produits Shopify importés via API…`);
+      const shopifyAnalyses = analyzeShopifyApiProducts(input.shopifyProducts);
+      productAnalyses.push(...shopifyAnalyses);
+      for (const pa of shopifyAnalyses) {
+        detectedPrices.push(...pa.detected_prices);
+        productPages.push(pa.url);
+      }
+    }
+
+    // Merge ALL discovered URLs: sitemap products + deep crawl products + homepage products + other pages
+    const productUrlsFromLinks = keyUrls.filter((u) => /\/product|\/products|\/produit/i.test(u));
+    const nonProductUrls = keyUrls.filter((u) => !/\/product|\/products|\/produit/i.test(u));
+
+    const allDiscoveredUrls = Array.from(new Set([
+      ...sitemapProductUrls,
+      ...deepProductUrls,
+      ...productUrlsFromLinks,
+      ...nonProductUrls,
+    ])).filter((u) => !u.endsWith(".xml")); // exclude sitemap XML files
+
+    const prioritizedUrls = allDiscoveredUrls.slice(0, MAX_DETAILED_SCAN_PAGES);
+
+    await emitProgress(input.onProgress, 28, "EXTRACT", `${prioritizedUrls.length} pages à analyser (${sitemapProductUrls.length} depuis sitemap, ${deepProductUrls.length} crawl profond)…`);
+
+    // ── Phase 5: Fetch and analyze each page ──
     for (let i = 0; i < prioritizedUrls.length; i++) {
       if (pagesScanned.length >= MAX_DETAILED_SCAN_PAGES) break;
+      // Time guard: keep 15s for AI analysis
+      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 15000) break;
+
       const pageUrl = prioritizedUrls[i];
       try {
         await emitProgress(
           input.onProgress,
-          20 + Math.floor((35 * (i + 1)) / Math.max(prioritizedUrls.length, 1)),
+          28 + Math.floor((27 * (i + 1)) / Math.max(prioritizedUrls.length, 1)),
           "EXTRACT",
-          `Extraction des signaux (page ${i + 1}/${prioritizedUrls.length})…`
+          `Analyse page ${i + 1}/${prioritizedUrls.length} — ${new URL(pageUrl).pathname}…`
         );
         const { html, used } = await fetchHtml(pageUrl, overallMode);
         overallMode = used;
@@ -312,7 +519,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
         // skip page on error
       }
     }
-    await emitProgress(input.onProgress, 55, "EXTRACT", "Extraction terminée.");
+    await emitProgress(input.onProgress, 55, "EXTRACT", `Extraction terminée — ${pagesScanned.length} pages, ${productAnalyses.length} produits analysés.`);
   } catch (err) {
     const baseline = computeBaseline(allSignals);
     const fetchMs = Date.now() - start;
@@ -385,6 +592,18 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     priceInsights.own_average_price = Number(avg.toFixed(2));
     priceInsights.own_min_price = Number(Math.min(...prices).toFixed(2));
     priceInsights.own_max_price = Number(Math.max(...prices).toFixed(2));
+  }
+
+  // ── Competitor price estimation ──
+  if (priceInsights.own_average_price && productAnalyses.length > 0) {
+    await emitProgress(input.onProgress, 65, "SCORE", "Recherche des prix concurrents…");
+    const productTitles = productAnalyses
+      .map((p) => p.title)
+      .filter((t) => t && t.length > 3);
+    const competitorAvg = await estimateCompetitorPrices(productTitles, priceInsights.own_average_price);
+    if (competitorAvg) {
+      priceInsights.competitor_average_price = competitorAvg;
+    }
   }
 
   if (!isOpenAIAvailable()) {

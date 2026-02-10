@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { runScan, buildScanPreview } from "./scanRunner";
+import { runScan, buildScanPreview, type RunScanInput } from "./scanRunner";
+import { fetchShopifyProducts } from "@/lib/connectors/shopify";
 
 const STEP_LABELS: Record<string, string> = {
   QUEUED: "En file",
@@ -112,6 +113,39 @@ export async function runScanInBackground(
       };
     }
 
+    // Fetch Shopify products via API if connected
+    let shopifyApiProducts: RunScanInput["shopifyProducts"] = null;
+    try {
+      const { data: integration } = await admin
+        .from("store_integrations")
+        .select("status, provider")
+        .eq("store_id", scan.store_id)
+        .eq("provider", "shopify")
+        .eq("status", "connected")
+        .maybeSingle();
+
+      if (integration) {
+        await updateScan({ progress: 3, step: "RUNNING" });
+        await addEvent("info", "Import des produits Shopify via API…");
+        const products = await fetchShopifyProducts(scan.store_id);
+        if (products.length > 0) {
+          shopifyApiProducts = products.map((p) => ({
+            id: p.id,
+            title: p.title,
+            body_html: p.body_html ?? "",
+            handle: p.handle,
+            product_type: p.product_type ?? "",
+            tags: p.tags ?? "",
+            images: (p.images ?? []).map((img) => ({ src: img.src, alt: img.alt })),
+            variants: (p.variants ?? []).map((v) => ({ price: v.price, sku: v.sku ?? "" })),
+          }));
+          await addEvent("info", `${shopifyApiProducts.length} produits importés depuis Shopify.`);
+        }
+      }
+    } catch (err) {
+      await addEvent("warn", "Import Shopify échoué, scan HTML uniquement.", { error: String(err) });
+    }
+
     const result = await runScan({
       storeId: store.id,
       url: store.website_url,
@@ -122,6 +156,7 @@ export async function runScanInBackground(
       aov: store.aov_bucket ?? null,
       goal: store.goal ?? undefined,
       metrics,
+      shopifyProducts: shopifyApiProducts,
       onProgress: async (progress, step, message) => {
         await updateScan({ progress: Math.min(100, Math.max(0, progress)), step });
         await addEvent("info", message, { progress, step });
