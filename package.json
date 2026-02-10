@@ -9,7 +9,6 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "postinstall": "playwright install --with-deps || true",
     "playwright:install": "playwright install chromium",
     "db:generate": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "seed:users": "node scripts/seed-users.mjs",
@@ -34,7 +33,6 @@
     "lucide-react": "^0.460.0",
     "next": "14.2.18",
     "openai": "^4.73.0",
-    "playwright": "^1.49.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.53.2",
@@ -45,6 +43,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",
+    "playwright": "^1.49.0",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
