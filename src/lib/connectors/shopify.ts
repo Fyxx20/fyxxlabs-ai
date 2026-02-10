@@ -323,3 +323,43 @@ export async function updateShopifyProductSEO(
 
   return success;
 }
+
+/** Create a new product on Shopify */
+export async function createShopifyProduct(
+  storeId: string,
+  product: {
+    title: string;
+    body_html: string;
+    product_type?: string;
+    tags?: string;
+    images?: Array<{ src: string; alt?: string }>;
+    variants?: Array<{ price: string; compare_at_price?: string; sku?: string; title?: string }>;
+  }
+): Promise<{ success: boolean; productId?: number; handle?: string; error?: string }> {
+  const creds = await getShopifyCredentials(storeId);
+  if (!creds) return { success: false, error: "Shopify non connecté" };
+
+  const { accessToken, shop } = creds;
+  const url = `https://${shop}/admin/api/2024-01/products.json`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "X-Shopify-Access-Token": accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ product }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    return { success: false, error: `Shopify ${res.status}: ${text.slice(0, 200)}` };
+  }
+
+  const data = (await res.json()) as { product?: { id: number; handle: string } };
+  return {
+    success: true,
+    productId: data.product?.id,
+    handle: data.product?.handle,
+  };
+}
