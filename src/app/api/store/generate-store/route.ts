@@ -54,6 +54,35 @@ async function fetchPage(url: string): Promise<string> {
   }
 }
 
+/* ─── Multi-strategy fetch for AliExpress ─── */
+async function fetchWithStrategies(url: string): Promise<string | null> {
+  const strategies = [
+    { label: 'desktop', url, headers: BROWSER_HEADERS },
+    { label: 'googlebot', url: url.replace('fr.aliexpress.com', 'www.aliexpress.com'), headers: {
+      'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
+      'Accept': 'text/html',
+    }},
+    { label: 'mobile', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://m.aliexpress.com'), headers: {
+      ...BROWSER_HEADERS,
+      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+    }},
+  ];
+
+  for (const s of strategies) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(s.url, { signal: controller.signal, headers: s.headers, redirect: 'follow' });
+      clearTimeout(timeout);
+      const html = await res.text();
+      const hasData = html.includes('og:title') || html.includes('imagePathList') || html.includes('runParams');
+      const isBlocked = html.includes('Just a moment') || html.includes('cf-browser-verification') || html.includes('challenge-form');
+      if (hasData && !isBlocked && html.length > 5000) return html;
+    } catch { /* next strategy */ }
+  }
+  return null;
+}
+
 /* ─── AliExpress-specific: extract data from inline JS ─── */
 function extractAliExpressData(html: string, url: string): Partial<ScrapedProduct> | null {
   const partial: Partial<ScrapedProduct> = {};
@@ -314,21 +343,28 @@ export async function POST(req: NextRequest) {
 
       const results: (ScrapedProduct | null)[] = [];
       for (const url of urls) {
+        const isAli = url.toLowerCase().includes('aliexpress');
         try {
-          const html = await fetchPage(url.trim());
+          let html: string | null = null;
+          
+          if (isAli) {
+            html = await fetchWithStrategies(url.trim());
+          }
+          if (!html) {
+            html = await fetchPage(url.trim());
+          }
+          
           const product = scrapeProduct(html, url.trim());
           if (product.title && product.title.length >= 3) {
             results.push(product);
-          } else if (url.toLowerCase().includes('aliexpress')) {
-            // Try mobile fallback for AliExpress
+          } else if (isAli) {
             const ali = await fetchAliExpressMobile(url.trim());
             results.push(ali);
           } else {
             results.push(null);
           }
         } catch {
-          // On fetch error, try AliExpress mobile if applicable
-          if (url.toLowerCase().includes('aliexpress')) {
+          if (isAli) {
             const ali = await fetchAliExpressMobile(url.trim());
             results.push(ali);
           } else {
