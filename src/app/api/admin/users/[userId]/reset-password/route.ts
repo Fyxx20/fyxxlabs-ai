@@ -19,6 +19,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
   });
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Replace localhost/default Supabase URL with the real app URL
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://fyxxlabs.com";
+  let recoveryLink = linkData.properties?.action_link ?? "";
+  if (recoveryLink) {
+    try {
+      const parsed = new URL(recoveryLink);
+      const realUrl = new URL(appUrl);
+      parsed.protocol = realUrl.protocol;
+      parsed.host = realUrl.host;
+      recoveryLink = parsed.toString();
+    } catch {
+      // keep original link if parsing fails
+    }
+  }
+
   const meta = getRequestMeta(request);
   await logAdminAction({
     admin_user_id: auth.user.id,
@@ -33,6 +48,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ use
   return NextResponse.json({
     ok: true,
     message: "Lien de réinitialisation généré (à envoyer manuellement à l'utilisateur)",
-    recovery_link: linkData.properties?.action_link,
+    recovery_link: recoveryLink,
   });
 }
