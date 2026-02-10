@@ -10,12 +10,20 @@ import {
 } from "./analyzers/extractSignals";
 import { isOpenAIAvailable, callOpenAIJson, OPENAI_ERROR_CODES } from "@/lib/ai/openaiClient";
 import { buildScanUserMessage } from "@/lib/ai/prompts/scan.user";
-const SCAN_SYSTEM_PROMPT = `Tu es un consultant e-commerce senior spécialisé CRO + UX.
-Tu ne promets jamais de résultats financiers.
-Tu donnes uniquement des actions concrètes, mesurables et applicables en moins de 60 minutes.
-Tu t'appuies uniquement sur les signaux fournis.
-Si une info manque, tu l'indiques et tu mets confidence=low.
-Réponds UNIQUEMENT en JSON valide, sans texte avant ou après.`;
+const SCAN_SYSTEM_PROMPT = `Tu es un consultant e-commerce senior ultra-exigeant spécialisé CRO, UX, SEO et copywriting de conversion.
+
+MISSION: Analyser EN PROFONDEUR chaque page, chaque produit, chaque élément du site e-commerce fourni.
+
+RÈGLES:
+- Tu analyses le texte visible, les titres, descriptions, CTA, images, structure, données produits.
+- Tu identifies TOUS les problèmes de conversion, même subtils (copywriting faible, manque d'urgence, pas de preuve sociale, etc.).
+- Tu donnes des actions ULTRA CONCRÈTES avec des exemples de texte spécifiques au site.
+- Tu ne promets jamais de résultats financiers chiffrés.
+- Tu donnes au minimum 6 issues détaillées et précises.
+- Chaque issue doit avoir des fix_steps exploitables immédiatement.
+- Si une info manque, tu l'indiques et tu mets confidence=low.
+- Sois SÉVÈRE dans ton scoring : un site moyen = 40-55, un bon site = 65-75, un excellent site = 80+.
+- Réponds UNIQUEMENT en JSON valide, sans texte avant ou après.`;
 
 const GLOBAL_TIMEOUT_MS = 60000;
 const SITEMAP_TIMEOUT_MS = 12000;
@@ -385,6 +393,22 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
   }
 
   await emitProgress(input.onProgress, 85, "AI_SUMMARY", "Synthèse IA en cours…");
+
+  // Build page contents for AI (truncated text per page)
+  const pageContents = allSignals.slice(0, 15).map((s) => ({
+    url: s.url,
+    pageType: s.pageType,
+    title: s.title,
+    h1: s.h1,
+    visibleText: s.visibleText,
+    wordCount: s.wordCount,
+    h2Texts: s.h2Texts,
+    structuredData: s.structuredData,
+    hasCanonical: s.hasCanonical,
+    hasOpenGraph: s.hasOpenGraph,
+    imageAltRatio: s.imageAltRatio,
+  }));
+
   const userMessage = buildScanUserMessage({
     store: {
       url: homepageUrl,
@@ -398,6 +422,14 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     pagesAnalyzed: pagesScanned,
     metrics: input.metrics ?? null,
     modeUrlOnly: !input.metrics?.orders && !input.metrics?.revenue,
+    productAnalysis: productAnalyses?.slice(0, 20) ?? null,
+    pageContents,
+    priceInsights: result.raw.price_insights ? {
+      own_average_price: result.raw.price_insights.own_average_price,
+      own_min_price: result.raw.price_insights.own_min_price,
+      own_max_price: result.raw.price_insights.own_max_price,
+      product_count: result.raw.price_insights.product_pages.length,
+    } : null,
   });
 
   const aiStart = Date.now();

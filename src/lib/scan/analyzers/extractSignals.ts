@@ -8,6 +8,19 @@ const CONTACT_KEYWORDS = /mailto:|tel:|contact|nous contacter|contactez/i;
 const REVIEW_KEYWORDS = /review|avis|rating|étoile|star|trustpilot|google review/i;
 const TRUST_KEYWORDS = /secure|ssl|paiement|payment|garantie|guarantee|trust/i;
 
+export interface StructuredProductData {
+  name?: string;
+  description?: string;
+  price?: string;
+  currency?: string;
+  availability?: string;
+  brand?: string;
+  ratingValue?: string;
+  reviewCount?: string;
+  sku?: string;
+  image?: string;
+}
+
 export interface PageSignals {
   url: string;
   title: string;
@@ -27,6 +40,22 @@ export interface PageSignals {
   hasCartLinks: boolean;
   ctaAboveFold: boolean;
   priceAboveFold: boolean;
+  /** Visible text content (truncated to ~800 chars) for AI analysis */
+  visibleText: string;
+  /** Word count of full visible text */
+  wordCount: number;
+  /** H2 headings list for page structure analysis */
+  h2Texts: string[];
+  /** JSON-LD structured data if present (Product, Organization, etc.) */
+  structuredData: StructuredProductData[];
+  /** Whether page has canonical URL set */
+  hasCanonical: boolean;
+  /** Whether page has Open Graph tags */
+  hasOpenGraph: boolean;
+  /** Whether page has alt text on images */
+  imageAltRatio: number;
+  /** Page type detected */
+  pageType: "home" | "product" | "collection" | "cart" | "about" | "contact" | "other";
 }
 
 export function extractSignalsFromHtml(html: string, url: string): PageSignals {
@@ -43,6 +72,13 @@ export function extractSignalsFromHtml(html: string, url: string): PageSignals {
     null;
   const h1 = $("h1").first().text().trim() || null;
   const h2Count = $("h2").length;
+
+  // Extract H2 texts for structure analysis
+  const h2Texts: string[] = [];
+  $("h2").each((_, el) => {
+    const txt = $(el).text().trim();
+    if (txt && h2Texts.length < 10) h2Texts.push(txt.slice(0, 80));
+  });
 
   const hasCta =
     CTA_KEYWORDS.test(htmlLower) &&
@@ -61,9 +97,58 @@ export function extractSignalsFromHtml(html: string, url: string): PageSignals {
   const viewport = $('meta[name="viewport"]').attr("content") ?? "";
   const hasViewportMobile = /width=device-width|initial-scale=1/i.test(viewport);
 
+  // Extract visible text for AI analysis
+  $("script, style, noscript, svg, iframe").remove();
+  const fullVisibleText = $("body").text().replace(/\s+/g, " ").trim();
+  const wordCount = fullVisibleText.split(/\s+/).filter(Boolean).length;
+  const visibleText = fullVisibleText.slice(0, 800);
+
+  // Extract JSON-LD structured data
+  const structuredData: StructuredProductData[] = [];
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const raw = $(el).html();
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      for (const item of items) {
+        if (item["@type"] === "Product" || item["@type"]?.includes?.("Product")) {
+          structuredData.push({
+            name: item.name ?? undefined,
+            description: typeof item.description === "string" ? item.description.slice(0, 300) : undefined,
+            price: item.offers?.price ?? item.offers?.[0]?.price ?? undefined,
+            currency: item.offers?.priceCurrency ?? item.offers?.[0]?.priceCurrency ?? undefined,
+            availability: item.offers?.availability ?? undefined,
+            brand: item.brand?.name ?? item.brand ?? undefined,
+            ratingValue: item.aggregateRating?.ratingValue ?? undefined,
+            reviewCount: item.aggregateRating?.reviewCount ?? undefined,
+            sku: item.sku ?? undefined,
+            image: typeof item.image === "string" ? item.image : item.image?.[0] ?? undefined,
+          });
+        }
+      }
+    } catch {
+      // Ignore invalid JSON-LD
+    }
+  });
+
+  // Image alt text analysis
+  let imagesWithAlt = 0;
+  $("img").each((_, el) => {
+    const alt = $(el).attr("alt");
+    if (alt && alt.trim().length > 0) imagesWithAlt++;
+  });
+  const imageAltRatio = imageCount > 0 ? Number((imagesWithAlt / imageCount).toFixed(2)) : 1;
+
+  // Check canonical and OG tags
+  const hasCanonical = $('link[rel="canonical"]').length > 0;
+  const hasOpenGraph = $('meta[property^="og:"]').length >= 2;
+
   const links: string[] = [];
-  $("a[href]").each((_, el) => {
-    const href = $(el).attr("href") ?? "";
+  // Re-parse links from full HTML (before script removal)
+  const $full = cheerio.load(html);
+  $full("a[href]").each((_, el) => {
+    const href = $full(el).attr("href") ?? "";
     if (href.startsWith("#") || href.startsWith("javascript:")) return;
     try {
       const full = new URL(href, url).pathname.toLowerCase();
@@ -77,6 +162,23 @@ export function extractSignalsFromHtml(html: string, url: string): PageSignals {
 
   const ctaAboveFold = CTA_KEYWORDS.test(topHtml) && (hasCta || /button|btn|submit/i.test(topHtml));
   const priceAboveFold = PRICE_REGEX.test(topHtml) || $(".price, .product-price").length > 0;
+
+  // Detect page type
+  const urlLower = url.toLowerCase();
+  let pageType: PageSignals["pageType"] = "other";
+  if (urlLower === new URL(url).origin + "/" || urlLower.endsWith("/") && new URL(url).pathname === "/") {
+    pageType = "home";
+  } else if (/\/product|\/products|\/produit/i.test(urlLower)) {
+    pageType = "product";
+  } else if (/\/collection|\/collections|\/categor/i.test(urlLower)) {
+    pageType = "collection";
+  } else if (/\/cart|\/panier|\/checkout/i.test(urlLower)) {
+    pageType = "cart";
+  } else if (/\/about|\/a-propos|\/qui-sommes/i.test(urlLower)) {
+    pageType = "about";
+  } else if (/\/contact|\/nous-contacter/i.test(urlLower)) {
+    pageType = "contact";
+  }
 
   return {
     url,
@@ -97,6 +199,14 @@ export function extractSignalsFromHtml(html: string, url: string): PageSignals {
     hasCartLinks,
     ctaAboveFold,
     priceAboveFold,
+    visibleText,
+    wordCount,
+    h2Texts,
+    structuredData,
+    hasCanonical,
+    hasOpenGraph,
+    imageAltRatio,
+    pageType,
   };
 }
 

@@ -22,7 +22,7 @@ function getAdminClient() {
 
 const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID ?? "";
 const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET ?? "";
-const SCOPES = "read_orders,read_customers,read_products";
+const SCOPES = "read_orders,read_customers,read_products,write_products";
 
 function verifyShopifyHmac(query: Record<string, string>, secret: string): boolean {
   const hmac = query.hmac;
@@ -190,3 +190,136 @@ export const shopifyConnector: Connector = {
       .eq("provider", "shopify");
   },
 };
+
+/* ─── Shopify Write Helpers ─── */
+
+export interface ShopifyProduct {
+  id: number;
+  title: string;
+  body_html: string;
+  handle: string;
+  product_type: string;
+  tags: string;
+  images: Array<{ id: number; src: string; alt: string | null }>;
+  variants: Array<{ id: number; title: string; price: string; sku: string }>;
+  metafields_global_title_tag?: string;
+  metafields_global_description_tag?: string;
+}
+
+export interface ShopifyProductUpdate {
+  title?: string;
+  body_html?: string;
+  tags?: string;
+  metafields_global_title_tag?: string;
+  metafields_global_description_tag?: string;
+}
+
+/** Get decrypted Shopify credentials for a store */
+export async function getShopifyCredentials(storeId: string): Promise<{ accessToken: string; shop: string } | null> {
+  const admin = getAdminClient();
+  const { data: row } = await admin
+    .from("store_integrations")
+    .select("credentials_encrypted, shop_domain")
+    .eq("store_id", storeId)
+    .eq("provider", "shopify")
+    .eq("status", "connected")
+    .single();
+
+  if (!row?.credentials_encrypted || !row.shop_domain) return null;
+
+  try {
+    const creds = JSON.parse(decryptCredentials(row.credentials_encrypted));
+    return { accessToken: creds.access_token ?? "", shop: row.shop_domain };
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch all products from Shopify (paginated, up to 250) */
+export async function fetchShopifyProducts(storeId: string): Promise<ShopifyProduct[]> {
+  const creds = await getShopifyCredentials(storeId);
+  if (!creds) return [];
+
+  const { accessToken, shop } = creds;
+  const base = `https://${shop}/admin/api/2024-01`;
+  const headers = { "X-Shopify-Access-Token": accessToken };
+
+  const products: ShopifyProduct[] = [];
+  let nextPage: string | null = `${base}/products.json?limit=250`;
+
+  while (nextPage && products.length < 250) {
+    const res: Response = await fetch(nextPage, { headers });
+    if (!res.ok) break;
+    const data = (await res.json()) as { products?: ShopifyProduct[] };
+    products.push(...(data.products ?? []));
+
+    const link = res.headers.get("link");
+    nextPage = null;
+    if (link?.includes('rel="next"')) {
+      const m = link.match(/<([^>]+)>;\s*rel="next"/);
+      if (m) nextPage = m[1];
+    }
+  }
+
+  return products;
+}
+
+/** Update a single Shopify product */
+export async function updateShopifyProduct(
+  storeId: string,
+  productId: number,
+  updates: ShopifyProductUpdate
+): Promise<boolean> {
+  const creds = await getShopifyCredentials(storeId);
+  if (!creds) return false;
+
+  const { accessToken, shop } = creds;
+  const url = `https://${shop}/admin/api/2024-01/products/${productId}.json`;
+
+  const res = await fetch(url, {
+    method: "PUT",
+    headers: {
+      "X-Shopify-Access-Token": accessToken,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ product: { id: productId, ...updates } }),
+  });
+
+  return res.ok;
+}
+
+/** Update SEO metafields for a product */
+export async function updateShopifyProductSEO(
+  storeId: string,
+  productId: number,
+  seoTitle: string,
+  seoDescription: string
+): Promise<boolean> {
+  const creds = await getShopifyCredentials(storeId);
+  if (!creds) return false;
+
+  const { accessToken, shop } = creds;
+  const base = `https://${shop}/admin/api/2024-01`;
+  const headers = {
+    "X-Shopify-Access-Token": accessToken,
+    "Content-Type": "application/json",
+  };
+
+  // Update product metafields for SEO
+  const metafields = [
+    { namespace: "global", key: "title_tag", value: seoTitle, type: "single_line_text_field" },
+    { namespace: "global", key: "description_tag", value: seoDescription, type: "single_line_text_field" },
+  ];
+
+  let success = true;
+  for (const mf of metafields) {
+    const res = await fetch(`${base}/products/${productId}/metafields.json`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ metafield: mf }),
+    });
+    if (!res.ok) success = false;
+  }
+
+  return success;
+}

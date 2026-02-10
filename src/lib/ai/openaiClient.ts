@@ -49,8 +49,8 @@ export async function callOpenAIJson<T = unknown>(params: CallOpenAIJsonParams):
   }
 
   const openai = new OpenAI({ apiKey: key, timeout: 30000 });
-  const maxOutputTokens = (params.maxTokens ?? Number(process.env.OPENAI_MAX_OUTPUT_TOKENS)) || 1200;
-  const temp = (params.temperature ?? Number(process.env.OPENAI_TEMPERATURE)) || 0.2;
+  const maxOutputTokens = (params.maxTokens ?? Number(process.env.OPENAI_MAX_OUTPUT_TOKENS)) || 3000;
+  const temp = (params.temperature ?? Number(process.env.OPENAI_TEMPERATURE)) || 0.3;
 
   const userContent = schemaHint
     ? `${user}\n\nRéponds UNIQUEMENT avec un JSON valide (pas de markdown, pas de texte autour). Structure attendue: ${schemaHint}`

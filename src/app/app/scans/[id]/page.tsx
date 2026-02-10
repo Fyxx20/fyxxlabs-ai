@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
 import { ArrowLeft, Store, Calendar, RefreshCw } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import { ScanPolling } from "./scan-polling";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { computeDisplayScore } from "@/lib/score";
@@ -25,28 +26,37 @@ function isValidScanId(id: unknown): id is string {
 }
 
 function estimateSalesRateLift(score: number, issueCount: number): { min: number; max: number } {
-  // Heuristique prudente : plus le score est bas et les issues nombreuses, plus le potentiel est élevé.
-  let min = 0.1;
-  let max = 0.4;
+  // Estimation du potentiel d'amélioration du taux de conversion basée sur le score CRO
+  let min = 1.5;
+  let max = 4.0;
 
-  if (score < 35) {
-    min = 0.8;
-    max = 2.2;
+  if (score < 30) {
+    min = 8.0;
+    max = 18.0;
+  } else if (score < 40) {
+    min = 5.5;
+    max = 14.0;
   } else if (score < 50) {
-    min = 0.5;
-    max = 1.6;
+    min = 4.0;
+    max = 10.0;
+  } else if (score < 60) {
+    min = 3.0;
+    max = 7.5;
   } else if (score < 70) {
-    min = 0.25;
-    max = 0.9;
+    min = 2.0;
+    max = 5.5;
+  } else if (score < 80) {
+    min = 1.5;
+    max = 4.0;
   }
 
-  const issueBoost = Math.min(0.6, issueCount * 0.05);
-  min += issueBoost * 0.35;
+  const issueBoost = Math.min(3.0, issueCount * 0.3);
+  min += issueBoost * 0.5;
   max += issueBoost;
 
   return {
-    min: Number(min.toFixed(2)),
-    max: Number(max.toFixed(2)),
+    min: Number(min.toFixed(1)),
+    max: Number(max.toFixed(1)),
   };
 }
 
@@ -304,8 +314,28 @@ export default async function ScanDetailPage({
                   Cette projection est une estimation basée sur les signaux détectés et les problèmes actuels du site.
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Estimation non contractuelle : les résultats réels dépendent du trafic, du marché, de l'offre et de la qualité d'exécution.
+                  Estimation non contractuelle : les résultats réels dépendent du trafic, du marché, de l&apos;offre et de la qualité d&apos;exécution.
                 </p>
+              </CardContent>
+            </Card>
+
+            {/* AI Auto-Fix CTA */}
+            <Card className="border-purple-500/20 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Wand2 className="h-5 w-5 text-purple-500" />
+                  Corriger automatiquement avec l&apos;IA
+                </CardTitle>
+                <CardDescription>
+                  FyxxLabs peut optimiser automatiquement vos fiches produit Shopify : titres, descriptions, SEO, tags.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/app/auto-fix">
+                  <Button className="bg-purple-600 hover:bg-purple-700">
+                    <Wand2 className="h-4 w-4 mr-2" /> Lancer l&apos;AI Auto-Fix
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 

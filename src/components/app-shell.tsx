@@ -24,6 +24,7 @@ import {
   ChevronDown,
   LogOut,
   Store,
+  Wand2,
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
@@ -36,6 +37,7 @@ interface StoreRow {
 const nav = [
   { href: "/app/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/app/scans", label: "Scans", icon: ScanSearch },
+  { href: "/app/auto-fix", label: "AI Auto-Fix", icon: Wand2 },
   { href: "/app/coach", label: "Coach", icon: MessageSquare },
   { href: "/app/integrations", label: "Gérer la boutique", icon: Plug },
   { href: "/app/billing", label: "Facturation", icon: CreditCard },
