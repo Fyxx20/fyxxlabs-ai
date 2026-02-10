@@ -23,7 +23,7 @@ export default async function ImportProductPage() {
 
   if (!currentStore) redirect("/onboarding");
 
-  // Check if Shopify is connected
+  // Check if Shopify is connected (optional — scrape+generate work without it)
   const { data: integration } = await supabase
     .from("store_integrations")
     .select("status, shop_domain")
@@ -32,28 +32,11 @@ export default async function ImportProductPage() {
     .eq("status", "connected")
     .maybeSingle();
 
-  if (!integration) {
-    return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-4">
-        <h1 className="text-2xl font-bold">Shopify non connecté</h1>
-        <p className="text-muted-foreground">
-          Connectez votre boutique Shopify pour importer des produits.
-        </p>
-        <a
-          href="/app/integrations"
-          className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-        >
-          Connecter Shopify
-        </a>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-4xl mx-auto py-6 px-4">
       <ImportProductClient
         storeId={currentStore.id}
-        shopDomain={integration.shop_domain ?? ""}
+        shopDomain={integration?.shop_domain ?? null}
       />
     </div>
   );

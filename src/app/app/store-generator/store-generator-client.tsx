@@ -80,8 +80,9 @@ export function StoreGeneratorClient({
   shopDomain,
 }: {
   storeId: string;
-  shopDomain: string;
+  shopDomain: string | null;
 }) {
+  const shopifyConnected = !!shopDomain;
   const [step, setStep] = useState<Step>("input");
   const [urls, setUrls] = useState<string[]>([""]);
   const [error, setError] = useState<string | null>(null);
@@ -496,11 +497,17 @@ export function StoreGeneratorClient({
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" onClick={() => setStep("scraped")}>Retour</Button>
-            <Button onClick={handleCreate} className="flex-1 text-base py-6" size="lg">
-              <Upload className="h-5 w-5 mr-2" />
-              Créer tout sur Shopify
-              <Rocket className="h-5 w-5 ml-2" />
-            </Button>
+            {shopifyConnected ? (
+              <Button onClick={handleCreate} className="flex-1 text-base py-6" size="lg">
+                <Upload className="h-5 w-5 mr-2" />
+                Créer tout sur Shopify
+                <Rocket className="h-5 w-5 ml-2" />
+              </Button>
+            ) : (
+              <a href="/app/integrations" className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-4 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-base font-medium">
+                Connecter Shopify pour créer la boutique
+              </a>
+            )}
           </div>
         </div>
       )}
@@ -557,7 +564,7 @@ export function StoreGeneratorClient({
 
             <div className="flex flex-col gap-2 items-center pt-3">
               <a
-                href={`https://${shopDomain}/admin/products`}
+                href={`https://${shopDomain ?? ""}/admin/products`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"

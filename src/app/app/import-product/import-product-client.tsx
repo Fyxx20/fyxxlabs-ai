@@ -57,8 +57,9 @@ export function ImportProductClient({
   shopDomain,
 }: {
   storeId: string;
-  shopDomain: string;
+  shopDomain: string | null;
 }) {
+  const shopifyConnected = !!shopDomain;
   const [step, setStep] = useState<Step>("input");
   const [url, setUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -459,7 +460,7 @@ export function ImportProductClient({
                   {generated.seo_title}
                 </p>
                 <p className="text-xs text-emerald-700 dark:text-emerald-400">
-                  {shopDomain}/products/...
+                  {shopDomain ?? "votre-boutique.myshopify.com"}/products/...
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {generated.seo_description}
@@ -515,10 +516,16 @@ export function ImportProductClient({
               <ArrowLeft className="h-4 w-4 mr-2" />
               Retour
             </Button>
-            <Button onClick={handleImport} className="flex-1">
-              <Upload className="h-4 w-4 mr-2" />
-              Importer sur Shopify
-            </Button>
+            {shopifyConnected ? (
+              <Button onClick={handleImport} className="flex-1">
+                <Upload className="h-4 w-4 mr-2" />
+                Importer sur Shopify
+              </Button>
+            ) : (
+              <a href="/app/integrations" className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+                Connecter Shopify pour importer
+              </a>
+            )}
           </div>
         </div>
       )}
@@ -550,7 +557,7 @@ export function ImportProductClient({
             </p>
             <div className="flex flex-col gap-2 items-center pt-2">
               <a
-                href={`https://${shopDomain}/admin/products/${importResult.productId}`}
+                href={`https://${shopDomain ?? ""}/admin/products/${importResult.productId}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
