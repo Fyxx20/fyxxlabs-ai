@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Send, Loader2, Zap, Sparkles, Bot, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +27,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
   const suggestedPrompts = [
     "Pourquoi mon taux de conversion est faible ?",
     "Donne-moi 5 quick wins pour ma page produit",
-    "Qu'est-ce qui bloque mon checkout ?",
+    "Qu\u2019est-ce qui bloque mon checkout ?",
     "Quels KPI dois-je suivre cette semaine ?",
   ];
 
@@ -86,7 +85,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
         {
           id: crypto.randomUUID(),
           role: "assistant",
-          content: `Erreur: ${msg}. Clique sur « Réessayer » pour renvoyer ton message.`,
+          content: `Erreur: ${msg}`,
           created_at: new Date().toISOString(),
         },
       ]);
@@ -105,9 +104,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
         body: JSON.stringify({ store_id: storeId }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error ?? "Erreur");
-      }
+      if (!res.ok) throw new Error(data.error ?? "Erreur");
       router.push(`/app/scans/${data.id}?new=1`);
       router.refresh();
     } catch (e) {
@@ -118,135 +115,124 @@ export function CoachChat({ storeId }: { storeId: string }) {
   }
 
   return (
-    <Card className="overflow-hidden border-border/60 shadow-sm">
-      <CardHeader className="border-b border-border/60 bg-gradient-to-r from-primary/5 via-background to-background">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Sparkles className="h-5 w-5 text-primary" />
-              Discussion avec FyxxLabs
-            </CardTitle>
-            <CardDescription>
-              Recommandations basées sur ton dernier scan. Pose des questions concrètes pour obtenir des actions priorisées.
-            </CardDescription>
-          </div>
-          <Badge variant="secondary" className="gap-1.5">
-            <Bot className="h-3.5 w-3.5" />
-            Coach e-commerce actif
-          </Badge>
+    <Card className="overflow-hidden border-border/60 flex flex-col" style={{ height: "calc(100vh - 200px)", minHeight: "480px" }}>
+      {/* Suggested prompts */}
+      <div className="border-b border-border/60 px-4 py-3 bg-muted/20">
+        <div className="flex flex-wrap gap-2">
+          {suggestedPrompts.map((prompt) => (
+            <button
+              key={prompt}
+              type="button"
+              onClick={() => setInput(prompt)}
+              className="rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              {prompt}
+            </button>
+          ))}
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-4 p-0">
-        <div className="px-4 pt-4">
-          <div className="flex flex-wrap gap-2">
-            {suggestedPrompts.map((prompt) => (
-              <button
-                key={prompt}
-                type="button"
-                onClick={() => setInput(prompt)}
-                className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                {prompt}
-              </button>
-            ))}
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {loadingHistory ? (
+          <div className="flex items-center justify-center py-12 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <span className="text-sm">Chargement...</span>
           </div>
-        </div>
-
-        <div className="flex h-[520px] flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-4">
-            {loadingHistory ? (
-              <div className="flex justify-center py-8 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="ml-2">Chargement de la conversation…</span>
-              </div>
-            ) : messages.length === 0 ? (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-12 text-center">
-                <Sparkles className="h-10 w-10 text-primary/70" />
-                <p className="mt-4 font-medium">Démarre la conversation</p>
-                <p className="max-w-md text-sm text-muted-foreground">
-                  Ex. "Que dois-je corriger en priorité ?" ou "Donne-moi un plan d'action sur 7 jours".
-                </p>
-              </div>
-            ) : (
-              messages.map((m) => (
-                <div
-                  key={m.id}
-                  className={cn(
-                    "flex",
-                    m.role === "user" ? "justify-end" : "justify-start"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "max-w-[85%] rounded-2xl border px-4 py-3 text-sm shadow-sm",
-                      m.role === "user"
-                        ? "border-primary/20 bg-primary text-primary-foreground"
-                        : "border-border bg-card"
-                    )}
-                  >
-                    <div className="mb-1 flex items-center gap-1.5 text-[10px] opacity-80">
-                      {m.role === "user" ? (
-                        <>
-                          <UserRound className="h-3 w-3" />
-                          <span>Toi</span>
-                        </>
-                      ) : (
-                        <>
-                          <Bot className="h-3 w-3" />
-                          <span>FyxxLabs</span>
-                        </>
-                      )}
-                    </div>
-                    <p className="whitespace-pre-wrap">{m.content}</p>
-                  </div>
-                </div>
-              ))
-            )}
-            {loading && (
-              <div className="flex justify-start">
-                <div className="rounded-2xl border border-border bg-card px-4 py-3">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                </div>
-              </div>
-            )}
-            <div ref={bottomRef} />
-          </div>
-          <form
-            onSubmit={handleSubmit}
-            className="border-t border-border/60 bg-background/80 p-4"
-          >
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-background p-2 shadow-sm">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Écris ta question…"
-                disabled={loading}
-                className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
-              />
-              <Button type="submit" size="sm" disabled={loading || !input.trim()} className="gap-2">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Envoyer
-              </Button>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+              <Sparkles className="h-7 w-7 text-primary" />
             </div>
-          </form>
-        </div>
+            <p className="font-semibold mb-1">D\u00e9marrez la conversation</p>
+            <p className="text-sm text-muted-foreground max-w-sm">
+              Ex. &laquo; Que dois-je corriger en priorit\u00e9 ? &raquo; ou
+              &laquo; Donne-moi un plan d&apos;action sur 7 jours &raquo;
+            </p>
+          </div>
+        ) : (
+          messages.map((m) => (
+            <div
+              key={m.id}
+              className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}
+            >
+              <div
+                className={cn(
+                  "max-w-[85%] rounded-2xl px-4 py-3 text-sm",
+                  m.role === "user"
+                    ? "bg-primary text-primary-foreground"
+                    : "border border-border/60 bg-muted/30"
+                )}
+              >
+                <div className="mb-1 flex items-center gap-1.5 text-[10px] opacity-70">
+                  {m.role === "user" ? (
+                    <>
+                      <UserRound className="h-3 w-3" />
+                      <span>Vous</span>
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="h-3 w-3" />
+                      <span>FyxxLabs</span>
+                    </>
+                  )}
+                </div>
+                <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+              </div>
+            </div>
+          ))
+        )}
+        {loading && (
+          <div className="flex justify-start">
+            <div className="rounded-2xl border border-border/60 bg-muted/30 px-4 py-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>R\u00e9flexion...</span>
+              </div>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef} />
+      </div>
 
-        <div className="border-t border-border/60 p-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full gap-2"
-            onClick={handleRescan}
-            disabled={rescanLoading}
-          >
-            <Zap className="h-4 w-4" />
-            {rescanLoading
-              ? "Relance en cours…"
-              : "J’ai modifié mon site — relancer un scan"}
-          </Button>
-        </div>
-      </CardContent>
+      {/* Input area */}
+      <div className="border-t border-border/60 p-3 bg-background/80 space-y-2">
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center gap-2 rounded-xl border border-border/60 bg-background p-1.5">
+            <Input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="\u00c9crivez votre question..."
+              disabled={loading}
+              className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 h-9"
+            />
+            <Button
+              type="submit"
+              size="sm"
+              disabled={loading || !input.trim()}
+              className="h-8 px-3"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
+        </form>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-xs text-muted-foreground h-8"
+          onClick={handleRescan}
+          disabled={rescanLoading}
+        >
+          <Zap className="mr-1.5 h-3.5 w-3.5" />
+          {rescanLoading
+            ? "Relance en cours..."
+            : "J\u2019ai modifi\u00e9 mon site \u2014 relancer un scan"}
+        </Button>
+      </div>
     </Card>
   );
 }

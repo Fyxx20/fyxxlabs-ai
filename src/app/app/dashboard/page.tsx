@@ -6,12 +6,10 @@ import { getEntitlements } from "@/lib/auth/entitlements";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
 import { ScoreRing } from "@/components/score-ring";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { computeDisplayScore } from "@/lib/score";
-import { ArrowRight, Lock, Zap } from "lucide-react";
+import { ArrowRight, Lock, Zap, TrendingUp, ShoppingCart, ScanSearch, BarChart3 } from "lucide-react";
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
@@ -54,15 +52,6 @@ export default async function DashboardPage() {
     .eq("store_id", storeId)
     .eq("status", "connected");
   const connectedIntegration = (integrations ?? [])[0];
-  const dataLevel =
-    connectedIntegration?.provider === "shopify" ||
-    connectedIntegration?.provider === "woocommerce" ||
-    connectedIntegration?.provider === "prestashop"
-      ? "élevé"
-      : "moyen";
-  const metricsSource = connectedIntegration
-    ? `Données connectées: ${dataLevel}`
-    : "Données connectées: moyen (scan URL)";
 
   const { data: metricsRows } = connectedIntegration
     ? await supabase
@@ -92,119 +81,134 @@ export default async function DashboardPage() {
   const issuesPayload = lastScan?.issues_json as { next_best_action?: { title?: string; steps?: string[] } } | null;
   const nextBestAction = issuesPayload?.next_best_action;
 
+  const pillarData = [
+    { key: "conversion", label: "Conversion", color: "bg-blue-500" },
+    { key: "trust", label: "Confiance", color: "bg-emerald-500" },
+    { key: "offer", label: "Offre", color: "bg-violet-500" },
+    { key: "performance", label: "Performance", color: "bg-amber-500" },
+    { key: "traffic", label: "Trafic", color: "bg-rose-500" },
+  ];
+
   return (
-    <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Tableau de bord
-          </h1>
-          <p className="text-muted-foreground">
-            Vue d’ensemble de votre boutique et prochaine action prioritaire.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {entitlements.isLifetime && (
-            <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30">
-              Lifetime access
-            </Badge>
-          )}
-          <Badge variant="secondary">{metricsSource}</Badge>
-        </div>
+    <div className="space-y-6 max-w-6xl">
+      {/* Page header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Vue d&apos;ensemble de{" "}
+          <span className="font-medium text-foreground">{currentStore.name}</span>
+        </p>
       </div>
 
+      {/* Paywall banner */}
+      {!entitlements.canScan && (
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+              <Lock className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Analyse limit&eacute;e</p>
+              <p className="text-xs text-muted-foreground">
+                Passe &agrave; un abonnement pour tout d&eacute;bloquer.
+              </p>
+            </div>
+          </div>
+          <Link href="/app/billing">
+            <Button size="sm">
+              Voir les plans
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Button>
+          </Link>
+        </div>
+      )}
+
+      {/* Metrics row */}
       {connectedIntegration && (totalRevenue > 0 || totalOrders > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Métriques (30 derniers jours)</CardTitle>
-            <CardDescription>
-              Données synchronisées depuis {connectedIntegration.provider}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-sm text-muted-foreground">Chiffre d’affaires</p>
-                <p className="text-2xl font-semibold">{totalRevenue.toFixed(2)} €</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="border-border/60">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
+                <TrendingUp className="h-6 w-6 text-emerald-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Commandes</p>
-                <p className="text-2xl font-semibold">{totalOrders}</p>
+                <p className="text-xs text-muted-foreground font-medium">
+                  Chiffre d&apos;affaires (30j)
+                </p>
+                <p className="text-2xl font-bold tabular-nums">
+                  {totalRevenue.toFixed(2)} &euro;
+                </p>
               </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/60">
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
+                <ShoppingCart className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground font-medium">Commandes (30j)</p>
+                <p className="text-2xl font-bold tabular-nums">{totalOrders}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Scan running */}
+      {lastScan?.status === "running" && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="flex items-center gap-4 py-8 justify-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary" />
+            <div>
+              <p className="font-semibold">Analyse en cours...</p>
+              <p className="text-sm text-muted-foreground">
+                Cela peut prendre 1 &agrave; 3 minutes.
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {!entitlements.canScan && (
-        <Card className="border-amber-500/50 bg-amber-500/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5" />
-              Analyse gratuite utilisée ou essai terminé
-            </CardTitle>
-            <CardDescription>
-              Passe à un abonnement pour débloquer les scans, le coach IA et l’historique.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/app/billing">
-              <Button>
-                Voir les abonnements
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {lastScan?.status === "running" && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="h-12 w-12 animate-pulse rounded-full bg-primary/20" />
-            <p className="mt-4 font-medium">Analyse en cours…</p>
-            <p className="text-sm text-muted-foreground">
-              L’analyse de ta boutique peut prendre 1 à 3 minutes.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
+      {/* Score + Pillars */}
       {lastScan?.status === "succeeded" && (
         <>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card className="flex flex-col items-center justify-center p-6">
-              <ScoreRing
-                score={displayScore}
-                label="Score global"
-              />
+          <div className="grid gap-6 lg:grid-cols-3">
+            {/* Score card */}
+            <Card className="border-border/60 flex flex-col items-center justify-center p-8">
+              <ScoreRing score={displayScore} label="Score global" />
+              <Link href={`/app/scans/${lastScan.id}`} className="mt-4">
+                <Button variant="outline" size="sm" className="text-xs">
+                  Voir le rapport
+                  <ArrowRight className="ml-1.5 h-3 w-3" />
+                </Button>
+              </Link>
             </Card>
-            <Card className="md:col-span-2">
-              <CardHeader>
-                <CardTitle>Piliers</CardTitle>
-                <CardDescription>
-                  Données utilisées pour le score — niveau de confiance indiqué
-                </CardDescription>
+
+            {/* Pillars */}
+            <Card className="lg:col-span-2 border-border/60">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-base">Piliers de performance</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    { key: "conversion", label: "Conversion", w: 35 },
-                    { key: "trust", label: "Confiance", w: 20 },
-                    { key: "offer", label: "Offre / Clarté", w: 15 },
-                    { key: "performance", label: "Performance", w: 15 },
-                    { key: "traffic", label: "Trafic", w: 15 },
-                  ].map(({ key, label, w }) => {
+                <div className="space-y-4">
+                  {pillarData.map(({ key, label, color }) => {
                     const value = scores?.[key] ?? 0;
                     return (
-                      <div key={key}>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{label}</span>
-                          <span className="font-medium">{Math.round(value)}/100</span>
+                      <div key={key} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">{label}</span>
+                          <span className="text-sm font-semibold tabular-nums">
+                            {Math.round(value)}
+                            <span className="text-muted-foreground font-normal">/100</span>
+                          </span>
                         </div>
-                        <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+                        <div className="h-2.5 overflow-hidden rounded-full bg-muted">
                           <div
-                            className="h-full rounded-full bg-primary/80"
+                            className={`h-full rounded-full ${color} transition-all duration-700`}
                             style={{ width: `${value}%` }}
                           />
                         </div>
@@ -216,72 +220,88 @@ export default async function DashboardPage() {
             </Card>
           </div>
 
+          {/* Next best action */}
           {(nextBestAction?.title || lastScan.trial_single_advice) && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardContent className="flex items-start gap-4 p-5">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <Zap className="h-5 w-5 text-primary" />
-                  Prochaine action prioritaire
-                </CardTitle>
-                <CardDescription>
-                  Une seule action à fort impact à faire en premier.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {entitlements.canViewFullScan && nextBestAction?.title ? (
-                  <>
-                    <p className="font-medium">{nextBestAction.title}</p>
-                    {nextBestAction.steps?.length ? (
-                      <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                        {nextBestAction.steps.map((s, i) => (
-                          <li key={i}>{s}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </>
-                ) : lastScan.trial_single_advice ? (
-                  <p className="text-sm">{lastScan.trial_single_advice}</p>
-                ) : null}
-                {!entitlements.canViewFullScan && (
-                  <Link href="/app/billing">
-                    <Button variant="outline" size="sm">
-                      Voir toutes les recommandations
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
-                  </Link>
-                )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-semibold">Action prioritaire</p>
+                  {entitlements.canViewFullScan && nextBestAction?.title ? (
+                    <>
+                      <p className="text-sm text-muted-foreground">{nextBestAction.title}</p>
+                      {nextBestAction.steps?.length ? (
+                        <ul className="list-inside list-disc space-y-0.5 text-sm text-muted-foreground">
+                          {nextBestAction.steps.map((s, i) => (
+                            <li key={i}>{s}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </>
+                  ) : lastScan.trial_single_advice ? (
+                    <p className="text-sm text-muted-foreground">
+                      {lastScan.trial_single_advice}
+                    </p>
+                  ) : null}
+                  {!entitlements.canViewFullScan && (
+                    <Link href="/app/billing">
+                      <Button variant="outline" size="sm" className="mt-1 text-xs">
+                        Voir toutes les recommandations
+                        <ArrowRight className="ml-1.5 h-3 w-3" />
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Dernier scan</CardTitle>
-              <CardDescription>
-                {formatDate(lastScan.created_at)}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
+          {/* Last scan info */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-5 py-4">
+            <div className="flex items-center gap-3">
+              <ScanSearch className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Dernier scan :{" "}
+                <span className="font-medium text-foreground">
+                  {formatDate(lastScan.created_at)}
+                </span>
+              </p>
+            </div>
+            <div className="flex gap-2">
               <Link href={`/app/scans/${lastScan.id}`}>
-                <Button variant="outline">Voir le rapport complet</Button>
+                <Button variant="outline" size="sm" className="text-xs">
+                  Rapport complet
+                </Button>
               </Link>
-              <Link href="/app/integrations">
-                <Button>Relancer un scan</Button>
+              <Link href="/app/scans">
+                <Button size="sm" className="text-xs">
+                  Nouveau scan
+                </Button>
               </Link>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </>
       )}
 
-      {entitlements.canScan && (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <p className="font-medium">Aucun scan pour l’instant</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Lance ton premier scan depuis la page Scans ou l’onboarding.
+      {/* Empty state - only if no scan at all */}
+      {!lastScan && entitlements.canScan && (
+        <Card className="border-dashed border-2 border-border/60">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+              <ScanSearch className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-lg font-semibold mb-1">Lancez votre premier scan</p>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              Analysez votre boutique en un clic pour obtenir un score de performance et
+              des recommandations personnalis&eacute;es.
             </p>
-            <Link href="/app/scans" className="mt-4">
-              <Button>Lancer un scan</Button>
+            <Link href="/app/scans">
+              <Button>
+                <ScanSearch className="mr-2 h-4 w-4" />
+                Lancer un scan
+              </Button>
             </Link>
           </CardContent>
         </Card>

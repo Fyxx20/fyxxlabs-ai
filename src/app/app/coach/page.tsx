@@ -4,9 +4,9 @@ import Link from "next/link";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lock } from "lucide-react";
+import { Lock, ScanSearch, Loader2, ArrowRight, MessageSquare } from "lucide-react";
 import { CoachChat } from "./coach-chat";
 
 export default async function CoachPage() {
@@ -61,66 +61,32 @@ export default async function CoachPage() {
 
   const entitlements = getEntitlements(profile ?? null, subscription ?? null);
 
+  /* Locked state */
   if (!entitlements.canUseCoach) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-6 max-w-4xl">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Assistant FyxxLabs
-          </h1>
-          <p className="text-muted-foreground">
-            Posez vos questions et obtenez des recommandations basées sur votre dernière analyse.
+          <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Recommandations personnalis&eacute;es bas&eacute;es sur vos donn&eacute;es.
           </p>
         </div>
-        <Card className="border-amber-500/50 bg-amber-500/5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="h-5 w-5" />
-              Assistant réservé aux abonnés
-            </CardTitle>
-            <CardDescription>
-              Passe sur Starter, Pro ou Elite pour activer le coach IA selon ton quota,
-              les checklists et le bouton « J’ai modifié » pour comparer avant/après.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        <Card className="border-dashed border-2 border-border/60">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 mb-4">
+              <Lock className="h-8 w-8 text-amber-600" />
+            </div>
+            <p className="text-lg font-semibold mb-1">
+              R&eacute;serv&eacute; aux abonn&eacute;s
+            </p>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              Passez &agrave; Starter, Pro ou Elite pour activer le coach IA et obtenir
+              des recommandations personnalis&eacute;es.
+            </p>
             <Link href="/app/billing">
-              <Button>Voir les abonnements</Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!hasScanForAssistant || scanRunning) {
-    return (
-      <div className="space-y-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Assistant FyxxLabs
-          </h1>
-          <p className="text-muted-foreground">
-            Analyse et interprétation des données de ta boutique. FyxxLabs ne donne pas d'avis sans données.
-          </p>
-        </div>
-        <Card className="border-muted">
-          <CardHeader>
-            <CardTitle>
-              {scanRunning
-                ? "Analyse en cours — l'assistant sera disponible à la fin"
-                : "Analyse requise pour activer l'assistant FyxxLabs"}
-            </CardTitle>
-            <CardDescription>
-              {scanRunning
-                ? "Reviens une fois l'analyse terminée pour poser tes questions sur les résultats."
-                : "Lance une analyse pour débloquer l'assistant. L'assistant FyxxLabs répond uniquement à partir des données de ton dernier scan."}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/app/scans">
-              <Button variant={scanRunning ? "outline" : "default"}>
-                {scanRunning ? "Voir l'analyse en cours" : "Lancer une analyse"}
+              <Button>
+                Voir les plans
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
               </Button>
             </Link>
           </CardContent>
@@ -129,14 +95,64 @@ export default async function CoachPage() {
     );
   }
 
+  /* Needs scan */
+  if (!hasScanForAssistant || scanRunning) {
+    return (
+      <div className="space-y-6 max-w-4xl">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Recommandations personnalis&eacute;es bas&eacute;es sur vos donn&eacute;es.
+          </p>
+        </div>
+        <Card className="border-dashed border-2 border-border/60">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+              {scanRunning ? (
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+              ) : (
+                <ScanSearch className="h-8 w-8 text-primary" />
+              )}
+            </div>
+            <p className="text-lg font-semibold mb-1">
+              {scanRunning
+                ? "Analyse en cours..."
+                : "Analyse requise"}
+            </p>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              {scanRunning
+                ? "L\u2019assistant sera disponible d\u00e8s la fin de l\u2019analyse."
+                : "Lancez une analyse pour que le coach puisse r\u00e9pondre \u00e0 partir de vos donn\u00e9es."}
+            </p>
+            <Link href="/app/scans">
+              <Button variant={scanRunning ? "outline" : "default"}>
+                {scanRunning ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Voir l&apos;analyse
+                  </>
+                ) : (
+                  <>
+                    <ScanSearch className="mr-2 h-4 w-4" />
+                    Lancer un scan
+                  </>
+                )}
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  /* Chat */
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-8">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Assistant FyxxLabs
-        </h1>
-        <p className="text-muted-foreground">
-          Analyse et interprétation des données de ta boutique. FyxxLabs répond à partir de ton dernier scan pour proposer des actions concrètes.
+        <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Posez vos questions et obtenez des actions concr&egrave;tes bas&eacute;es sur
+          votre dernier scan.
         </p>
       </div>
       <CoachChat storeId={storeId} />

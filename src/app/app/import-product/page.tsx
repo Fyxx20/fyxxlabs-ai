@@ -23,7 +23,6 @@ export default async function ImportProductPage() {
 
   if (!currentStore) redirect("/onboarding");
 
-  // Check if Shopify is connected (optional — scrape+generate work without it)
   const { data: integration } = await supabase
     .from("store_integrations")
     .select("status, shop_domain")
@@ -33,7 +32,7 @@ export default async function ImportProductPage() {
     .maybeSingle();
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4">
+    <div className="max-w-4xl">
       <ImportProductClient
         storeId={currentStore.id}
         shopDomain={integration?.shop_domain ?? null}

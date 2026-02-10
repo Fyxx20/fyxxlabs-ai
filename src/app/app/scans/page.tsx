@@ -5,10 +5,10 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/utils";
-import { ScanSearch, Lock, ExternalLink } from "lucide-react";
+import { ScanSearch, Lock, ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { StartScanButton } from "./start-scan-button";
 import { ScoreHistoryChart } from "@/components/analysis/score-history-chart";
 import {
@@ -59,46 +59,55 @@ export default async function ScansPage() {
     .limit(20);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-6xl">
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            Scans
-          </h1>
-          <p className="text-muted-foreground">
-            Historique des analyses de ta boutique.
+          <h1 className="text-2xl font-bold tracking-tight">Scans</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Historique des analyses de votre boutique.
           </p>
         </div>
-        {entitlements.canScan && (
-          <StartScanButton storeId={storeId} storeName={currentStore?.name} disabled={!entitlements.canRescan} />
-        )}
-        {!entitlements.canScan && (
-          <Link href="/app/billing">
-            <Button>
-              <Lock className="mr-2 h-4 w-4" />
-              Voir les abonnements
-            </Button>
-          </Link>
-        )}
+        <div>
+          {entitlements.canScan ? (
+            <StartScanButton
+              storeId={storeId}
+              storeName={currentStore?.name}
+              disabled={!entitlements.canRescan}
+            />
+          ) : (
+            <Link href="/app/billing">
+              <Button size="sm">
+                <Lock className="mr-2 h-3.5 w-3.5" />
+                Voir les plans
+              </Button>
+            </Link>
+          )}
+        </div>
       </div>
 
+      {/* Empty state */}
       {!scans?.length && (
-        <Card>
+        <Card className="border-dashed border-2 border-border/60">
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <ScanSearch className="h-12 w-12 text-muted-foreground" />
-            <p className="mt-4 font-medium">Aucune analyse</p>
-            <p className="text-sm text-muted-foreground">
-              Lancez votre première analyse pour obtenir un score et des recommandations.
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
+              <ScanSearch className="h-8 w-8 text-primary" />
+            </div>
+            <p className="text-lg font-semibold mb-1">Aucune analyse</p>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              Lancez votre premi&egrave;re analyse pour obtenir un score et des
+              recommandations personnalis&eacute;es.
             </p>
             {entitlements.canScan && (
-              <StartScanButton storeId={storeId} storeName={currentStore?.name} className="mt-4" />
+              <StartScanButton storeId={storeId} storeName={currentStore?.name} />
             )}
           </CardContent>
         </Card>
       )}
 
       {scans && scans.length > 0 && (
-        <div className="space-y-8">
+        <div className="space-y-6">
+          {/* Score chart */}
           {(() => {
             const withScore = scans.filter(
               (s) => s.status === "succeeded" && s.score_global != null
@@ -107,13 +116,15 @@ export default async function ScansPage() {
               date: s.created_at?.slice(0, 10) ?? "",
               score: s.score_global ?? 0,
             }));
-            return chartData.length > 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Score dans le temps</CardTitle>
-                  <CardDescription>
-                    Évolution du score FyxxLabs sur vos dernières analyses.
-                  </CardDescription>
+            return chartData.length > 1 ? (
+              <Card className="border-border/60">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    <CardTitle className="text-base">
+                      &Eacute;volution du score
+                    </CardTitle>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ScoreHistoryChart data={chartData} />
@@ -122,19 +133,17 @@ export default async function ScansPage() {
             ) : null;
           })()}
 
-          <div>
-            <h2 className="mb-3 text-lg font-semibold text-foreground">
-              Historique des analyses
-            </h2>
-            <Card>
+          {/* Scan history table */}
+          <Card className="border-border/60 overflow-hidden">
+            <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Score</TableHead>
-                    <TableHead className="text-right">Variation</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="w-[100px]" />
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableHead className="font-semibold">Date</TableHead>
+                    <TableHead className="text-right font-semibold">Score</TableHead>
+                    <TableHead className="text-right font-semibold">Variation</TableHead>
+                    <TableHead className="font-semibold">Statut</TableHead>
+                    <TableHead className="w-[120px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -157,25 +166,41 @@ export default async function ScansPage() {
                         <TableCell className="font-medium">
                           {formatDate(scan.created_at)}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {currentScore != null ? `${currentScore}/100` : "—"}
+                        <TableCell className="text-right tabular-nums font-semibold">
+                          {currentScore != null ? (
+                            <span>
+                              {currentScore}
+                              <span className="text-muted-foreground font-normal">
+                                /100
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">&mdash;</span>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {delta != null ? (
                             <span
-                              className={
+                              className={`inline-flex items-center gap-1 text-sm font-medium ${
                                 delta > 0
                                   ? "text-emerald-600 dark:text-emerald-400"
                                   : delta < 0
-                                    ? "text-destructive"
+                                    ? "text-red-600 dark:text-red-400"
                                     : "text-muted-foreground"
-                              }
+                              }`}
                             >
+                              {delta > 0 ? (
+                                <TrendingUp className="h-3.5 w-3.5" />
+                              ) : delta < 0 ? (
+                                <TrendingDown className="h-3.5 w-3.5" />
+                              ) : (
+                                <Minus className="h-3.5 w-3.5" />
+                              )}
                               {delta > 0 ? "+" : ""}
                               {delta}
                             </span>
                           ) : (
-                            "—"
+                            <span className="text-muted-foreground">&mdash;</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -189,38 +214,38 @@ export default async function ScansPage() {
                                     ? "default"
                                     : "secondary"
                             }
+                            className="text-xs"
                           >
                             {scan.status === "succeeded"
-                              ? "Terminé"
+                              ? "Termin\u00e9"
                               : scan.status === "running"
                                 ? "En cours"
                                 : scan.status === "failed"
-                                  ? "Échec"
+                                  ? "\u00c9chec"
                                   : "En file"}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {scan.id ? (
-                            <Link
-                              href={`/app/scans/${scan.id}`}
-                              className="inline-flex items-center rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-muted hover:text-primary"
-                            >
-                              Voir le détail
-                              <ExternalLink className="ml-1 h-3 w-3" />
+                          {scan.status === "succeeded" && scan.id ? (
+                            <Link href={`/app/scans/${scan.id}`}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs h-8"
+                              >
+                                D&eacute;tails
+                                <ArrowRight className="ml-1 h-3 w-3" />
+                              </Button>
                             </Link>
-                          ) : (
-                            <span className="inline-flex items-center rounded-md px-3 py-2 text-sm text-muted-foreground">
-                              Détails indisponibles
-                            </span>
-                          )}
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     );
                   })}
                 </TableBody>
               </Table>
-            </Card>
-          </div>
+            </div>
+          </Card>
         </div>
       )}
     </div>

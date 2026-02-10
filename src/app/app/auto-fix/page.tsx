@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
 import { AutoFixClient } from "./auto-fix-client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Plug, ArrowRight } from "lucide-react";
 
 export default async function AutoFixPage() {
   const supabase = await createServerSupabaseClient();
@@ -23,7 +27,6 @@ export default async function AutoFixPage() {
 
   if (!currentStore) redirect("/onboarding");
 
-  // Check if Shopify is connected
   const { data: integration } = await supabase
     .from("store_integrations")
     .select("status")
@@ -34,20 +37,36 @@ export default async function AutoFixPage() {
 
   if (!integration) {
     return (
-      <div className="max-w-2xl mx-auto py-12 text-center space-y-4">
-        <h1 className="text-2xl font-bold">Shopify non connecté</h1>
-        <p className="text-muted-foreground">
-          Connectez votre boutique Shopify pour utiliser l&apos;AI Auto-Fix.
-        </p>
-        <a href="/app/integrations" className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-          Connecter Shopify
-        </a>
+      <div className="space-y-6 max-w-3xl">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Auto-Fix IA</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Optimisez vos produits automatiquement avec l&apos;IA.
+          </p>
+        </div>
+        <Card className="border-dashed border-2 border-border/60">
+          <CardContent className="flex flex-col items-center justify-center py-16">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 mb-4">
+              <Plug className="h-8 w-8 text-amber-600" />
+            </div>
+            <p className="text-lg font-semibold mb-1">Shopify non connect&eacute;</p>
+            <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
+              Connectez votre boutique Shopify pour utiliser l&apos;Auto-Fix IA.
+            </p>
+            <Link href="/app/integrations">
+              <Button>
+                Connecter Shopify
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto py-6 px-4">
+    <div className="max-w-3xl">
       <AutoFixClient storeId={currentStore.id} />
     </div>
   );

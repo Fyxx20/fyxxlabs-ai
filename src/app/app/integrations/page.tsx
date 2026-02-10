@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StoreForm } from "@/app/app/settings/store-form";
 import { IntegrationsCard } from "@/app/app/settings/integrations-card";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
+import { Store, Plug } from "lucide-react";
 
 export default async function IntegrationsPage() {
   const supabase = await createServerSupabaseClient();
@@ -24,22 +25,22 @@ export default async function IntegrationsPage() {
   if (!store) redirect("/onboarding");
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 max-w-3xl">
+      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Gérer la boutique
-        </h1>
-        <p className="text-muted-foreground">
-          Modifie les informations de la boutique et gère ses connexions plateforme.
+        <h1 className="text-2xl font-bold tracking-tight">Ma boutique</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Informations et connexions de votre boutique.
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Informations boutique</CardTitle>
-          <CardDescription>
-            Nom, URL et objectif utilisés par FyxxLabs pour contextualiser les analyses.
-          </CardDescription>
+      {/* Store info */}
+      <Card className="border-border/60">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Store className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base">Informations</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <StoreForm
@@ -53,6 +54,7 @@ export default async function IntegrationsPage() {
         </CardContent>
       </Card>
 
+      {/* Integrations */}
       <IntegrationsCard storeId={store.id} storeUrl={store.website_url ?? ""} />
     </div>
   );
