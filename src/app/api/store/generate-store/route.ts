@@ -55,25 +55,26 @@ async function fetchPage(url: string): Promise<string> {
 async function fetchAliExpressParallel(url: string): Promise<string | null> {
   const idMatch = url.match(/\/item\/(\d+)/);
   const itemId = idMatch?.[1];
+  const wwwUrl = itemId
+    ? `https://www.aliexpress.com/item/${itemId}.html`
+    : url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://www.aliexpress.com");
+  const mobileUrl = itemId
+    ? `https://m.aliexpress.com/item/${itemId}.html`
+    : url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://m.aliexpress.com");
 
   const strategies = [
     {
-      label: "mobile",
-      url: itemId
-        ? `https://m.aliexpress.com/item/${itemId}.html`
-        : url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://m.aliexpress.com"),
+      label: "facebook",
+      url: wwwUrl,
       headers: {
-        "User-Agent":
-          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
         Accept: "text/html",
-        "Accept-Language": "fr-FR,fr;q=0.9",
+        "Accept-Language": "en-US,en;q=0.9",
       },
     },
     {
       label: "googlebot",
-      url: itemId
-        ? `https://www.aliexpress.com/item/${itemId}.html`
-        : url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://www.aliexpress.com"),
+      url: wwwUrl,
       headers: {
         "User-Agent":
           "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
@@ -82,19 +83,28 @@ async function fetchAliExpressParallel(url: string): Promise<string | null> {
       },
     },
     {
+      label: "mobile",
+      url: mobileUrl,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+        Accept: "text/html",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+      },
+    },
+    {
+      label: "twitterbot",
+      url: wwwUrl,
+      headers: {
+        "User-Agent": "Twitterbot/1.0",
+        Accept: "text/html",
+        "Accept-Language": "en-US,en;q=0.9",
+      },
+    },
+    {
       label: "desktop",
       url,
       headers: BROWSER_HEADERS,
-    },
-    {
-      label: "desktop-en",
-      url: itemId
-        ? `https://www.aliexpress.com/item/${itemId}.html`
-        : url.replace(/https?:\/\/[^/]*aliexpress\.com/, "https://www.aliexpress.com"),
-      headers: {
-        ...BROWSER_HEADERS,
-        "Accept-Language": "en-US,en;q=0.9",
-      },
     },
   ];
 
@@ -538,6 +548,98 @@ RÈGLES CRITIQUES DE CONTENU:
 - La short_description DOIT commencer par le problème du client puis la solution
 - Réponds UNIQUEMENT en JSON valide, aucun texte autour du JSON`;
 
+/* ─── Proxy fallback for AliExpress (when datacenter IPs are blocked) ─── */
+async function fetchViaProxy(url: string): Promise<string | null> {
+  const idMatch = url.match(/\/item\/(\d+)/);
+  if (!idMatch) return null;
+  const itemId = idMatch[1];
+  const targetUrl = `https://www.aliexpress.com/item/${itemId}.html`;
+
+  // Try multiple free CORS/scraping proxy services
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+  ];
+
+  for (const proxyUrl of proxies) {
+    try {
+      console.log(`[fetchViaProxy] Trying: ${proxyUrl.substring(0, 60)}...`);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch(proxyUrl, {
+        signal: controller.signal,
+        headers: { Accept: "text/html,application/json,*/*" },
+      });
+      clearTimeout(timeout);
+      if (!res.ok) continue;
+      const html = await res.text();
+      const hasData =
+        html.includes("og:title") ||
+        html.includes("imagePathList") ||
+        html.includes("summImagePathList");
+      const isBlocked =
+        html.includes("Just a moment") ||
+        html.includes("Maintaining");
+      console.log(
+        `[fetchViaProxy] status=${res.status} len=${html.length} hasData=${hasData} isBlocked=${isBlocked}`
+      );
+      if (hasData && !isBlocked && html.length > 3000) return html;
+    } catch (err) {
+      console.log(
+        `[fetchViaProxy] failed: ${err instanceof Error ? err.message : err}`
+      );
+    }
+  }
+  return null;
+}
+
+/* ─── GET handler: debug AliExpress scraping ─── */
+export async function GET(req: NextRequest) {
+  const testUrl = req.nextUrl.searchParams.get("url") || "https://fr.aliexpress.com/item/1005008086404944.html";
+  const logs: string[] = [];
+  const origLog = console.log;
+  console.log = (...args: unknown[]) => {
+    logs.push(args.map(String).join(" "));
+    origLog(...args);
+  };
+
+  try {
+    const html = await fetchAliExpressParallel(testUrl);
+    if (html) {
+      const scraped = scrapeProduct(html, testUrl);
+      const aliData = extractAliExpressData(html, testUrl);
+      console.log = origLog;
+      return NextResponse.json({
+        success: true,
+        htmlLength: html.length,
+        scraped: { title: scraped.title, images: scraped.images.length, price: scraped.price, currency: scraped.currency },
+        aliData: aliData ? { title: aliData.title, images: aliData.images?.length, price: aliData.price } : null,
+        logs,
+      });
+    }
+
+    // Try proxy
+    const proxyHtml = await fetchViaProxy(testUrl);
+    console.log = origLog;
+    if (proxyHtml) {
+      const scraped = scrapeProduct(proxyHtml, testUrl);
+      return NextResponse.json({
+        success: true,
+        via: "proxy",
+        htmlLength: proxyHtml.length,
+        scraped: { title: scraped.title, images: scraped.images.length, price: scraped.price },
+        logs,
+      });
+    }
+
+    return NextResponse.json({ success: false, message: "All strategies failed", logs });
+  } catch (err) {
+    console.log = origLog;
+    return NextResponse.json({ success: false, error: String(err), logs });
+  }
+}
+
 /* ─── POST handler ─── */
 
 export async function POST(req: NextRequest) {
@@ -576,31 +678,46 @@ export async function POST(req: NextRequest) {
           let product: ScrapedProduct | null = null;
 
           if (isAli) {
-            // Run ALL AliExpress strategies in parallel (mobile, googlebot, desktop, desktop-en)
-            const html = await fetchAliExpressParallel(url.trim());
+            // Step 1: Run ALL AliExpress strategies in parallel
+            console.log(`[scrape] AliExpress detected, running parallel strategies...`);
+            let html = await fetchAliExpressParallel(url.trim());
+            
+            // Step 2: If parallel failed, try proxy services
+            if (!html) {
+              console.log(`[scrape] Parallel strategies failed, trying proxy...`);
+              html = await fetchViaProxy(url.trim());
+            }
+
             if (html) {
+              console.log(`[scrape] Got HTML (${html.length} chars), extracting product...`);
               const scraped = scrapeProduct(html, url.trim());
               if (scraped.title && scraped.title.length >= 3) {
                 product = scraped;
+                console.log(`[scrape] Product extracted: "${scraped.title}" | ${scraped.images.length} images`);
               } else {
                 // scrapeProduct couldn't get title — try raw extraction
                 product = extractAliProduct(html, url.trim());
+                if (product) console.log(`[scrape] Raw extraction: "${product.title}" | ${product.images.length} images`);
               }
+            } else {
+              console.log(`[scrape] All AliExpress strategies failed for ${url}`);
             }
           }
 
-          // Non-AliExpress or AliExpress parallel failed: try basic fetchPage
+          // Non-AliExpress or AliExpress parallel+proxy failed: try basic fetchPage
           if (!product) {
             try {
+              console.log(`[scrape] Trying basic fetchPage for ${url}...`);
               const html = await fetchPage(url.trim());
               if (html) {
                 const scraped = scrapeProduct(html, url.trim());
                 if (scraped.title && scraped.title.length >= 3) {
                   product = scraped;
+                  console.log(`[scrape] fetchPage success: "${scraped.title}"`);
                 }
               }
-            } catch {
-              /* fetchPage failed */
+            } catch (e) {
+              console.log(`[scrape] fetchPage failed: ${e instanceof Error ? e.message : e}`);
             }
           }
 
