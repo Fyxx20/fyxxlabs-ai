@@ -113,7 +113,7 @@ async function fetchAliExpressParallel(url: string): Promise<string | null> {
     try {
       console.log(`[fetchParallel] Starting ${s.label}: ${s.url}`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
+      const timeout = setTimeout(() => controller.abort(), 8000);
       const res = await fetch(s.url, {
         signal: controller.signal,
         headers: s.headers,
@@ -143,12 +143,12 @@ async function fetchAliExpressParallel(url: string): Promise<string | null> {
     }
   });
 
-  // Race: return the FIRST non-null result, with a 20s total timeout
+  // Race: return the FIRST non-null result, with a 10s total timeout
   const totalTimeout = new Promise<null>((resolve) =>
     setTimeout(() => {
-      console.log("[fetchParallel] Total timeout reached (20s)");
+      console.log("[fetchParallel] Total timeout reached (10s)");
       resolve(null);
-    }, 20000)
+    }, 10000)
   );
 
   // Use allSettled to collect all results, prefer one with og:title
@@ -555,10 +555,10 @@ async function fetchViaProxy(url: string): Promise<string | null> {
   const itemId = idMatch[1];
   const targetUrl = `https://www.aliexpress.com/item/${itemId}.html`;
 
-  // Try multiple free CORS/scraping proxy services
+  // Try multiple free scraping proxy services (codetabs works best)
   const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
     `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
     `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
   ];
 
@@ -566,7 +566,7 @@ async function fetchViaProxy(url: string): Promise<string | null> {
     try {
       console.log(`[fetchViaProxy] Trying: ${proxyUrl.substring(0, 60)}...`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), 12000);
       const res = await fetch(proxyUrl, {
         signal: controller.signal,
         headers: { Accept: "text/html,application/json,*/*" },
