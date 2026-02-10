@@ -52,6 +52,22 @@ interface CreateResult {
 
 type Step = "import" | "select" | "customize" | "create";
 
+interface GenPhase {
+  icon: string;
+  label: string;
+  status: "pending" | "active" | "done";
+}
+
+const GEN_PHASE_DEFS = [
+  { icon: "🔍", label: "Analyse du produit source" },
+  { icon: "🎨", label: "Création de l'identité de marque" },
+  { icon: "📝", label: "Rédaction du copywriting" },
+  { icon: "🛒", label: "Génération des sections" },
+  { icon: "📊", label: "Optimisation conversion" },
+  { icon: "🏷️", label: "Pricing & SEO" },
+  { icon: "✨", label: "Finalisation" },
+];
+
 /* ─── Section definitions ─── */
 const SECTIONS = [
   { id: "product-info", label: "Infos produit", icon: ShoppingBag },
@@ -131,6 +147,7 @@ export function StoreGeneratorClient({
   const [progressLabel, setProgressLabel] = useState("");
   const [createResults, setCreateResults] = useState<CreateResult[]>([]);
   const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [genPhases, setGenPhases] = useState<GenPhase[]>([]);
 
   // Cleanup
   useEffect(() => {
@@ -172,24 +189,34 @@ export function StoreGeneratorClient({
     setError(null);
     setProgress(0);
 
-    const labels = [
-      "🎨 Création du branding…",
-      "📝 Rédaction des fiches produit…",
-      "🛒 Génération des sections…",
-      "🏷️ Optimisation SEO et pricing…",
-      "✨ Finalisation du concept…",
-    ];
-    let idx = 0;
-    setProgressLabel(labels[0]);
+    // Initialize generation phases
+    const phases: GenPhase[] = GEN_PHASE_DEFS.map((p) => ({
+      ...p,
+      status: "pending" as const,
+    }));
+    phases[0].status = "active";
+    setGenPhases([...phases]);
+    setProgressLabel(GEN_PHASE_DEFS[0].label);
+
     progressTimerRef.current = setInterval(() => {
       setProgress((p) => {
-        if (p >= 90) return p;
-        const next = p + Math.random() * 6 + 2;
-        idx = Math.min(Math.floor(next / 20), labels.length - 1);
-        setProgressLabel(labels[idx]);
-        return Math.min(next, 90);
+        if (p >= 92) return p;
+        const increment = Math.random() * 5 + 2;
+        const next = Math.min(p + increment, 92);
+        const phaseIdx = Math.min(
+          Math.floor((next / 92) * GEN_PHASE_DEFS.length),
+          GEN_PHASE_DEFS.length - 1
+        );
+        setGenPhases((prev) =>
+          prev.map((ph, i) => ({
+            ...ph,
+            status: i < phaseIdx ? "done" : i === phaseIdx ? "active" : "pending",
+          }))
+        );
+        setProgressLabel(GEN_PHASE_DEFS[phaseIdx].label);
+        return next;
       });
-    }, 800);
+    }, 900);
 
     try {
       const imgs = scraped.images.filter((_, i) => selectedImages.has(i));
@@ -210,9 +237,11 @@ export function StoreGeneratorClient({
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur IA");
 
+      // Complete all phases
+      setGenPhases((prev) => prev.map((ph) => ({ ...ph, status: "done" as const })));
       setProgress(100);
-      setProgressLabel("✅ Page générée !");
-      await new Promise((r) => setTimeout(r, 500));
+      setProgressLabel("✅ Boutique générée !");
+      await new Promise((r) => setTimeout(r, 800));
 
       setPageData(data.page);
       setStep("customize");
@@ -221,6 +250,7 @@ export function StoreGeneratorClient({
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
       setLoading(false);
+      setGenPhases([]);
     }
   }, [scraped, selectedImages, brandName, language]);
 
@@ -509,46 +539,39 @@ export function StoreGeneratorClient({
 
       {/* ════════════ LOADING (import) ════════════ */}
       {step === "import" && loading && (
-        <div className="max-w-lg mx-auto mt-16 text-center space-y-6">
-          <Sparkles className="h-12 w-12 mx-auto text-blue-500 animate-pulse" />
-          <h2 className="text-lg font-bold text-blue-600">Génération de votre boutique....</h2>
-
-          <div className="rounded-lg border p-3 text-left flex items-center gap-3">
-            <span className="text-lg">🔗</span>
-            <span className="text-sm text-muted-foreground truncate">{url}</span>
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Chargement...</span>
-              <span>6%</span>
-            </div>
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <div className="h-full w-[6%] bg-blue-500 rounded-full animate-pulse" />
+        <div className="max-w-md mx-auto mt-20 text-center space-y-8">
+          {/* Animated spinner */}
+          <div className="relative mx-auto w-24 h-24">
+            <div className="absolute inset-0 border-[3px] border-blue-500/20 rounded-full" />
+            <div className="absolute inset-0 border-[3px] border-transparent border-t-blue-500 rounded-full animate-spin" style={{ animationDuration: "1.5s" }} />
+            <div className="absolute inset-2.5 border-[3px] border-transparent border-t-purple-400 rounded-full animate-spin" style={{ animationDirection: "reverse", animationDuration: "1s" }} />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <LinkIcon className="h-8 w-8 text-blue-500" />
             </div>
           </div>
 
-          {/* Bounce dots */}
-          <div className="flex justify-center gap-1.5">
-            {[0, 1, 2, 3].map((i) => (
-              <div
-                key={i}
-                className={`w-3 h-3 rounded-full ${
-                  i <= 1 ? "bg-emerald-500" : i === 2 ? "bg-blue-500" : "bg-gray-300"
-                } animate-bounce`}
-                style={{ animationDelay: `${i * 0.15}s` }}
-              />
+          <div>
+            <h2 className="text-xl font-bold mb-2">Extraction en cours…</h2>
+            <p className="text-sm text-muted-foreground">Analyse de votre lien produit</p>
+          </div>
+
+          {/* URL pill */}
+          <div className="inline-flex items-center gap-2 px-4 py-2.5 bg-muted/50 rounded-full text-sm text-muted-foreground max-w-full">
+            <span className="text-base">🔗</span>
+            <span className="truncate max-w-[300px]">{url}</span>
+          </div>
+
+          {/* Animated phase steps */}
+          <div className="space-y-3 text-left max-w-xs mx-auto">
+            {["Connexion au site…", "Extraction des données produit…", "Analyse des images…", "Détection du prix et des infos…"].map((label, i) => (
+              <div key={i} className="flex items-center gap-3 animate-pulse" style={{ animationDelay: `${i * 300}ms` }}>
+                <div className="w-6 h-6 rounded-full bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+                  <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" />
+                </div>
+                <span className="text-sm text-muted-foreground">{label}</span>
+              </div>
             ))}
           </div>
-
-          {/* Scraped preview */}
-          {scraped && (
-            <div className="rounded-lg border p-4 text-left space-y-1">
-              <p className="font-medium text-sm line-clamp-2">{scraped.title}</p>
-              <p className="text-xs text-muted-foreground line-clamp-2">{scraped.description?.slice(0, 100)}...</p>
-              {scraped.price && <p className="text-sm font-bold">$ {scraped.price}</p>}
-            </div>
-          )}
         </div>
       )}
 
@@ -659,21 +682,6 @@ export function StoreGeneratorClient({
             </Button>
           </div>
 
-          {/* Progress bar during generation */}
-          {loading && (
-            <div className="max-w-md mx-auto space-y-2 pt-4">
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-muted-foreground">{progressLabel}</span>
-                <span className="font-mono font-bold text-blue-600">{Math.round(progress)}%</span>
-              </div>
-              <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1126,8 +1134,8 @@ export function StoreGeneratorClient({
               <Button variant="outline" onClick={() => setStep("select")}>Retour</Button>
               {shopifyConnected ? (
                 <Button onClick={handleCreate} className="bg-green-600 hover:bg-green-700 gap-2">
-                  <Store className="h-4 w-4" />
-                  Connectez votre Shopify
+                  <Rocket className="h-4 w-4" />
+                  Créer sur Shopify
                 </Button>
               ) : (
                 <a
@@ -1191,59 +1199,273 @@ export function StoreGeneratorClient({
         </div>
       )}
 
-      {/* ════════════ STEP 4: CREATE (Loading / Done) ════════════ */}
-      {step === "create" && (
-        <div className="max-w-lg mx-auto py-16 text-center space-y-6">
-          {loading ? (
-            <>
-              <Loader2 className="h-12 w-12 animate-spin mx-auto text-blue-500" />
-              <h2 className="text-xl font-bold">Création sur Shopify en cours…</h2>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground truncate max-w-[260px]">{progressLabel}</span>
-                  <span className="font-mono font-bold text-blue-600">{Math.round(progress)}%</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 rounded-full transition-all duration-500 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+      {/* ════════════ FULL-SCREEN GENERATION OVERLAY ════════════ */}
+      {step === "select" && loading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a0a1a 0%, #0d1b3e 40%, #0a0a1a 100%)" }}>
+          <div className="max-w-md mx-auto text-center px-6 space-y-8">
+            {/* Animated spinner rings */}
+            <div className="relative mx-auto w-32 h-32">
+              <div className="absolute inset-0 border-[3px] border-blue-500/10 rounded-full" />
+              <div className="absolute inset-0 border-[3px] border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDuration: "2s" }} />
+              <div className="absolute inset-3 border-[3px] border-transparent border-t-purple-400 rounded-full animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+              <div className="absolute inset-6 border-[3px] border-transparent border-t-cyan-400 rounded-full animate-spin" style={{ animationDuration: "1s" }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <Sparkles className="h-9 w-9 text-blue-300 animate-pulse" />
               </div>
-            </>
-          ) : createResults.length > 0 ? (
-            <>
-              <div className="mx-auto w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center">
-                <Check className="h-10 w-10 text-emerald-500" />
+            </div>
+
+            {/* Title */}
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-2">{progressLabel}</h2>
+              <p className="text-blue-200/50 text-sm">Notre IA conçoit votre boutique haute conversion</p>
+            </div>
+
+            {/* Progress bar */}
+            <div className="space-y-2 max-w-xs mx-auto">
+              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all duration-700 ease-out"
+                  style={{
+                    width: `${progress}%`,
+                    background: "linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899)",
+                  }}
+                />
               </div>
-              <h2 className="text-2xl font-bold">Boutique créée avec succès ! 🎉</h2>
-              <p className="text-muted-foreground">{pageData.brand_name} est prête à vendre.</p>
-              <div className="space-y-1">
-                {createResults.map((r, i) => (
-                  <div key={i} className="flex items-center gap-2 text-sm justify-center">
-                    {r.success ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-red-500" />}
-                    <span>{r.title}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="flex flex-col gap-2 items-center pt-3">
-                <a
-                  href={`https://${shopDomain ?? ""}/admin/products`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              <p className="text-blue-200/30 text-xs font-mono">{Math.round(progress)}%</p>
+            </div>
+
+            {/* Generation phases checklist */}
+            <div className="space-y-2.5 text-left max-w-xs mx-auto">
+              {genPhases.map((phase, i) => (
+                <div
+                  key={i}
+                  className={`flex items-center gap-3 transition-all duration-500 ${
+                    phase.status === "done"
+                      ? "opacity-50"
+                      : phase.status === "active"
+                      ? "opacity-100"
+                      : "opacity-20"
+                  }`}
                 >
-                  <ExternalLink className="h-5 w-5" />
-                  Voir sur Shopify
-                </a>
-                <Button variant="outline" onClick={reset} className="mt-2">
-                  <Sparkles className="h-4 w-4 mr-2" /> Créer une autre boutique
-                </Button>
-              </div>
-            </>
-          ) : null}
+                  <div
+                    className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 transition-colors duration-300 ${
+                      phase.status === "done"
+                        ? "bg-emerald-500/20"
+                        : phase.status === "active"
+                        ? "bg-blue-500/20"
+                        : "bg-white/5"
+                    }`}
+                  >
+                    {phase.status === "done" ? (
+                      <Check className="h-3.5 w-3.5 text-emerald-400" />
+                    ) : phase.status === "active" ? (
+                      <Loader2 className="h-3.5 w-3.5 text-blue-400 animate-spin" />
+                    ) : (
+                      <div className="h-1.5 w-1.5 rounded-full bg-white/20" />
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm transition-colors duration-300 ${
+                      phase.status === "done"
+                        ? "text-emerald-300/70"
+                        : phase.status === "active"
+                        ? "text-white font-medium"
+                        : "text-white/30"
+                    }`}
+                  >
+                    {phase.icon} {phase.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Floating particles effect */}
+            <div className="flex justify-center gap-3 pt-2">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-blue-400/30 animate-bounce"
+                  style={{ animationDelay: `${i * 200}ms`, animationDuration: "1.5s" }}
+                />
+              ))}
+            </div>
+          </div>
         </div>
       )}
+
+      {/* ════════════ STEP 4: CREATION (Full-screen cinematic) ════════════ */}
+      {step === "create" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "linear-gradient(135deg, #0a0a1a 0%, #111827 50%, #0a0a1a 100%)" }}>
+          <div className="max-w-lg mx-auto text-center px-6">
+            {loading ? (
+              <div className="space-y-10">
+                {/* Main visual: Store being built */}
+                <div className="relative">
+                  <div className="absolute inset-0 -m-12 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
+                  <div className="relative mx-auto w-28 h-28 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl shadow-blue-500/25">
+                    <Store className="h-12 w-12 text-white" />
+                    {/* Orbiting particles */}
+                    <div className="absolute w-full h-full animate-spin" style={{ animationDuration: "3s" }}>
+                      <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-emerald-400 rounded-full shadow-lg shadow-emerald-400/50" />
+                    </div>
+                    <div className="absolute w-full h-full animate-spin" style={{ animationDuration: "4s", animationDirection: "reverse" }}>
+                      <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-2.5 h-2.5 bg-purple-400 rounded-full shadow-lg shadow-purple-400/50" />
+                    </div>
+                    <div className="absolute w-full h-full animate-spin" style={{ animationDuration: "5s" }}>
+                      <div className="absolute -bottom-1.5 left-1/3 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-400/50" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Brand name with shimmer */}
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">{pageData.brand_name}</h2>
+                  <p className="text-blue-200/50 text-sm">Création de votre boutique Shopify…</p>
+                </div>
+
+                {/* Progress ring + bar */}
+                <div className="max-w-sm mx-auto space-y-4">
+                  <div className="relative h-2.5 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full transition-all duration-700 ease-out"
+                      style={{
+                        width: `${progress}%`,
+                        background: "linear-gradient(90deg, #10b981, #3b82f6, #8b5cf6)",
+                      }}
+                    />
+                    {/* Shimmer effect */}
+                    <div
+                      className="absolute inset-0 opacity-30"
+                      style={{
+                        background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+                        animation: "shimmer 2s infinite",
+                      }}
+                    />
+                  </div>
+                  <p className="text-sm text-white/70 font-medium">{progressLabel}</p>
+                  <p className="text-xs text-white/25 font-mono">{Math.round(progress)}%</p>
+                </div>
+
+                {/* Phase indicators */}
+                <div className="flex justify-center gap-8 max-w-sm mx-auto">
+                  {[
+                    { icon: "🔗", label: "Connexion", threshold: 10 },
+                    { icon: "📸", label: "Images", threshold: 30 },
+                    { icon: "📦", label: "Produit", threshold: 60 },
+                    { icon: "✅", label: "Publication", threshold: 90 },
+                  ].map((s, i) => (
+                    <div
+                      key={i}
+                      className={`text-center transition-all duration-700 ${
+                        progress >= s.threshold ? "opacity-100 scale-100" : "opacity-20 scale-90"
+                      }`}
+                    >
+                      <div className={`text-2xl mb-2 ${progress >= s.threshold ? "" : "grayscale"}`}>{s.icon}</div>
+                      <p className="text-[10px] text-white/50 font-medium">{s.label}</p>
+                      {progress >= s.threshold && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mx-auto mt-1.5 animate-pulse" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Product being created */}
+                {previewImages[0] && (
+                  <div className="flex items-center gap-4 bg-white/5 backdrop-blur-sm rounded-xl p-4 max-w-sm mx-auto border border-white/5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewImages[0]} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-sm font-medium text-white/90 truncate">{pageData.product.title}</p>
+                      <p className="text-xs text-white/40 mt-0.5">{pageData.product.product_type}</p>
+                      {pageData.product.price > 0 && (
+                        <p className="text-sm font-bold text-emerald-400 mt-1">${pageData.product.price.toFixed(2)}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : createResults.length > 0 ? (
+              <div className="space-y-8">
+                {/* Success celebration */}
+                <div className="relative">
+                  <div className="absolute inset-0 -m-16 bg-emerald-500/10 rounded-full blur-3xl animate-pulse" />
+                  {/* Confetti particles */}
+                  <div className="absolute inset-0 -m-20">
+                    {[...Array(12)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute w-2 h-2 rounded-full animate-ping"
+                        style={{
+                          background: ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b", "#ec4899", "#06b6d4"][i % 6],
+                          top: `${20 + Math.sin(i * 30) * 40}%`,
+                          left: `${20 + Math.cos(i * 30) * 40}%`,
+                          animationDelay: `${i * 150}ms`,
+                          animationDuration: "2s",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="relative mx-auto w-28 h-28 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-2xl shadow-emerald-500/30">
+                    <Check className="h-14 w-14 text-white" />
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-3">Boutique créée avec succès ! 🎉</h2>
+                  <p className="text-emerald-300/80 text-xl font-semibold">{pageData.brand_name}</p>
+                  <p className="text-white/40 text-sm mt-2">Votre produit est en ligne et prêt à vendre</p>
+                </div>
+
+                {/* Results */}
+                <div className="bg-white/5 backdrop-blur-sm rounded-xl p-5 border border-white/5">
+                  {createResults.map((r, i) => (
+                    <div key={i} className="flex items-center gap-3 py-2.5">
+                      {r.success ? (
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-emerald-400" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                          <X className="h-4 w-4 text-red-400" />
+                        </div>
+                      )}
+                      <span className="text-sm text-white/80">{r.title}</span>
+                      {r.success && <span className="text-xs text-emerald-400/60 ml-auto">✓ Publié</span>}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-col gap-3 items-center pt-2">
+                  <a
+                    href={`https://${shopDomain ?? ""}/admin/products`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-8 py-3.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-semibold shadow-lg shadow-blue-500/20 text-base"
+                  >
+                    <ExternalLink className="h-5 w-5" />
+                    Voir sur Shopify
+                  </a>
+                  <button
+                    onClick={reset}
+                    className="text-white/40 hover:text-white/70 text-sm transition-colors flex items-center gap-2 mt-2"
+                  >
+                    <Sparkles className="h-4 w-4" /> Créer une autre boutique
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
+
+      {/* Shimmer keyframe */}
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
     </div>
   );
 }

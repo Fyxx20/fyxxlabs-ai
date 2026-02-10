@@ -193,10 +193,10 @@ export function StoreMobilePreview({
           {/* Add to cart */}
           <div className="px-4 py-3">
             <button
-              className="w-full py-3.5 text-white font-bold text-sm tracking-wider rounded-sm"
-              style={{ backgroundColor: "#1a1a1a" }}
+              className="w-full py-3.5 text-white font-bold text-sm tracking-wider rounded-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: data.brand_color || "#1a1a1a" }}
             >
-              AJOUTER AU PANIER
+              AJOUTER AU PANIER — ${data.product.price.toFixed(2)}
             </button>
           </div>
 
@@ -211,9 +211,20 @@ export function StoreMobilePreview({
 
           {/* Payment methods */}
           <div className="px-4 pb-3 flex justify-center gap-2">
-            {["💳", "💎", "🍎", "G", "V", "K"].map((icon, i) => (
-              <div key={i} className="w-9 h-6 bg-gray-100 rounded flex items-center justify-center text-[10px] font-bold text-gray-600 border border-gray-200">
-                {icon}
+            {[
+              { label: "VISA", bg: "#1a1f71", color: "#fff" },
+              { label: "MC", bg: "#eb001b", color: "#fff" },
+              { label: "AMEX", bg: "#006fcf", color: "#fff" },
+              { label: "PayPal", bg: "#003087", color: "#fff" },
+              { label: "Apple", bg: "#000", color: "#fff" },
+              { label: "GPay", bg: "#4285f4", color: "#fff" },
+            ].map((m, i) => (
+              <div
+                key={i}
+                className="w-10 h-6 rounded flex items-center justify-center border border-gray-200"
+                style={{ backgroundColor: m.bg }}
+              >
+                <span className="text-[7px] font-bold" style={{ color: m.color }}>{m.label}</span>
               </div>
             ))}
           </div>
@@ -356,10 +367,10 @@ export function StoreMobilePreview({
           {/* Sticky add to cart */}
           <div className="px-4 py-3 border-t border-gray-200 bg-white">
             <button
-              className="w-full py-3.5 text-white font-bold text-sm tracking-wider rounded-sm"
-              style={{ backgroundColor: "#1a1a1a" }}
+              className="w-full py-3.5 text-white font-bold text-sm tracking-wider rounded-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: data.brand_color || "#1a1a1a" }}
             >
-              AJOUTER AU PANIER
+              ACHETER MAINTENANT
             </button>
           </div>
         </div>

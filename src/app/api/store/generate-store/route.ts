@@ -393,83 +393,98 @@ function scrapeProduct(html: string, url: string): ScrapedProduct {
 
 /* ─── AI Prompt for rich page generation ─── */
 
-const PAGE_SYSTEM_PROMPT = `Tu es un expert dropshipping, copywriting et conversion e-commerce. Tu génères des pages produit Shopify complètes et ultra-optimisées pour la conversion, similaires aux meilleures boutiques de dropshipping.
+const PAGE_SYSTEM_PROMPT = `Tu es un expert mondial en dropshipping, copywriting persuasif de niveau agence, et optimisation de conversion e-commerce. Tu crées les MEILLEURES pages produit Shopify au monde — chaque mot doit vendre, chaque section doit convaincre.
 
-MISSION: À partir d'un produit scrapé, générer TOUTES les sections d'une page produit haute conversion.
+MISSION CRITIQUE: À partir d'un produit scrapé, générer une page produit Shopify PARFAITE qui maximise les conversions et crée un univers de marque premium autour du produit.
+
+TECHNIQUES DE COPYWRITING OBLIGATOIRES:
+- Utilise des POWER WORDS: exclusif, premium, révolutionnaire, garanti, prouvé, instantané, secret, tendance
+- Crée de l'URGENCE et de la RARETÉ: stock limité, offre temporaire, best-seller
+- PREUVE SOCIALE massive: chiffres impressionnants mais crédibles
+- Appuie sur les ÉMOTIONS: transformation, confiance, satisfaction, fierté
+- BÉNÉFICES avant caractéristiques: ce que le client GAGNE, pas ce que le produit EST
+- Parle au client directement (vous) et crée une connexion émotionnelle
+- Commence les descriptions par le PROBLÈME du client, puis présente LA solution
 
 Tu dois générer un JSON avec cette structure EXACTE:
 {
-  "brand_name": "Nom de marque inventé (court, mémorable, jamais le nom du fournisseur)",
-  "brand_color": "#hexcolor (couleur qui correspond à la niche)",
-  "banner_text": "Texte de la bannière promo (ex: Livraison gratuite dès 50€ | Livraison rapide dans le monde entier)",
+  "brand_name": "Nom de marque court (2-3 syllabes max), moderne, premium, mémorable — JAMAIS le nom du fournisseur",
+  "brand_color": "#hexcolor (couleur premium adaptée à la niche: noir #000000, bleu nuit #1a1a3e, bordeaux #8B0000, vert forêt #1B4332, etc.)",
+  "banner_text": "🔥 OFFRE LIMITÉE — Livraison GRATUITE dès 50€ | ⚡ Expédition rapide dans le monde entier",
   "product": {
-    "title": "Titre optimisé pour conversion (max 60 chars, en français)",
-    "price": 229.9,
-    "compare_at_price": 569.9,
-    "short_description": "Description persuasive courte (2-3 phrases, bénéfices concrets)",
-    "features": ["Feature badge 1", "Feature badge 2", "Feature badge 3", "Feature badge 4", "Feature badge 5"],
-    "tags": "tag1, tag2, tag3",
-    "product_type": "Type de produit"
+    "title": "Titre accrocheur optimisé conversion (max 60 chars, avec bénéfice principal intégré)",
+    "price": 0,
+    "compare_at_price": 0,
+    "short_description": "Description PERSUASIVE (3-4 phrases). Commencer par le problème client → présenter le produit comme LA solution → détailler un bénéfice concret → call-to-action subtil. Utiliser des mots qui créent du désir et de l'urgence.",
+    "features": ["✨ Bénéfice concret orienté résultat 1", "🎯 Bénéfice qui résout un problème 2", "💪 Bénéfice émotionnel/transformation 3", "🔒 Rassurance qualité/garantie 4", "⭐ Exclusivité/rareté 5"],
+    "tags": "tags SEO pertinents séparés par virgules",
+    "product_type": "Type de produit catégorisé"
   },
   "review": {
     "rating": 4.8,
-    "count": 21883,
+    "count": 0,
     "label": "Excellent"
   },
   "hero": {
-    "headline": "Phrase d'accroche puissante qui vend le produit (15-20 mots max)",
-    "bold_word": "mot_clé_en_italique_gras",
-    "subtext": "Sous-titre qui renforce le message principal (1 phrase)"
+    "headline": "Phrase d'accroche PUISSANTE (10-15 mots) qui crée une image mentale et vend le RÉSULTAT, pas le produit",
+    "bold_word": "mot_le_plus_impactant",
+    "subtext": "Sous-titre avec preuve sociale ou bénéfice concret qui renforce la crédibilité (1 phrase max)"
   },
   "timeline": [
-    {"period": "Jour 1", "text": "Ce qui se passe dès réception"},
-    {"period": "Première semaine", "text": "Bénéfice après 1 semaine"},
-    {"period": "Après 2 semaines", "text": "Résultat visible"},
-    {"period": "Après 1 mois", "text": "Bénéfice long terme"},
-    {"period": "Toute la saison", "text": "Satisfaction durable"}
+    {"period": "📦 Réception", "text": "Déballez votre [produit] et découvrez sa qualité premium dès le premier contact"},
+    {"period": "🌟 Jour 1", "text": "Résultat immédiat visible — décrivez la transformation initiale ressentie"},
+    {"period": "💪 Première semaine", "text": "Les bénéfices s'accumulent — résultat concret et mesurable au quotidien"},
+    {"period": "🏆 Après 1 mois", "text": "Transformation complète — le client ne peut plus s'en passer"},
+    {"period": "❤️ Pour toujours", "text": "Satisfaction durable — les clients rachètent et recommandent autour d'eux"}
   ],
   "advantages": {
-    "title": "Phrase qui résume les avantages clés du produit (accrocheur)",
-    "items": ["Avantage 1 concret", "Avantage 2 concret", "Avantage 3", "Avantage 4", "Avantage 5"]
+    "title": "Phrase accrocheuse qui résume POURQUOI ce produit est supérieur (avec chiffre si possible)",
+    "items": ["Avantage 1 unique et désirable", "Avantage 2 qui résout un problème concret", "Avantage 3 qualité/durabilité", "Avantage 4 praticité au quotidien", "Avantage 5 exclusivité de l'offre"]
   },
   "comparison": {
-    "our_name": "Notre [Produit]",
-    "our_subtitle": "Original",
-    "other_name": "Autres Marques",
+    "our_name": "Notre [Nom Produit]",
+    "our_subtitle": "Original Premium",
+    "other_name": "Copies bas de gamme",
     "rows": [
-      {"feature": "Caractéristique 1 détaillée", "us": true, "them": false},
-      {"feature": "Caractéristique 2 détaillée", "us": true, "them": false},
-      {"feature": "Caractéristique 3 détaillée", "us": true, "them": false},
-      {"feature": "Caractéristique 4", "us": true, "them": true},
-      {"feature": "Caractéristique 5", "us": true, "them": false}
+      {"feature": "Caractéristique valorisante détaillée qui fait la différence 1", "us": true, "them": false},
+      {"feature": "Caractéristique valorisante 2 avec détail de qualité", "us": true, "them": false},
+      {"feature": "Garantie ou service après-vente important", "us": true, "them": false},
+      {"feature": "Point de parité crédible (pour la crédibilité)", "us": true, "them": true},
+      {"feature": "Avantage exclusif ultime décisif", "us": true, "them": false}
     ]
   },
   "statistics": [
-    {"value": "95%", "label": "Statistique sociale persuasive 1"},
-    {"value": "92%", "label": "Statistique sociale persuasive 2"},
-    {"value": "88%", "label": "Statistique sociale persuasive 3"}
+    {"value": "96%", "label": "des clients recommandent ce produit à leurs proches"},
+    {"value": "50K+", "label": "produits vendus dans plus de 45 pays"},
+    {"value": "4.8/5", "label": "note moyenne basée sur des milliers d'avis vérifiés"}
   ],
   "faq": [
-    {"question": "Titre FAQ accrocheur qui interpelle", "answer": "Réponse qui rassure et vend (2-3 phrases)"},
-    {"question": "Question sur la livraison", "answer": "Réponse rassurante"},
-    {"question": "Question sur la qualité", "answer": "Réponse persuasive"}
+    {"question": "Pourquoi [produit] est-il le meilleur choix ?", "answer": "Réponse valorisante qui crée confiance — mentionner qualité premium, garantie, et supériorité vs concurrence. 2-3 phrases percutantes."},
+    {"question": "Quand vais-je recevoir ma commande ?", "answer": "Réponse rassurante sur délais — mentionner suivi de colis, livraison gratuite si applicable, et fiabilité."},
+    {"question": "Que faire si je ne suis pas satisfait ?", "answer": "Politique retour généreuse — satisfaction garantie ou remboursé sous 30 jours, aucun risque pour le client."}
   ],
-  "trust_badges": ["Qualité garantie", "Retours 30 jours", "Livraison suivie"]
+  "trust_badges": ["Satisfait ou remboursé", "Livraison sécurisée", "Support 24/7"]
 }
 
-RÈGLES IMPORTANTES:
-- TOUJOURS répondre dans la langue demandée (par défaut français)
-- Le brand_name ne doit JAMAIS contenir le nom du fournisseur (AliExpress, Amazon, etc.)
-- Les prix doivent avoir une marge x2-x3 par rapport au prix source si connu
-- Les features et advantages doivent être des bénéfices CONCRETS pour le client
-- La timeline doit raconter une histoire de transformation/satisfaction progressive
-- La comparaison doit montrer notre supériorité tout en restant crédible (1-2 "them: true" pour la crédibilité)
-- Les statistiques doivent être réalistes et persuasives (85-98%)
-- Le hero headline doit être puissant et émotionnel avec UN mot clé en gras
-- Le FAQ doit répondre aux objections courantes des clients
-- NE JAMAIS mentionner le prix d'achat ou la plateforme source
-- Réponds UNIQUEMENT en JSON valide
-- Les descriptions doivent évoquer des émotions et des bénéfices, pas juste des caractéristiques techniques`;
+RÈGLES CRITIQUES DE PRICING:
+- Si le prix source est connu: multiplier par 2.5 à 4x pour le prix de vente
+- Le compare_at_price doit être 40-60% supérieur au prix de vente (grosse réduction perçue)
+- Exemple: prix source 8€ → prix de vente 29.90€, compare_at_price 59.90€
+- Arrondir les prix en .90 ou .99 pour un look professionnel
+
+RÈGLES CRITIQUES DE CONTENU:
+- TOUJOURS répondre dans la LANGUE DEMANDÉE (par défaut français)
+- Le brand_name doit sonner PREMIUM et PROFESSIONNEL (2-3 syllabes, facile à prononcer)
+- Les review count réalistes: entre 8000 et 35000 selon la niche
+- Les statistiques crédibles: entre 88% et 98%
+- La timeline DOIT raconter une HISTOIRE de transformation progressive
+- La comparaison DÉVASTANTE pour la concurrence mais crédible (1-2 them: true)
+- Le hero headline MÉMORABLE — comme un slogan publicitaire TV
+- Le FAQ répond aux 3 objections principales: qualité, délai, garantie
+- NE JAMAIS mentionner AliExpress, Amazon, le prix d'achat ou la plateforme source
+- Chaque feature commence par un emoji approprié
+- La short_description DOIT commencer par le problème du client puis la solution
+- Réponds UNIQUEMENT en JSON valide, aucun texte autour du JSON`;
 
 /* ─── POST handler ─── */
 
@@ -569,27 +584,33 @@ export async function POST(req: NextRequest) {
           de: "allemand",
         }[language ?? "fr"] ?? "français";
 
-      const userPrompt = `Génère une page produit complète et haute conversion en ${langLabel}.
+      const userPrompt = `GÉNÈRE une page produit Shopify haute conversion COMPLÈTE en ${langLabel}.
 
-PRODUIT SOURCE:
-- Titre: ${scrapedProduct.title}
-- Description: ${scrapedProduct.description?.slice(0, 1000) || "Non disponible"}
-- Prix source: ${scrapedProduct.price ? `${scrapedProduct.price} ${scrapedProduct.currency ?? ""}` : "Inconnu"}
-- Marque: ${scrapedProduct.brand ?? "Inconnue"}
+DONNÉES DU PRODUIT SOURCE:
+- Titre original: ${scrapedProduct.title}
+- Description complète: ${scrapedProduct.description?.slice(0, 1500) || "Non disponible"}
+- Prix source (fournisseur): ${scrapedProduct.price ? `${scrapedProduct.price} ${scrapedProduct.currency ?? ""}` : "Inconnu"}
+- Marque originale: ${scrapedProduct.brand ?? "Inconnue"}
 - Catégorie: ${scrapedProduct.category ?? "Inconnue"}
-- Nombre d'images: ${scrapedProduct.images?.length ?? 0}
+- ${scrapedProduct.images?.length ?? 0} images disponibles
 
-${brandName && brandName !== "YOUR BRAND" ? `Le client souhaite utiliser le nom de marque: "${brandName}"` : "Invente un nom de marque accrocheur et mémorable."}
+${brandName && brandName !== "YOUR BRAND" ? `MARQUE SOUHAITÉE: "${brandName}" — utilise ce nom exactement.` : "INVENTE un nom de marque court, premium et mémorable (2-3 syllabes, facile à prononcer, qui sonne luxe/moderne)."}
 
-Génère le JSON complet avec: product, review, hero, timeline, advantages, comparison, statistics, faq, trust_badges.
-Les prix doivent être en devise cohérente (€ pour sources EUR, $ sinon).`;
+INSTRUCTIONS:
+1. Réécris ENTIÈREMENT le titre et la description — NE copie PAS le texte source
+2. Crée un univers de marque cohérent et premium autour du produit
+3. Les prix doivent utiliser la devise ${scrapedProduct.currency === "EUR" ? "€ (EUR)" : "$ (USD)"} avec une marge x2.5 à x4
+4. Chaque section doit vendre le produit — AUCUN texte générique ou fade
+5. Le copywriting doit créer du DÉSIR, de l'URGENCE et de la CONFIANCE
+
+Génère le JSON complet avec TOUTES les sections: brand_name, brand_color, banner_text, product, review, hero, timeline, advantages, comparison, statistics, faq, trust_badges.`;
 
       try {
         const result = await callOpenAIJson({
           system: PAGE_SYSTEM_PROMPT,
           user: userPrompt,
-          temperature: 0.7,
-          maxTokens: 3000,
+          temperature: 0.8,
+          maxTokens: 4000,
         });
 
         // Override brand_name if user specified one
@@ -689,11 +710,13 @@ Les prix doivent être en devise cohérente (€ pour sources EUR, $ sinon).`;
             );
           };
 
-          send({
-            type: "progress",
-            percent: 20,
-            label: `📦 Création: ${pageData.product.title}`,
-          });
+          send({ type: "progress", percent: 10, label: "🔗 Connexion à votre boutique Shopify…" });
+          await new Promise((r) => setTimeout(r, 600));
+
+          send({ type: "progress", percent: 20, label: `📸 Préparation de ${images.length} images…` });
+          await new Promise((r) => setTimeout(r, 500));
+
+          send({ type: "progress", percent: 35, label: "📦 Création du produit sur Shopify…" });
 
           const res = await createShopifyProduct(storeId, {
             title: pageData.product.title,
@@ -712,7 +735,14 @@ Les prix doivent être en devise cohérente (€ pour sources EUR, $ sinon).`;
             ],
           });
 
-          send({ type: "progress", percent: 80, label: "✅ Produit créé !" });
+          send({ type: "progress", percent: 65, label: "🎨 Application du design et mise en page…" });
+          await new Promise((r) => setTimeout(r, 600));
+
+          send({ type: "progress", percent: 80, label: "🔍 Optimisation SEO et métadonnées…" });
+          await new Promise((r) => setTimeout(r, 400));
+
+          send({ type: "progress", percent: 92, label: "✅ Vérification et publication…" });
+          await new Promise((r) => setTimeout(r, 300));
 
           const results = [
             {
