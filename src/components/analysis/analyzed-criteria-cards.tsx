@@ -51,9 +51,66 @@ function issueMatchesCriterion(issue: IssueLike, key: CriterionKey): boolean {
 }
 
 function fallbackByScore(key: CriterionKey, score: number): IssueLike[] {
-  if (score >= 60) return [];
+  // Always show improvement suggestions, even for high scores
+  const highScoreMap: Record<CriterionKey, IssueLike> = {
+    conversion: {
+      id: "tip-conversion",
+      title: "Optimiser le tunnel de conversion",
+      why_it_hurts: "Même un bon tunnel peut encore être affiné pour maximiser les conversions.",
+      fix_steps: [
+        "Tester différentes formulations de CTA (ex: \"Ajouter au panier\" vs \"Je commande\").",
+        "Réduire le nombre d'étapes entre la fiche produit et la confirmation.",
+        "Ajouter un indicateur de progression dans le checkout.",
+        "Proposer le guest checkout pour les nouveaux clients.",
+      ],
+    },
+    trust: {
+      id: "tip-trust",
+      title: "Renforcer les signaux de confiance",
+      why_it_hurts: "La confiance peut toujours être améliorée pour réduire les hésitations.",
+      fix_steps: [
+        "Mettre en avant les avis clients les plus récents.",
+        "Ajouter des badges de paiement sécurisé visibles.",
+        "Afficher clairement délais de livraison et politique de retour.",
+        "Ajouter une page \"À propos\" complète avec l'équipe.",
+      ],
+    },
+    offer: {
+      id: "tip-offer",
+      title: "Affiner la clarté de l'offre",
+      why_it_hurts: "Une offre peut toujours être mieux comprise pour convertir plus.",
+      fix_steps: [
+        "Tester un sous-titre plus orienté bénéfice sous le H1.",
+        "Utiliser l'ancrage de prix (barré / économie visible).",
+        "Comparer vos avantages vs la concurrence sur la page produit.",
+        "Clarifier les options (tailles, couleurs) avec des visuels.",
+      ],
+    },
+    performance: {
+      id: "tip-performance",
+      title: "Optimiser les performances techniques",
+      why_it_hurts: "Chaque seconde de chargement en moins augmente la conversion.",
+      fix_steps: [
+        "Compresser les images au format WebP/AVIF.",
+        "Lazy-loader les images sous le fold.",
+        "Réduire les scripts tiers non essentiels.",
+        "Vérifier les Core Web Vitals (LCP, CLS, FID).",
+      ],
+    },
+    traffic: {
+      id: "tip-traffic",
+      title: "Développer l'acquisition de trafic",
+      why_it_hurts: "Plus de trafic qualifié = plus de ventes potentielles.",
+      fix_steps: [
+        "Optimiser les balises title et meta description des pages clés.",
+        "Structurer le contenu autour des intentions de recherche.",
+        "Renforcer le maillage interne vers les pages produit.",
+        "Considérer un blog ou des guides d'achat pour le SEO.",
+      ],
+    },
+  };
 
-  const map: Record<CriterionKey, IssueLike> = {
+  const lowScoreMap: Record<CriterionKey, IssueLike> = {
     conversion: {
       id: "fallback-conversion",
       title: "Tunnel de conversion sous-optimisé",
@@ -106,7 +163,7 @@ function fallbackByScore(key: CriterionKey, score: number): IssueLike[] {
     },
   };
 
-  return [map[key]];
+  return [score >= 60 ? highScoreMap[key] : lowScoreMap[key]];
 }
 
 function statusFromScore(score: number): "ok" | "warning" | "problem" {
@@ -250,8 +307,8 @@ export function AnalyzedCriteriaCards({
           </DialogHeader>
 
           {selectedIssues.length === 0 ? (
-            <div className="rounded-lg border border-border bg-muted/30 p-4 text-sm text-muted-foreground">
-              Aucun problème critique détecté pour ce thème. Continue à monitorer ce point et relance un scan après modification.
+            <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-400">
+              Excellent ! Aucun problème détecté pour ce thème. Continue à surveiller ce critère régulièrement.
             </div>
           ) : (
             <div className="space-y-3">
