@@ -55,47 +55,77 @@ async function fetchPage(url: string): Promise<string> {
   }
 }
 
-/* ─── Multi-strategy fetch for blocked sites (AliExpress, etc.) ─── */
+/* ─── Multi-strategy PARALLEL fetch for blocked sites (AliExpress, etc.) ─── */
 async function fetchWithStrategies(url: string): Promise<string | null> {
+  const idMatch = url.match(/\/item\/(\d+)/);
+  const itemId = idMatch?.[1];
+
   const strategies = [
-    { label: 'mobile', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://m.aliexpress.com'), headers: {
-      ...BROWSER_HEADERS,
+    { label: 'mobile', url: itemId
+      ? `https://m.aliexpress.com/item/${itemId}.html`
+      : url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://m.aliexpress.com'), headers: {
       'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+      'Accept': 'text/html',
+      'Accept-Language': 'fr-FR,fr;q=0.9',
     }},
-    { label: 'googlebot', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://www.aliexpress.com'), headers: {
+    { label: 'googlebot', url: itemId
+      ? `https://www.aliexpress.com/item/${itemId}.html`
+      : url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://www.aliexpress.com'), headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
       'Accept': 'text/html',
+      'Accept-Language': 'en-US,en;q=0.9',
     }},
     { label: 'desktop', url, headers: BROWSER_HEADERS },
-    { label: 'minimal', url: url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://www.aliexpress.com'), headers: {
-      'User-Agent': 'Mozilla/5.0',
-      'Accept': '*/*',
+    { label: 'desktop-en', url: itemId
+      ? `https://www.aliexpress.com/item/${itemId}.html`
+      : url.replace(/https?:\/\/[^/]*aliexpress\.com/, 'https://www.aliexpress.com'), headers: {
+      ...BROWSER_HEADERS,
+      'Accept-Language': 'en-US,en;q=0.9',
     }},
   ];
 
-  for (const s of strategies) {
+  // Launch ALL strategies in parallel — first valid response wins
+  const racePromises = strategies.map(async (s) => {
     try {
+      console.log(`[fetchParallel] Starting ${s.label}: ${s.url}`);
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 12000);
+      const timeout = setTimeout(() => controller.abort(), 15000);
       const res = await fetch(s.url, { signal: controller.signal, headers: s.headers, redirect: 'follow' });
       clearTimeout(timeout);
       const html = await res.text();
-      console.log(`[fetchWithStrategies] ${s.label}: status=${res.status} len=${html.length}`);
-      
-      // Check if it's a real page (has og:title or imagePathList or product data)
-      const hasData = html.includes('og:title') || html.includes('imagePathList') || html.includes('runParams');
+      const hasData = html.includes('og:title') || html.includes('imagePathList') || html.includes('summImagePathList');
       const isBlocked = html.includes('Just a moment') || html.includes('cf-browser-verification') || html.includes('challenge-form') || html.includes('Maintaining');
-      
-      if (hasData && !isBlocked && html.length > 5000) {
-        console.log(`[fetchWithStrategies] ${s.label}: SUCCESS → using this response`);
-        return html;
-      }
-      console.log(`[fetchWithStrategies] ${s.label}: SKIP (hasData=${hasData}, isBlocked=${isBlocked})`);
+      console.log(`[fetchParallel] ${s.label}: status=${res.status} len=${html.length} hasData=${hasData} isBlocked=${isBlocked}`);
+      if (hasData && !isBlocked && html.length > 3000) return html;
+      return null;
     } catch (err) {
-      console.log(`[fetchWithStrategies] ${s.label}: ERROR ${err instanceof Error ? err.message : 'unknown'}`);
+      console.log(`[fetchParallel] ${s.label} failed: ${err instanceof Error ? err.message : err}`);
+      return null;
     }
-  }
-  return null;
+  });
+
+  // 20s total timeout
+  const totalTimeout = new Promise<null>((resolve) =>
+    setTimeout(() => { console.log('[fetchParallel] Total timeout (20s)'); resolve(null); }, 20000)
+  );
+
+  const result = await Promise.race([
+    (async () => {
+      const results = await Promise.allSettled(racePromises);
+      let bestWithOgTitle: string | null = null;
+      let firstValid: string | null = null;
+      for (const r of results) {
+        if (r.status === 'fulfilled' && r.value) {
+          if (!firstValid) firstValid = r.value;
+          if (!bestWithOgTitle && r.value.includes('og:title')) bestWithOgTitle = r.value;
+        }
+      }
+      return bestWithOgTitle ?? firstValid;
+    })(),
+    totalTimeout,
+  ]);
+
+  return result;
 }
 
 function detectSource(url: string): string {
