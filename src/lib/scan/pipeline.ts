@@ -1,5 +1,5 @@
 import type { ScanData, ScanPageData } from "./types";
-import { fetchHtmlWithPlaywright, fetchMultipleUrls } from "./playwright-fetch";
+import { fetchHtmlWithHttp, fetchMultipleHttp } from "./http-fetch";
 import { extractPageData, discoverKeyPages } from "./crawler";
 import { generateIssuesAndScores, generateTrialSingleAdviceOnly } from "./llm";
 
@@ -17,7 +17,7 @@ export async function runScanPipeline(
 }> {
   const analyzedAt = new Date().toISOString();
 
-  const homepageHtml = await fetchHtmlWithPlaywright(websiteUrl);
+  const homepageHtml = await fetchHtmlWithHttp(websiteUrl);
   const homepageData = extractPageData(homepageHtml, websiteUrl);
   const homepageWithUrl: ScanPageData = {
     ...homepageData,
@@ -26,7 +26,7 @@ export async function runScanPipeline(
   };
 
   const keyUrls = discoverKeyPages(homepageData.links, websiteUrl, 5);
-  const extraPages = await fetchMultipleUrls(keyUrls);
+  const extraPages = await fetchMultipleHttp(keyUrls, 5);
   const pages: ScanPageData[] = extraPages.map(({ url, html }) => ({
     ...extractPageData(html, url),
     url,

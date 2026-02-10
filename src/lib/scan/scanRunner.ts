@@ -1,5 +1,4 @@
-import { fetchHtmlWithPlaywright } from "./playwright-fetch";
-import { fetchHtmlWithHttp } from "./http-fetch";
+import { fetchHtmlWithHttp, fetchMultipleHttp } from "./http-fetch";
 import { discoverKeyPages } from "./crawler";
 import * as cheerio from "cheerio";
 import {
@@ -280,20 +279,6 @@ function analyzeProductPageFromHtml(html: string, url: string) {
   };
 }
 
-async function fetchHtml(url: string, mode: "playwright" | "http"): Promise<{ html: string; used: "playwright" | "http" }> {
-  if (mode === "playwright") {
-    try {
-      const html = await fetchHtmlWithPlaywright(url);
-      return { html, used: "playwright" };
-    } catch {
-      const html = await fetchHtmlWithHttp(url);
-      return { html, used: "http" };
-    }
-  }
-  const html = await fetchHtmlWithHttp(url);
-  return { html, used: "http" };
-}
-
 async function emitProgress(
   onProgress: RunScanInput["onProgress"],
   progress: number,
@@ -304,13 +289,198 @@ async function emitProgress(
 }
 
 /** Extract links from a collection/category page to find more product URLs */
-async function discoverLinksFromPage(url: string, mode: "playwright" | "http", baseOrigin: string): Promise<string[]> {
+async function discoverLinksFromPage(url: string, baseOrigin: string): Promise<string[]> {
   try {
-    const { html } = await fetchHtml(url, mode);
+    const html = await fetchHtmlWithHttp(url);
     return extractLinks(html, baseOrigin);
   } catch {
     return [];
   }
+}
+
+/** Fetch products from Shopify public /products.json endpoint (no auth needed) */
+async function fetchShopifyPublicProducts(baseUrl: string): Promise<Array<{
+  url: string;
+  title: string;
+  h1: string | null;
+  meta_description: string | null;
+  image_count: number;
+  script_count: number;
+  detected_prices: number[];
+  average_price: number | null;
+  has_cta: boolean;
+  has_reviews: boolean;
+  has_trust_badges: boolean;
+  has_shipping_returns: boolean;
+  issues: string[];
+  recommendations: string[];
+}>> {
+  try {
+    const origin = new URL(baseUrl).origin;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${origin}/products.json?limit=250`, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "application/json",
+      },
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return [];
+    const data = await res.json();
+    const products = data?.products;
+    if (!Array.isArray(products) || products.length === 0) return [];
+
+    return products.map((p: Record<string, unknown>) => {
+      const title = String(p.title ?? "");
+      const bodyHtml = String(p.body_html ?? "");
+      const handle = String(p.handle ?? "");
+      const tags = String(p.tags ?? "");
+      const images = Array.isArray(p.images) ? p.images : [];
+      const variants = Array.isArray(p.variants) ? p.variants : [];
+
+      const prices = variants
+        .map((v: Record<string, unknown>) => parseFloat(String(v.price ?? "0")))
+        .filter((v: number) => Number.isFinite(v) && v > 0);
+      const avgPrice = prices.length > 0 ? Number((prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2)) : null;
+      const descLower = bodyHtml.toLowerCase();
+      const issues: string[] = [];
+      const recommendations: string[] = [];
+
+      if (bodyHtml.replace(/<[^>]*>/g, "").trim().length < 50) {
+        issues.push("Description produit trop courte ou absente.");
+        recommendations.push("Rédiger une description persuasive avec bénéfices.");
+      }
+      if (images.length < 3) {
+        issues.push(`Seulement ${images.length} image(s) — insuffisant.`);
+        recommendations.push("Ajouter au moins 3-5 images.");
+      }
+      const imagesWithoutAlt = images.filter((img: Record<string, unknown>) => !img.alt || String(img.alt).trim().length === 0).length;
+      if (imagesWithoutAlt > 0) {
+        issues.push(`${imagesWithoutAlt} image(s) sans texte alternatif.`);
+        recommendations.push("Ajouter un alt descriptif à chaque image pour le SEO.");
+      }
+      if (prices.length === 0) {
+        issues.push("Aucun prix détecté.");
+        recommendations.push("Vérifier que les variantes ont des prix définis.");
+      }
+      if (!tags || tags.trim().length === 0) {
+        issues.push("Aucun tag défini.");
+        recommendations.push("Ajouter des tags pour la navigation et le SEO.");
+      }
+      if (!/livraison|shipping|retour|return|delivery/i.test(descLower)) {
+        issues.push("Aucune mention livraison/retours.");
+        recommendations.push("Mentionner les conditions de livraison et retours.");
+      }
+
+      return {
+        url: `${origin}/products/${handle}`,
+        title,
+        h1: title,
+        meta_description: bodyHtml.replace(/<[^>]*>/g, "").slice(0, 160) || null,
+        image_count: images.length,
+        script_count: 0,
+        detected_prices: prices.slice(0, 20),
+        average_price: avgPrice,
+        has_cta: true,
+        has_reviews: /review|avis|rating/i.test(descLower),
+        has_trust_badges: /secure|paiement|garantie|guarantee|trust/i.test(descLower),
+        has_shipping_returns: /livraison|shipping|retour|return/i.test(descLower),
+        issues,
+        recommendations,
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Extract product data from HTML using JSON-LD structured data and meta tags */
+function extractProductsFromHtml(html: string, pageUrl: string): Array<{
+  url: string;
+  title: string;
+  h1: string | null;
+  meta_description: string | null;
+  image_count: number;
+  script_count: number;
+  detected_prices: number[];
+  average_price: number | null;
+  has_cta: boolean;
+  has_reviews: boolean;
+  has_trust_badges: boolean;
+  has_shipping_returns: boolean;
+  issues: string[];
+  recommendations: string[];
+}> {
+  const products: ReturnType<typeof extractProductsFromHtml> = [];
+  const $ = cheerio.load(html);
+  
+  // 1. Extract from JSON-LD structured data
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const json = JSON.parse($(el).html() ?? "");
+      const items = json["@type"] === "Product" ? [json] 
+        : Array.isArray(json["@graph"]) ? json["@graph"].filter((g: Record<string, unknown>) => g["@type"] === "Product")
+        : json["@type"] === "ItemList" && Array.isArray(json.itemListElement) 
+          ? json.itemListElement.map((i: Record<string, unknown>) => i.item).filter((i: unknown) => i && (i as Record<string, unknown>)["@type"] === "Product")
+        : [];
+      
+      for (const item of items) {
+        const title = String(item.name ?? "");
+        if (!title) continue;
+        const desc = String(item.description ?? "");
+        const imgCount = Array.isArray(item.image) ? item.image.length : (item.image ? 1 : 0);
+        const prices: number[] = [];
+        
+        // Extract price from offers
+        const offers = Array.isArray(item.offers) ? item.offers : (item.offers ? [item.offers] : []);
+        for (const offer of offers) {
+          const p = parseFloat(String(offer.price ?? "0"));
+          if (Number.isFinite(p) && p > 0) prices.push(p);
+        }
+        
+        const avgPrice = prices.length > 0 ? Number((prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2)) : null;
+        const productUrl = String(item.url ?? item["@id"] ?? pageUrl);
+        const issues: string[] = [];
+        const recommendations: string[] = [];
+        
+        if (desc.length < 50) {
+          issues.push("Description produit trop courte.");
+          recommendations.push("Enrichir la description avec des bénéfices.");
+        }
+        if (imgCount < 3) {
+          issues.push(`Seulement ${imgCount} image(s) détectée(s).`);
+          recommendations.push("Ajouter au moins 3-5 images produit.");
+        }
+        if (prices.length === 0) {
+          issues.push("Prix non détecté dans les données structurées.");
+          recommendations.push("Ajouter un prix visible et des données structurées.");
+        }
+        
+        products.push({
+          url: productUrl,
+          title,
+          h1: title,
+          meta_description: desc.slice(0, 160) || null,
+          image_count: imgCount,
+          script_count: 0,
+          detected_prices: prices,
+          average_price: avgPrice,
+          has_cta: /acheter|ajouter|add to cart|buy now|commander/i.test(html),
+          has_reviews: /review|avis|rating|étoile|star/i.test(html),
+          has_trust_badges: /secure|paiement|garantie|guarantee|trust/i.test(html),
+          has_shipping_returns: /livraison|shipping|retour|return|delivery/i.test(html),
+          issues,
+          recommendations,
+        });
+      }
+    } catch {
+      // invalid JSON-LD
+    }
+  });
+  
+  return products;
 }
 
 /** Build product analyses from Shopify API data (no crawling needed) */
@@ -420,105 +590,168 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
   const start = Date.now();
   const baseUrl = input.url.replace(/\/$/, "") || input.url;
   const homepageUrl = input.url.startsWith("http") ? input.url : `https://${input.url}`;
+  const origin = new URL(homepageUrl).origin;
 
-  let overallMode: "playwright" | "http" = "playwright";
   const pagesScanned: string[] = [];
   const allSignals: PageSignals[] = [];
   const productAnalyses: RunScanResult["raw"]["product_analysis"] = [];
   const detectedPrices: number[] = [];
   const productPages: string[] = [];
+  const seenUrls = new Set<string>();
 
   try {
-    await emitProgress(input.onProgress, 5, "FETCH_HOME", "Récupération de la page d'accueil…");
-    const { html: homeHtml, used: homeUsed } = await fetchHtml(homepageUrl, "playwright");
-    overallMode = homeUsed;
+    // ── Phase 1: Homepage + Shopify products.json in parallel ──
+    await emitProgress(input.onProgress, 5, "FETCH_HOME", "Récupération de la page d'accueil et des produits…");
+    
+    const [homeHtml, publicProducts] = await Promise.all([
+      fetchHtmlWithHttp(homepageUrl),
+      fetchShopifyPublicProducts(homepageUrl),
+    ]);
+    
     pagesScanned.push(homepageUrl);
+    seenUrls.add(homepageUrl);
     allSignals.push(extractSignalsFromHtml(homeHtml, homepageUrl));
     detectedPrices.push(...extractPriceValues(homeHtml));
 
-    // ── Phase 1: Discover ALL links from homepage ──
-    await emitProgress(input.onProgress, 10, "DISCOVER_PAGES", "Détection de toutes les pages du site…");
-    const homeLinks = extractLinks(homeHtml, homepageUrl);
-    const keyUrls = discoverKeyPages(homeLinks, homepageUrl, 60);
-
-    // ── Phase 2: Deep crawl — follow collection/category pages to find more product links ──
-    await emitProgress(input.onProgress, 15, "DISCOVER_PAGES", "Exploration des collections et catégories…");
-    const collectionUrls = keyUrls.filter((u) => /\/collection|\/collections|\/categor/i.test(u));
-    const deepLinks: string[] = [];
-    const deepPromises = collectionUrls.slice(0, 8).map((url) =>
-      discoverLinksFromPage(url, overallMode, homepageUrl)
-    );
-    const deepResults = await Promise.all(deepPromises);
-    for (const links of deepResults) {
-      deepLinks.push(...links);
+    // Extract products from homepage HTML (many stores embed product JSON-LD)
+    const homeProducts = extractProductsFromHtml(homeHtml, homepageUrl);
+    
+    // Add public products.json results
+    if (publicProducts.length > 0) {
+      await emitProgress(input.onProgress, 10, "DISCOVER_PAGES", `${publicProducts.length} produits trouvés via /products.json`);
+      for (const p of publicProducts) {
+        if (!seenUrls.has(p.url)) {
+          seenUrls.add(p.url);
+          productAnalyses.push(p);
+          detectedPrices.push(...p.detected_prices);
+          productPages.push(p.url);
+        }
+      }
     }
-    // Find product URLs from deep crawl
-    const deepProductUrls = deepLinks
-      .filter((u) => /\/product|\/products|\/produit/i.test(u))
-      .map((path) => {
-        try { return new URL(path, homepageUrl).href; } catch { return null; }
-      })
-      .filter(Boolean) as string[];
-
-    // ── Phase 3: Sitemap product discovery (fixed for sitemap index) ──
-    await emitProgress(input.onProgress, 20, "DISCOVER_PAGES", "Lecture du sitemap pour trouver tous les produits…");
-    const sitemapProductUrls = await fetchSitemapProductUrls(homepageUrl);
-
-    // ── Phase 4: If Shopify is connected, import products via API ──
-    if (input.shopifyProducts && input.shopifyProducts.length > 0) {
-      await emitProgress(input.onProgress, 25, "DISCOVER_PAGES", `${input.shopifyProducts.length} produits Shopify importés via API…`);
-      const shopifyAnalyses = analyzeShopifyApiProducts(input.shopifyProducts);
-      productAnalyses.push(...shopifyAnalyses);
-      for (const pa of shopifyAnalyses) {
-        detectedPrices.push(...pa.detected_prices);
-        productPages.push(pa.url);
+    
+    // Add homepage JSON-LD products (if not already from products.json)
+    for (const p of homeProducts) {
+      if (!seenUrls.has(p.url)) {
+        seenUrls.add(p.url);
+        productAnalyses.push(p);
+        detectedPrices.push(...p.detected_prices);
+        productPages.push(p.url);
       }
     }
 
-    // Merge ALL discovered URLs: sitemap products + deep crawl products + homepage products + other pages
+    // ── Phase 2: Discover pages from homepage links ──
+    await emitProgress(input.onProgress, 15, "DISCOVER_PAGES", "Détection de toutes les pages du site…");
+    const homeLinks = extractLinks(homeHtml, homepageUrl);
+    const keyUrls = discoverKeyPages(homeLinks, homepageUrl, 60);
+
+    // ── Phase 3: Deep crawl collections + sitemap in parallel ──
+    await emitProgress(input.onProgress, 18, "DISCOVER_PAGES", "Exploration des collections et du sitemap…");
+    const collectionUrls = keyUrls
+      .filter((u) => /\/collection|\/collections|\/categor/i.test(u))
+      .slice(0, 6);
+    
+    // Launch collection crawl + sitemap fetch in parallel
+    const [deepResults, sitemapProductUrls] = await Promise.all([
+      Promise.all(collectionUrls.map((url) => discoverLinksFromPage(url, homepageUrl))),
+      fetchSitemapProductUrls(homepageUrl),
+    ]);
+
+    const deepProductUrls: string[] = [];
+    for (const links of deepResults) {
+      for (const link of links) {
+        if (/\/product|\/products|\/produit/i.test(link)) {
+          try { deepProductUrls.push(new URL(link, homepageUrl).href); } catch {}
+        }
+      }
+    }
+
+    // ── Phase 4: If Shopify is connected, import products via API ──
+    if (input.shopifyProducts && input.shopifyProducts.length > 0) {
+      await emitProgress(input.onProgress, 22, "DISCOVER_PAGES", `${input.shopifyProducts.length} produits Shopify importés via API…`);
+      const shopifyAnalyses = analyzeShopifyApiProducts(input.shopifyProducts);
+      for (const pa of shopifyAnalyses) {
+        if (!seenUrls.has(pa.url)) {
+          seenUrls.add(pa.url);
+          productAnalyses.push(pa);
+          detectedPrices.push(...pa.detected_prices);
+          productPages.push(pa.url);
+        }
+      }
+    }
+
+    // ── Phase 5: Build prioritized URL list for parallel fetching ──
     const productUrlsFromLinks = keyUrls.filter((u) => /\/product|\/products|\/produit/i.test(u));
     const nonProductUrls = keyUrls.filter((u) => !/\/product|\/products|\/produit/i.test(u));
 
+    // Product URLs first (they're more valuable for analysis)
     const allDiscoveredUrls = Array.from(new Set([
       ...sitemapProductUrls,
       ...deepProductUrls,
       ...productUrlsFromLinks,
       ...nonProductUrls,
-    ])).filter((u) => !u.endsWith(".xml")); // exclude sitemap XML files
+    ]))
+      .filter((u) => !u.endsWith(".xml") && !seenUrls.has(u))
+      .map((u) => {
+        try { return new URL(u, origin).href; } catch { return null; }
+      })
+      .filter(Boolean) as string[];
 
-    const prioritizedUrls = allDiscoveredUrls.slice(0, MAX_DETAILED_SCAN_PAGES);
+    // Prioritize product URLs
+    const productUrlsToFetch = allDiscoveredUrls.filter((u) => /\/product|\/products|\/produit/i.test(u));
+    const otherUrlsToFetch = allDiscoveredUrls.filter((u) => !/\/product|\/products|\/produit/i.test(u));
+    const prioritizedUrls = [...productUrlsToFetch, ...otherUrlsToFetch].slice(0, MAX_DETAILED_SCAN_PAGES);
 
-    await emitProgress(input.onProgress, 28, "EXTRACT", `${prioritizedUrls.length} pages à analyser (${sitemapProductUrls.length} depuis sitemap, ${deepProductUrls.length} crawl profond)…`);
+    await emitProgress(input.onProgress, 25, "EXTRACT", `${prioritizedUrls.length} pages à analyser en parallèle (${productUrlsToFetch.length} produits, ${sitemapProductUrls.length} sitemap)…`);
 
-    // ── Phase 5: Fetch and analyze each page ──
-    for (let i = 0; i < prioritizedUrls.length; i++) {
-      if (pagesScanned.length >= MAX_DETAILED_SCAN_PAGES) break;
-      // Time guard: keep 15s for AI analysis
-      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 15000) break;
+    // ── Phase 6: Parallel page fetching in batches ──
+    const BATCH_SIZE = 8;
+    let fetchedCount = 0;
+    
+    for (let batchStart = 0; batchStart < prioritizedUrls.length; batchStart += BATCH_SIZE) {
+      // Time guard: keep 18s for AI analysis + competitor prices
+      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 18000) break;
 
-      const pageUrl = prioritizedUrls[i];
-      try {
-        await emitProgress(
-          input.onProgress,
-          28 + Math.floor((27 * (i + 1)) / Math.max(prioritizedUrls.length, 1)),
-          "EXTRACT",
-          `Analyse page ${i + 1}/${prioritizedUrls.length} — ${new URL(pageUrl).pathname}…`
-        );
-        const { html, used } = await fetchHtml(pageUrl, overallMode);
-        overallMode = used;
-        if (!pagesScanned.includes(pageUrl)) {
-          pagesScanned.push(pageUrl);
-          allSignals.push(extractSignalsFromHtml(html, pageUrl));
+      const batch = prioritizedUrls.slice(batchStart, batchStart + BATCH_SIZE);
+      const results = await fetchMultipleHttp(batch, BATCH_SIZE);
+
+      for (const { url, html } of results) {
+        if (seenUrls.has(url)) continue;
+        seenUrls.add(url);
+        fetchedCount++;
+
+        try {
+          pagesScanned.push(url);
+          allSignals.push(extractSignalsFromHtml(html, url));
           detectedPrices.push(...extractPriceValues(html));
-          if (/\/product|\/products|\/produit/i.test(pageUrl)) {
-            productPages.push(pageUrl);
-            productAnalyses.push(analyzeProductPageFromHtml(html, pageUrl));
+
+          if (/\/product|\/products|\/produit/i.test(url)) {
+            productPages.push(url);
+            productAnalyses.push(analyzeProductPageFromHtml(html, url));
           }
+
+          // Also try to extract products from JSON-LD on any page
+          const pageProducts = extractProductsFromHtml(html, url);
+          for (const p of pageProducts) {
+            if (!seenUrls.has(p.url)) {
+              seenUrls.add(p.url);
+              productAnalyses.push(p);
+              detectedPrices.push(...p.detected_prices);
+              productPages.push(p.url);
+            }
+          }
+        } catch {
+          // skip page on error
         }
-      } catch {
-        // skip page on error
       }
+
+      await emitProgress(
+        input.onProgress,
+        25 + Math.floor((30 * Math.min(fetchedCount, prioritizedUrls.length)) / Math.max(prioritizedUrls.length, 1)),
+        "EXTRACT",
+        `${fetchedCount}/${prioritizedUrls.length} pages analysées — ${productAnalyses.length} produits trouvés`
+      );
     }
+
     await emitProgress(input.onProgress, 55, "EXTRACT", `Extraction terminée — ${pagesScanned.length} pages, ${productAnalyses.length} produits analysés.`);
   } catch (err) {
     const baseline = computeBaseline(allSignals);
@@ -532,11 +765,11 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
       confidence: "low",
       pages_scanned: pagesScanned,
       raw: {
-        mode: overallMode,
+        mode: "http",
         timings: { fetch_ms: fetchMs },
         ai: { enabled: false, status: "failed" },
         business_metrics: input.metrics ?? null,
-        product_analysis: [],
+        product_analysis: productAnalyses,
         price_insights: {
           detected_prices: [],
           own_average_price: null,
@@ -561,7 +794,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     confidence: "medium",
     pages_scanned: pagesScanned,
     raw: {
-      mode: overallMode,
+      mode: "http",
       timings: { fetch_ms: fetchMs },
       ai: { enabled: false, status: "ok" },
       business_metrics: input.metrics ?? null,
