@@ -51,119 +51,332 @@ function issueMatchesCriterion(issue: IssueLike, key: CriterionKey): boolean {
 }
 
 function fallbackByScore(key: CriterionKey, score: number): IssueLike[] {
-  // Always show improvement suggestions, even for high scores
-  const highScoreMap: Record<CriterionKey, IssueLike> = {
-    conversion: {
-      id: "tip-conversion",
-      title: "Optimiser le tunnel de conversion",
-      why_it_hurts: "Même un bon tunnel peut encore être affiné pour maximiser les conversions.",
-      fix_steps: [
-        "Tester différentes formulations de CTA (ex: \"Ajouter au panier\" vs \"Je commande\").",
-        "Réduire le nombre d'étapes entre la fiche produit et la confirmation.",
-        "Ajouter un indicateur de progression dans le checkout.",
-        "Proposer le guest checkout pour les nouveaux clients.",
-      ],
-    },
-    trust: {
-      id: "tip-trust",
-      title: "Renforcer les signaux de confiance",
-      why_it_hurts: "La confiance peut toujours être améliorée pour réduire les hésitations.",
-      fix_steps: [
-        "Mettre en avant les avis clients les plus récents.",
-        "Ajouter des badges de paiement sécurisé visibles.",
-        "Afficher clairement délais de livraison et politique de retour.",
-        "Ajouter une page \"À propos\" complète avec l'équipe.",
-      ],
-    },
-    offer: {
-      id: "tip-offer",
-      title: "Affiner la clarté de l'offre",
-      why_it_hurts: "Une offre peut toujours être mieux comprise pour convertir plus.",
-      fix_steps: [
-        "Tester un sous-titre plus orienté bénéfice sous le H1.",
-        "Utiliser l'ancrage de prix (barré / économie visible).",
-        "Comparer vos avantages vs la concurrence sur la page produit.",
-        "Clarifier les options (tailles, couleurs) avec des visuels.",
-      ],
-    },
-    performance: {
-      id: "tip-performance",
-      title: "Optimiser les performances techniques",
-      why_it_hurts: "Chaque seconde de chargement en moins augmente la conversion.",
-      fix_steps: [
-        "Compresser les images au format WebP/AVIF.",
-        "Lazy-loader les images sous le fold.",
-        "Réduire les scripts tiers non essentiels.",
-        "Vérifier les Core Web Vitals (LCP, CLS, FID).",
-      ],
-    },
-    traffic: {
-      id: "tip-traffic",
-      title: "Développer l'acquisition de trafic",
-      why_it_hurts: "Plus de trafic qualifié = plus de ventes potentielles.",
-      fix_steps: [
-        "Optimiser les balises title et meta description des pages clés.",
-        "Structurer le contenu autour des intentions de recherche.",
-        "Renforcer le maillage interne vers les pages produit.",
-        "Considérer un blog ou des guides d'achat pour le SEO.",
-      ],
-    },
+  // Return full list of improvement suggestions for each criterion
+  const allIssues: Record<CriterionKey, IssueLike[]> = {
+    conversion: [
+      {
+        id: "conv-1",
+        title: "CTA principal peu visible ou mal positionné",
+        why_it_hurts: "Si le bouton d'achat n'est pas immédiatement visible, les visiteurs quittent sans agir.",
+        fix_steps: [
+          "Placer le CTA au-dessus du fold sur toutes les pages produit.",
+          "Utiliser une couleur contrastée qui se démarque du reste de la page.",
+          "Tester une formulation orientée action : « Ajouter au panier » vs « Je commande ».",
+        ],
+      },
+      {
+        id: "conv-2",
+        title: "Trop d'étapes dans le tunnel d'achat",
+        why_it_hurts: "Chaque étape supplémentaire perd 10-20 % des acheteurs potentiels.",
+        fix_steps: [
+          "Réduire le checkout à 2-3 étapes maximum.",
+          "Proposer le guest checkout (achat sans compte).",
+          "Ajouter un indicateur de progression pour rassurer l'utilisateur.",
+        ],
+      },
+      {
+        id: "conv-3",
+        title: "Page panier peu optimisée",
+        why_it_hurts: "Le panier est le dernier point de friction avant la conversion.",
+        fix_steps: [
+          "Afficher un résumé clair : produits, quantités, prix total.",
+          "Ajouter des éléments de réassurance (livraison, retours, paiement sécurisé).",
+          "Proposer des suggestions complémentaires (cross-sell) pertinentes.",
+        ],
+      },
+      {
+        id: "conv-4",
+        title: "Absence de micro-engagements",
+        why_it_hurts: "Sans interactions progressives, le visiteur n'entre pas dans un parcours d'achat.",
+        fix_steps: [
+          "Ajouter un bouton « Ajouter à la wishlist » ou « Comparer ».",
+          "Permettre la sélection de taille/couleur directement depuis la grille.",
+          "Afficher le stock restant ou un compte à rebours pour créer l'urgence.",
+        ],
+      },
+      {
+        id: "conv-5",
+        title: "Formulaire de paiement non optimisé",
+        why_it_hurts: "Un formulaire long ou complexe provoque des abandons de panier.",
+        fix_steps: [
+          "Activer l'auto-complétion des champs (adresse, carte).",
+          "Proposer plusieurs moyens de paiement (CB, PayPal, Apple Pay).",
+          "Éliminer les champs non essentiels du formulaire.",
+        ],
+      },
+      {
+        id: "conv-6",
+        title: "Pas de stratégie de récupération d'abandon",
+        why_it_hurts: "70 % des paniers sont abandonnés — sans relance, ces ventes sont perdues.",
+        fix_steps: [
+          "Mettre en place des emails de relance panier (H+1, J+1, J+3).",
+          "Afficher une pop-up d'intention de sortie avec une offre.",
+          "Sauvegarder le panier pour les visiteurs qui reviennent.",
+        ],
+      },
+    ],
+    trust: [
+      {
+        id: "trust-1",
+        title: "Avis clients absents ou peu visibles",
+        why_it_hurts: "92 % des consommateurs lisent les avis avant d'acheter.",
+        fix_steps: [
+          "Intégrer un widget d'avis (Trustpilot, Google Reviews, Judge.me).",
+          "Afficher les avis directement sur les fiches produit.",
+          "Mettre en avant les avis récents et vérifiés.",
+        ],
+      },
+      {
+        id: "trust-2",
+        title: "Badges de confiance absents",
+        why_it_hurts: "Sans badges de sécurité, les visiteurs hésitent à entrer leurs coordonnées.",
+        fix_steps: [
+          "Ajouter des badges « Paiement sécurisé », « SSL », « Satisfait ou remboursé ».",
+          "Les placer près du bouton d'achat et dans le footer.",
+          "Utiliser les logos des moyens de paiement acceptés (Visa, Mastercard, PayPal).",
+        ],
+      },
+      {
+        id: "trust-3",
+        title: "Politique de retour floue ou cachée",
+        why_it_hurts: "Une politique de retour claire réduit l'anxiété d'achat de 67 %.",
+        fix_steps: [
+          "Afficher « Retours gratuits sous 30 jours » sur chaque fiche produit.",
+          "Créer une page dédiée aux retours facilement accessible.",
+          "Simplifier le processus de retour avec une étiquette pré-payée.",
+        ],
+      },
+      {
+        id: "trust-4",
+        title: "Informations de contact insuffisantes",
+        why_it_hurts: "L'absence de coordonnées donne une impression de site non fiable.",
+        fix_steps: [
+          "Afficher email, téléphone et adresse dans le header ou footer.",
+          "Ajouter un chat en direct ou chatbot pour les questions rapides.",
+          "Créer une page « À propos » avec l'équipe et l'histoire de la marque.",
+        ],
+      },
+      {
+        id: "trust-5",
+        title: "Délais de livraison non communiqués",
+        why_it_hurts: "Les clients veulent savoir quand ils recevront leur commande avant d'acheter.",
+        fix_steps: [
+          "Afficher les délais estimés sur chaque fiche produit.",
+          "Proposer le suivi de commande en temps réel.",
+          "Offrir la livraison gratuite au-dessus d'un seuil (ex: 50 €).",
+        ],
+      },
+      {
+        id: "trust-6",
+        title: "Pas de preuves sociales",
+        why_it_hurts: "Les visiteurs font davantage confiance aux marques validées par d'autres.",
+        fix_steps: [
+          "Afficher le nombre de clients satisfaits ou de commandes.",
+          "Intégrer les logos presse / partenaires si applicable.",
+          "Montrer les photos clients (UGC) sur les fiches produit.",
+        ],
+      },
+    ],
+    offer: [
+      {
+        id: "offer-1",
+        title: "Proposition de valeur peu claire",
+        why_it_hurts: "Si le visiteur ne comprend pas pourquoi acheter chez vous, il part chez un concurrent.",
+        fix_steps: [
+          "Rédiger un H1 + sous-titre orienté bénéfice client en haut de page.",
+          "Mettre en avant 3 avantages différenciants (livraison, qualité, prix).",
+          "Comparer vos avantages vs la concurrence directement sur la page.",
+        ],
+      },
+      {
+        id: "offer-2",
+        title: "Pricing confus ou mal structuré",
+        why_it_hurts: "Un prix mal présenté crée de la confusion et freine l'achat.",
+        fix_steps: [
+          "Afficher le prix clairement près du titre et du CTA.",
+          "Utiliser l'ancrage de prix (prix barré + économie visible).",
+          "Proposer des packs ou bundles pour augmenter le panier moyen.",
+        ],
+      },
+      {
+        id: "offer-3",
+        title: "Descriptions produit insuffisantes",
+        why_it_hurts: "Sans description détaillée, le client ne sait pas ce qu'il achète.",
+        fix_steps: [
+          "Rédiger des descriptions orientées bénéfices (pas juste des caractéristiques).",
+          "Structurer avec des puces et sous-titres pour la lisibilité.",
+          "Ajouter les dimensions, matériaux et instructions d'entretien.",
+        ],
+      },
+      {
+        id: "offer-4",
+        title: "Images produit de faible qualité",
+        why_it_hurts: "L'image est le premier critère de décision en e-commerce.",
+        fix_steps: [
+          "Proposer au moins 4-5 images par produit (angles différents).",
+          "Ajouter un zoom et une vue 360° si possible.",
+          "Inclure des photos lifestyle montrant le produit en contexte.",
+        ],
+      },
+      {
+        id: "offer-5",
+        title: "Options produit mal présentées",
+        why_it_hurts: "Si les variantes (taille, couleur) sont confuses, le client hésite.",
+        fix_steps: [
+          "Utiliser des swatches visuels pour les couleurs.",
+          "Afficher un guide des tailles accessible en 1 clic.",
+          "Pré-sélectionner la variante la plus populaire.",
+        ],
+      },
+      {
+        id: "offer-6",
+        title: "Pas de sentiment d'urgence ou de rareté",
+        why_it_hurts: "Sans motivation à agir maintenant, le visiteur reporte son achat.",
+        fix_steps: [
+          "Afficher le stock restant (« Plus que 3 en stock »).",
+          "Proposer des offres limitées dans le temps.",
+          "Ajouter un bandeau promotionnel pour les nouvelles offres.",
+        ],
+      },
+    ],
+    performance: [
+      {
+        id: "perf-1",
+        title: "Images non optimisées",
+        why_it_hurts: "Les images lourdes ralentissent le chargement et augmentent le taux de rebond.",
+        fix_steps: [
+          "Convertir toutes les images en WebP ou AVIF.",
+          "Redimensionner les images à la taille d'affichage maximale.",
+          "Activer le lazy loading pour les images sous le fold.",
+        ],
+      },
+      {
+        id: "perf-2",
+        title: "Trop de scripts tiers",
+        why_it_hurts: "Chaque script supplémentaire ajoute du temps de chargement et bloque le rendu.",
+        fix_steps: [
+          "Auditer et supprimer les scripts inutilisés (analytics en double, widgets).",
+          "Charger les scripts non-critiques en async ou defer.",
+          "Utiliser un tag manager pour contrôler le chargement.",
+        ],
+      },
+      {
+        id: "perf-3",
+        title: "Core Web Vitals sous les seuils",
+        why_it_hurts: "Google pénalise les sites avec de mauvais LCP, CLS ou FID dans les résultats de recherche.",
+        fix_steps: [
+          "Viser un LCP < 2.5s en optimisant l'image principale.",
+          "Réduire le CLS en dimensionnant les images et polices.",
+          "Améliorer le FID en réduisant le JavaScript bloquant.",
+        ],
+      },
+      {
+        id: "perf-4",
+        title: "Expérience mobile dégradée",
+        why_it_hurts: "60-70 % du trafic e-commerce est mobile — un site lent sur mobile perd des ventes.",
+        fix_steps: [
+          "Tester avec Google PageSpeed Insights en mode mobile.",
+          "Vérifier que les boutons sont assez grands (48x48px minimum).",
+          "S'assurer que le texte est lisible sans zoomer.",
+        ],
+      },
+      {
+        id: "perf-5",
+        title: "Pas de mise en cache efficace",
+        why_it_hurts: "Sans cache, chaque visite recharge tous les assets, ralentissant l'expérience.",
+        fix_steps: [
+          "Configurer le cache navigateur pour les assets statiques (images, CSS, JS).",
+          "Utiliser un CDN pour servir les ressources au plus proche de l'utilisateur.",
+          "Activer la compression gzip/brotli sur le serveur.",
+        ],
+      },
+      {
+        id: "perf-6",
+        title: "Polices web non optimisées",
+        why_it_hurts: "Le chargement de polices personnalisées peut bloquer l'affichage du texte.",
+        fix_steps: [
+          "Utiliser font-display: swap pour afficher le texte immédiatement.",
+          "Limiter le nombre de variantes de police chargées.",
+          "Pré-charger les polices critiques avec <link rel='preload'>.",
+        ],
+      },
+    ],
+    traffic: [
+      {
+        id: "traffic-1",
+        title: "Balises title et meta description mal optimisées",
+        why_it_hurts: "Ce sont les premiers éléments vus dans Google — ils déterminent le taux de clic.",
+        fix_steps: [
+          "Rédiger des title uniques de 50-60 caractères avec le mot-clé principal.",
+          "Écrire des meta descriptions engageantes de 150-160 caractères.",
+          "Inclure un appel à l'action dans la meta description.",
+        ],
+      },
+      {
+        id: "traffic-2",
+        title: "Structure Hn désorganisée",
+        why_it_hurts: "Une hiérarchie de titres claire aide Google à comprendre le contenu de la page.",
+        fix_steps: [
+          "Vérifier qu'il y a un seul H1 par page contenant le mot-clé principal.",
+          "Structurer le contenu avec des H2/H3 logiques.",
+          "Inclure les mots-clés secondaires dans les sous-titres.",
+        ],
+      },
+      {
+        id: "traffic-3",
+        title: "Maillage interne faible",
+        why_it_hurts: "Sans liens internes, Google et vos visiteurs ne découvrent pas vos pages clés.",
+        fix_steps: [
+          "Lier les pages catégories depuis la homepage.",
+          "Ajouter des produits similaires / complémentaires sur chaque fiche.",
+          "Créer un fil d'Ariane (breadcrumb) sur toutes les pages.",
+        ],
+      },
+      {
+        id: "traffic-4",
+        title: "Pas de stratégie de contenu SEO",
+        why_it_hurts: "Sans contenu informatif, vous ne captez pas le trafic de recherche informationnel.",
+        fix_steps: [
+          "Créer un blog avec des guides d'achat et comparatifs.",
+          "Répondre aux questions fréquentes (FAQ structurée en JSON-LD).",
+          "Publier régulièrement pour montrer la fraîcheur du site.",
+        ],
+      },
+      {
+        id: "traffic-5",
+        title: "Données structurées manquantes",
+        why_it_hurts: "Les rich snippets (étoiles, prix, stock) augmentent le CTR de 20-30 % dans Google.",
+        fix_steps: [
+          "Ajouter du JSON-LD Product sur chaque fiche produit.",
+          "Implémenter BreadcrumbList pour le fil d'Ariane.",
+          "Tester les données structurées avec l'outil de test Google.",
+        ],
+      },
+      {
+        id: "traffic-6",
+        title: "Pas de stratégie d'acquisition multicanal",
+        why_it_hurts: "Dépendre d'un seul canal de trafic est risqué pour la pérennité.",
+        fix_steps: [
+          "Développer une présence sur les réseaux sociaux pertinents.",
+          "Mettre en place des campagnes email (newsletter, automation).",
+          "Considérer Google Ads et/ou Meta Ads pour le trafic payant.",
+        ],
+      },
+    ],
   };
 
-  const lowScoreMap: Record<CriterionKey, IssueLike> = {
-    conversion: {
-      id: "fallback-conversion",
-      title: "Tunnel de conversion sous-optimisé",
-      why_it_hurts: "Les visiteurs ne passent pas assez facilement de la découverte à l'achat.",
-      fix_steps: [
-        "Rendre le CTA principal visible immédiatement (above the fold).",
-        "Réduire les distractions sur les pages produit et checkout.",
-        "Ajouter des preuves rassurantes près du bouton d'achat.",
-      ],
-    },
-    trust: {
-      id: "fallback-trust",
-      title: "Signaux de confiance insuffisants",
-      why_it_hurts: "Sans éléments de confiance clairs, les visiteurs hésitent avant d'acheter.",
-      fix_steps: [
-        "Afficher contact, livraison et retours de façon visible.",
-        "Ajouter avis clients et badges de confiance.",
-        "Renforcer les garanties (paiement sécurisé, politique de retour).",
-      ],
-    },
-    offer: {
-      id: "fallback-offer",
-      title: "Proposition de valeur peu claire",
-      why_it_hurts: "L'utilisateur comprend mal pourquoi acheter chez vous plutôt qu'ailleurs.",
-      fix_steps: [
-        "Clarifier la promesse en haut de page (H1 + sous-titre).",
-        "Mettre en avant les bénéfices et différenciants.",
-        "Rendre le pricing plus lisible (ancrage prix, options, garanties).",
-      ],
-    },
-    performance: {
-      id: "fallback-performance",
-      title: "Performance perçue perfectible",
-      why_it_hurts: "Un site lent ou instable réduit l'engagement et la conversion.",
-      fix_steps: [
-        "Compresser et lazy-loader les images lourdes.",
-        "Réduire les scripts non essentiels.",
-        "Vérifier l'affichage mobile et le temps de chargement initial.",
-      ],
-    },
-    traffic: {
-      id: "fallback-traffic",
-      title: "Acquisition et bases SEO à renforcer",
-      why_it_hurts: "Le site peut perdre du trafic qualifié et de la visibilité.",
-      fix_steps: [
-        "Vérifier title/meta/H1 sur les pages clés.",
-        "Renforcer maillage interne vers pages produit/catégorie.",
-        "Structurer le contenu pour mieux répondre aux intentions de recherche.",
-      ],
-    },
-  };
-
-  return [score >= 60 ? highScoreMap[key] : lowScoreMap[key]];
+  const issues = allIssues[key] ?? [];
+  
+  // For high scores, filter to show fewer issues (3-4 tips)
+  if (score >= 70) {
+    return issues.slice(0, 3);
+  }
+  // For medium scores, show 5 issues
+  if (score >= 40) {
+    return issues.slice(0, 5);
+  }
+  // For low scores, show all 6 issues
+  return issues;
 }
 
 function statusFromScore(score: number): "ok" | "warning" | "problem" {
@@ -221,11 +434,15 @@ export function AnalyzedCriteriaCards({
   const selectedLabel = CRITERIA.find((c) => c.key === selected)?.label ?? "";
   const selectedScore = selected ? Math.round(scores[selected] ?? 0) : 0;
   const selectedIssues = selected
-    ? (
-      issuesByCriterion[selected].length > 0
-        ? issuesByCriterion[selected]
-        : fallbackByScore(selected, selectedScore)
-    )
+    ? (() => {
+        const aiIssues = issuesByCriterion[selected];
+        const fallback = fallbackByScore(selected, selectedScore);
+        if (aiIssues.length >= 3) return aiIssues;
+        // Merge: AI issues first, then fill with fallback to show at least 3-6
+        const aiIds = new Set(aiIssues.map((i) => i.title.toLowerCase().slice(0, 30)));
+        const extras = fallback.filter((f) => !aiIds.has(f.title.toLowerCase().slice(0, 30)));
+        return [...aiIssues, ...extras].slice(0, 6);
+      })()
     : [];
 
   return (

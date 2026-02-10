@@ -220,7 +220,59 @@ async function fetchSitemapProductUrls(baseUrl: string): Promise<string[]> {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Cloudflare / WAF challenge page detection                         */
+/* ------------------------------------------------------------------ */
+const BLOCKED_TITLE_PATTERNS = [
+  /just a moment/i,
+  /checking your browser/i,
+  /attention required/i,
+  /access denied/i,
+  /please wait/i,
+  /security check/i,
+  /pardon our interruption/i,
+  /one more step/i,
+  /verify you are human/i,
+  /cf-browser-verification/i,
+  /ddos-guard/i,
+  /un instant/i,              // French Cloudflare
+  /vérification/i,            // French verification
+];
+
+const BLOCKED_BODY_PATTERNS = [
+  /cf-browser-verification/i,
+  /challenge-form/i,
+  /challenge-platform/i,
+  /cdn-cgi\/challenge-platform/i,
+  /turnstile/i,
+  /_cf_chl_opt/i,
+  /ray id/i,
+  /managed by\s+cloudflare/i,
+  /ddos-guard/i,
+  /please enable cookies/i,
+  /enable javascript and cookies/i,
+];
+
+function isBlockedPage(html: string): boolean {
+  // Fast check on <title>
+  const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = titleMatch ? titleMatch[1].trim() : "";
+  if (title && BLOCKED_TITLE_PATTERNS.some((p) => p.test(title))) return true;
+
+  // Body markers (check only first 5000 chars for speed)
+  const head = html.slice(0, 5000);
+  if (BLOCKED_BODY_PATTERNS.some((p) => p.test(head))) return true;
+
+  // Very short page with no real content → likely a challenge
+  const textLen = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().length;
+  if (textLen < 200 && /challenge|verify|captcha/i.test(html)) return true;
+
+  return false;
+}
+
 function analyzeProductPageFromHtml(html: string, url: string) {
+  // Skip blocked pages
+  if (isBlockedPage(html)) return null;
   const $ = cheerio.load(html);
   const title = $("title").first().text().trim() || "";
   const h1 = $("h1").first().text().trim() || null;
@@ -425,6 +477,9 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
   issues: string[];
   recommendations: string[];
 }> {
+  // Skip blocked/challenge pages entirely
+  if (isBlockedPage(html)) return [];
+
   const products: ReturnType<typeof extractProductsFromHtml> = [];
   const seenTitles = new Set<string>();
   const $ = cheerio.load(html);
@@ -590,6 +645,7 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
 
 /** Detect if a page is a product page by analyzing its HTML content (not URL) */
 function detectProductPageByContent(html: string): boolean {
+  if (isBlockedPage(html)) return false;
   const $ = cheerio.load(html);
   const htmlLower = html.toLowerCase();
   
@@ -878,6 +934,12 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
         seenUrls.add(url);
         fetchedCount++;
 
+        // Skip Cloudflare / WAF challenge pages
+        if (isBlockedPage(html)) {
+          console.log(`[scan] Skipping blocked/challenge page: ${url}`);
+          continue;
+        }
+
         try {
           pagesScanned.push(url);
           allSignals.push(extractSignalsFromHtml(html, url));
@@ -888,8 +950,11 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
           const isProductContent = detectProductPageByContent(html);
           
           if (isProductUrl || isProductContent) {
-            productPages.push(url);
-            productAnalyses.push(analyzeProductPageFromHtml(html, url));
+            const productResult = analyzeProductPageFromHtml(html, url);
+            if (productResult) {
+              productPages.push(url);
+              productAnalyses.push(productResult);
+            }
           }
 
           // Also try to extract products from JSON-LD / product cards on any page
@@ -926,12 +991,22 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
           const html = await fetchHtmlWithHttp(url);
           if (seenUrls.has(url)) continue;
           seenUrls.add(url);
+
+          // Skip Cloudflare / WAF challenge pages
+          if (isBlockedPage(html)) {
+            console.log(`[scan] Skipping blocked/challenge page (fallback): ${url}`);
+            continue;
+          }
+
           fetchedCount++;
           pagesScanned.push(url);
           allSignals.push(extractSignalsFromHtml(html, url));
           detectedPrices.push(...extractPriceValues(html));
-          productPages.push(url);
-          productAnalyses.push(analyzeProductPageFromHtml(html, url));
+          const productResult = analyzeProductPageFromHtml(html, url);
+          if (productResult) {
+            productPages.push(url);
+            productAnalyses.push(productResult);
+          }
           
           const pageProducts = extractProductsFromHtml(html, url);
           for (const p of pageProducts) {
