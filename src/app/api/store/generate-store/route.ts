@@ -293,7 +293,7 @@ Génère le JSON avec: store_concept, products (optimisés pour chaque source), 
       }
     }
 
-    /* ── Step 3: Create everything on Shopify ── */
+    /* ── Step 3: Create everything on Shopify (SSE streaming) ── */
     if (action === "create") {
       const { storeId, storeData, sourceProducts } = body as {
         storeId: string;
@@ -347,74 +347,95 @@ Génère le JSON avec: store_concept, products (optimisés pour chaque source), 
         return NextResponse.json({ error: "Shopify non connecté" }, { status: 400 });
       }
 
-      const createdProductIds: number[] = [];
-      const results: Array<{ title: string; success: boolean; error?: string; productId?: number }> = [];
+      const encoder = new TextEncoder();
+      const totalSteps = storeData.products.length + storeData.extra_products.length + 1; // +1 for collection
 
-      // Create main products (with source images)
-      for (const prod of storeData.products) {
-        const sourceImages = sourceProducts[prod.source_index]?.images ?? [];
-        const res = await createShopifyProduct(storeId, {
-          title: prod.title,
-          body_html: prod.body_html,
-          product_type: prod.product_type,
-          tags: prod.tags,
-          images: sourceImages.slice(0, 6).map((src) => ({ src })),
-          variants: [{
-            price: prod.suggested_price,
-            compare_at_price: prod.compare_at_price || undefined,
-            title: "Default",
-          }],
-        });
-        results.push({
-          title: prod.title,
-          success: res.success,
-          error: res.error,
-          productId: res.productId,
-        });
-        if (res.success && res.productId) createdProductIds.push(res.productId);
-      }
+      const stream = new ReadableStream({
+        async start(controller) {
+          const send = (data: Record<string, unknown>) => {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+          };
 
-      // Create extra products (no source images — AI-generated content only)
-      for (const extra of storeData.extra_products) {
-        const res = await createShopifyProduct(storeId, {
-          title: extra.title,
-          body_html: extra.body_html,
-          product_type: extra.product_type,
-          tags: extra.tags,
-          variants: [{
-            price: extra.suggested_price,
-            compare_at_price: extra.compare_at_price || undefined,
-            title: "Default",
-          }],
-        });
-        results.push({
-          title: extra.title,
-          success: res.success,
-          error: res.error,
-          productId: res.productId,
-        });
-        if (res.success && res.productId) createdProductIds.push(res.productId);
-      }
+          const createdProductIds: number[] = [];
+          const results: Array<{ title: string; success: boolean; error?: string; productId?: number }> = [];
+          let current = 0;
 
-      // Create collection with all products
-      let collectionResult = null;
-      if (createdProductIds.length > 0 && storeData.collection) {
-        collectionResult = await createShopifyCollection(
-          storeId,
-          {
-            title: storeData.collection.title,
-            body_html: storeData.collection.body_html,
-          },
-          createdProductIds
-        );
-      }
+          // Create main products (with source images)
+          for (const prod of storeData.products) {
+            current++;
+            const percent = Math.round((current / totalSteps) * 100);
+            send({ type: "progress", current, total: totalSteps, percent, label: `📦 ${prod.title}` });
 
-      return NextResponse.json({
-        success: true,
-        brand_name: storeData.store_concept.brand_name,
-        products: results,
-        collection: collectionResult,
-        total_created: createdProductIds.length,
+            const sourceImages = sourceProducts[prod.source_index]?.images ?? [];
+            const res = await createShopifyProduct(storeId, {
+              title: prod.title,
+              body_html: prod.body_html,
+              product_type: prod.product_type,
+              tags: prod.tags,
+              images: sourceImages.slice(0, 6).map((src) => ({ src })),
+              variants: [{
+                price: prod.suggested_price,
+                compare_at_price: prod.compare_at_price || undefined,
+                title: "Default",
+              }],
+            });
+            results.push({ title: prod.title, success: res.success, error: res.error, productId: res.productId });
+            if (res.success && res.productId) createdProductIds.push(res.productId);
+          }
+
+          // Create extra products
+          for (const extra of storeData.extra_products) {
+            current++;
+            const percent = Math.round((current / totalSteps) * 100);
+            send({ type: "progress", current, total: totalSteps, percent, label: `🛒 ${extra.title}` });
+
+            const res = await createShopifyProduct(storeId, {
+              title: extra.title,
+              body_html: extra.body_html,
+              product_type: extra.product_type,
+              tags: extra.tags,
+              variants: [{
+                price: extra.suggested_price,
+                compare_at_price: extra.compare_at_price || undefined,
+                title: "Default",
+              }],
+            });
+            results.push({ title: extra.title, success: res.success, error: res.error, productId: res.productId });
+            if (res.success && res.productId) createdProductIds.push(res.productId);
+          }
+
+          // Create collection
+          current++;
+          send({ type: "progress", current, total: totalSteps, percent: 95, label: `📁 Collection : ${storeData.collection?.title ?? ""}` });
+
+          let collectionResult = null;
+          if (createdProductIds.length > 0 && storeData.collection) {
+            collectionResult = await createShopifyCollection(
+              storeId,
+              { title: storeData.collection.title, body_html: storeData.collection.body_html },
+              createdProductIds
+            );
+          }
+
+          // Final done event
+          send({
+            type: "done",
+            success: true,
+            brand_name: storeData.store_concept.brand_name,
+            products: results,
+            collection: collectionResult,
+            total_created: createdProductIds.length,
+          });
+          controller.close();
+        },
+      });
+
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
       });
     }
 

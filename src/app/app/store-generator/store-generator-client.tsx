@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -92,6 +92,11 @@ export function StoreGeneratorClient({
   const [totalCreated, setTotalCreated] = useState(0);
   const [brandName, setBrandName] = useState("");
 
+  // Progress tracking
+  const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState("");
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const addUrl = () => {
     if (urls.length < 5) setUrls([...urls, ""]);
   };
@@ -131,17 +136,44 @@ export function StoreGeneratorClient({
     if (scraped.length === 0) return;
     setStep("generating");
     setError(null);
+    setProgress(0);
+
+    // Simulated progress for AI generation
+    const labels = [
+      "🎨 Création du branding…",
+      "📝 Rédaction des fiches produit…",
+      "🛒 Génération de produits complémentaires…",
+      "🏷️ Optimisation SEO et pricing…",
+      "✨ Finalisation du concept…",
+    ];
+    let idx = 0;
+    setProgressLabel(labels[0]);
+    progressTimerRef.current = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 90) return p;
+        const next = p + Math.random() * 6 + 2;
+        idx = Math.min(Math.floor(next / 20), labels.length - 1);
+        setProgressLabel(labels[idx]);
+        return Math.min(next, 90);
+      });
+    }, 800);
+
     try {
       const res = await fetch("/api/store/generate-store", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "generate", scrapedProducts: scraped }),
       });
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Erreur");
+      setProgress(100);
+      setProgressLabel("✅ Boutique générée !");
+      await new Promise((r) => setTimeout(r, 500));
       setStoreData(data.store);
       setStep("preview");
     } catch (err) {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setStep("scraped");
     }
@@ -151,6 +183,9 @@ export function StoreGeneratorClient({
     if (!storeData) return;
     setStep("creating");
     setError(null);
+    setProgress(0);
+    setProgressLabel("⏳ Connexion à Shopify…");
+
     try {
       const res = await fetch("/api/store/generate-store", {
         method: "POST",
@@ -162,12 +197,45 @@ export function StoreGeneratorClient({
           sourceProducts: scraped,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur");
-      setCreateResults(data.products ?? []);
-      setTotalCreated(data.total_created ?? 0);
-      setBrandName(data.brand_name ?? "");
-      setStep("done");
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error ?? "Erreur");
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Stream non disponible");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split("\n\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === "progress") {
+              setProgress(event.percent);
+              setProgressLabel(event.label);
+            } else if (event.type === "done") {
+              setProgress(100);
+              setProgressLabel("✅ Boutique créée !");
+              setCreateResults(event.products ?? []);
+              setTotalCreated(event.total_created ?? 0);
+              setBrandName(event.brand_name ?? "");
+              await new Promise((r) => setTimeout(r, 400));
+              setStep("done");
+            }
+          } catch { /* ignore malformed */ }
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
       setStep("preview");
@@ -175,13 +243,21 @@ export function StoreGeneratorClient({
   }, [storeData, storeId, scraped]);
 
   const reset = () => {
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     setStep("input");
     setUrls([""]);
     setScraped([]);
     setStoreData(null);
     setCreateResults([]);
     setError(null);
+    setProgress(0);
+    setProgressLabel("");
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => { if (progressTimerRef.current) clearInterval(progressTimerRef.current); };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -351,17 +427,24 @@ export function StoreGeneratorClient({
         </div>
       )}
 
-      {/* Step 2.5: Generating */}
+      {/* Step 2.5: Generating with progress */}
       {step === "generating" && (
         <Card>
-          <CardContent className="py-16 text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-purple-500" />
+          <CardContent className="py-12 text-center space-y-5">
+            <Loader2 className="h-10 w-10 animate-spin mx-auto text-purple-500" />
             <h2 className="text-lg font-bold">L&apos;IA construit votre boutique…</h2>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>🎨 Création du branding et du concept</p>
-              <p>📝 Rédaction des fiches produit optimisées</p>
-              <p>🛒 Génération de produits complémentaires</p>
-              <p>🏷️ Optimisation SEO et pricing</p>
+
+            <div className="max-w-md mx-auto space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">{progressLabel}</span>
+                <span className="font-mono font-bold text-purple-600">{Math.round(progress)}%</span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-purple-600 rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -512,17 +595,24 @@ export function StoreGeneratorClient({
         </div>
       )}
 
-      {/* Step 3.5: Creating */}
+      {/* Step 3.5: Creating with live progress */}
       {step === "creating" && (
         <Card>
-          <CardContent className="py-16 text-center space-y-4">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto text-purple-500" />
-            <h2 className="text-lg font-bold">Création de la boutique sur Shopify…</h2>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>📦 Création des produits et variantes</p>
-              <p>🖼️ Import des images</p>
-              <p>🏷️ Ajout des tags et métadonnées SEO</p>
-              <p>📁 Création de la collection</p>
+          <CardContent className="py-12 text-center space-y-5">
+            <Loader2 className="h-10 w-10 animate-spin mx-auto text-purple-500" />
+            <h2 className="text-lg font-bold">Création sur Shopify en cours…</h2>
+
+            <div className="max-w-md mx-auto space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground truncate max-w-[260px]">{progressLabel}</span>
+                <span className="font-mono font-bold text-purple-600">{Math.round(progress)}%</span>
+              </div>
+              <div className="h-3 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-purple-500 to-emerald-500 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
