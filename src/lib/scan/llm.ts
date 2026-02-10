@@ -2,7 +2,13 @@ import OpenAI from "openai";
 import type { ScanData } from "./types";
 import type { IssuesPayload, SingleAdvicePayload } from "./types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai: OpenAI | null = null;
+function getOpenAI(): OpenAI {
+  if (!_openai) {
+    _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  }
+  return _openai;
+}
 
 function buildScanContext(scanData: ScanData): string {
   const home = scanData.homepage;
@@ -36,7 +42,7 @@ Ne invente pas de métriques : base-toi uniquement sur les données fournies. So
 
   const userPrompt = `Objectif du marchand : ${goal}\n\nDonnées du scan :\n${context}\n\nProduis le JSON avec scores (conversion, trust, offer, performance, traffic, confidence, optional explanations), issues (liste, max 20), et next_best_action.`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: systemPrompt },
@@ -77,10 +83,10 @@ export async function generateTrialSingleAdviceOnly(
 
   const userPrompt = `Objectif : ${goal}\n\nDonnées :\n${context}\n\nRéponds avec le JSON single_advice uniquement.`;
 
-  const completion = await openai.chat.completions.create({
+  const completion = await getOpenAI().chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
-      { role: "system", content: systemPrompt },
+      { role: "system",  content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
     response_format: { type: "json_object" },
