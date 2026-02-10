@@ -12,6 +12,17 @@ const KEY_PATHS = [
   "/shipping",
   "/returns",
   "/pages",
+  "/shop",
+  "/store",
+  "/catalogue",
+  "/catalog",
+  "/categorie",
+  "/category",
+  "/item",
+  "/p/",
+  "/boutique",
+  "/acheter",
+  "/buy",
 ];
 
 export function extractPageData(html: string, baseUrl: string): {
@@ -90,17 +101,28 @@ export function extractPageData(html: string, baseUrl: string): {
 export function discoverKeyPages(links: string[], baseUrl: string, maxPages: number = 8): string[] {
   const base = new URL(baseUrl);
   const seen = new Set<string>([base.pathname.replace(/\/$/, "") || "/"]);
-  const result: string[] = [];
+  const keyResult: string[] = [];
+  const otherResult: string[] = [];
+
   for (const path of links) {
-    if (result.length >= maxPages) break;
     const normalized = path.replace(/\/$/, "") || "/";
     if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    // Skip anchors, assets, auth pages
     const lower = path.toLowerCase();
+    if (/\.(jpg|jpeg|png|gif|svg|css|js|ico|woff|pdf|zip)$/i.test(lower)) continue;
+    if (/\/account|\/(login|signin|signup|register|password|auth|cdn)/i.test(lower)) continue;
+
     const isKey = KEY_PATHS.some((p) => lower.includes(p));
+    const fullUrl = new URL(path, baseUrl).href;
     if (isKey) {
-      seen.add(normalized);
-      result.push(new URL(path, baseUrl).href);
+      keyResult.push(fullUrl);
+    } else {
+      otherResult.push(fullUrl);
     }
   }
-  return result;
+
+  // Return key pages first, then fill with ALL other pages up to maxPages
+  const combined = [...keyResult, ...otherResult];
+  return combined.slice(0, maxPages);
 }

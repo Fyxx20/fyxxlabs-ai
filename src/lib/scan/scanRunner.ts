@@ -29,6 +29,10 @@ const SITEMAP_TIMEOUT_MS = 12000;
 const MAX_DETAILED_SCAN_PAGES = Number(process.env.SCAN_MAX_PAGES ?? 140);
 const MAX_SITEMAP_PRODUCTS = Number(process.env.SCAN_MAX_SITEMAP_PRODUCTS ?? 200);
 
+/** Regex matching common product URL patterns across e-commerce platforms */
+const PRODUCT_URL_REGEX = /\/product|\/products|\/produit|\/item|\/p\/|\/shop\/|\/boutique\/|\/catalogue\//i;
+const COLLECTION_URL_REGEX = /\/collection|\/collections|\/categor|\/shop$|\/boutique$|\/catalogue|\/catalog/i;
+
 export interface RunScanInput {
   storeId: string;
   url: string;
@@ -185,7 +189,7 @@ async function fetchSitemapProductUrls(baseUrl: string): Promise<string[]> {
 
     // 2. Check if it's a sitemap index (contains sub-sitemaps)
     const subSitemaps = allLocs.filter((u) => /sitemap.*\.xml/i.test(u) || u.endsWith(".xml"));
-    const directProducts = allLocs.filter((u) => /\/product|\/products|\/produit/i.test(u) && !u.endsWith(".xml"));
+    const directProducts = allLocs.filter((u) => PRODUCT_URL_REGEX.test(u) && !u.endsWith(".xml"));
 
     // Add direct product URLs
     productUrls.push(...directProducts);
@@ -520,7 +524,10 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
     ".product-card", ".product-item", ".product-grid-item", "[data-product-id]",
     ".ProductItem", ".grid-product", ".product_card", ".card--product",
     ".product-block", ".product-miniature", ".product-tile",
+    "[data-product]", "[data-product-handle]", "[data-item-id]",
+    ".card", ".grid__item", ".collection-product",
     'a[href*="/products/"]', 'a[href*="/product/"]',
+    'a[href*="/shop/"]', 'a[href*="/item/"]', 'a[href*="/p/"]',
   ];
   
   for (const selector of productSelectors) {
@@ -530,7 +537,9 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
       
       // Find product link
       const href = $el.is("a") ? $el.attr("href") : $el.find("a").first().attr("href");
-      if (!href || !(/product/i.test(href))) return;
+      if (!href || href === "/" || href === "#") return;
+      // Skip non-product links (account, cart, policies etc.)
+      if (/\/(account|cart|login|signup|contact|about|policy|policies|terms|privacy|faq|blog|news|search)/i.test(href)) return;
       
       let productUrl: string;
       try { productUrl = new URL(href, pageUrl).href; } catch { return; }
@@ -541,14 +550,20 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
         $el.find("a").first().text().trim() ||
         $el.attr("aria-label")?.trim() || ""
       );
-      if (!title || title.length < 3 || seenTitles.has(title.toLowerCase())) return;
+      if (!title || title.length < 3 || title.length > 200 || seenTitles.has(title.toLowerCase())) return;
       seenTitles.add(title.toLowerCase());
       
-      // Find price
-      const priceText = $el.find(".price, .product-price, [class*='price'], .money, .amount").first().text();
-      const priceMatch = priceText?.match(/[\d]+[.,]?\d*/);
-      const price = priceMatch ? parseFloat(priceMatch[0].replace(",", ".")) : null;
-      const prices = price && Number.isFinite(price) && price > 0 ? [price] : [];
+      // Find price — look more broadly
+      const priceEl = $el.find(".price, .product-price, [class*='price'], [class*='Price'], .money, .amount, [data-price], span:contains('€'), span:contains('$')").first();
+      const priceText = priceEl.text() || $el.text();
+      const priceMatch = priceText?.match(/(\d+[.,]\d{2})\s*[€$£]|[€$£]\s*(\d+[.,]\d{2})|(\d+[.,]\d{2})/);
+      const priceStr = priceMatch ? (priceMatch[1] || priceMatch[2] || priceMatch[3]) : null;
+      const price = priceStr ? parseFloat(priceStr.replace(",", ".")) : null;
+      const prices = price && Number.isFinite(price) && price > 0.5 && price < 50000 ? [price] : [];
+      
+      // Only add if it looks like a real product (has price OR has product-like attributes)
+      const hasProductAttr = $el.attr("data-product-id") || $el.attr("data-product") || $el.attr("data-item-id") || $el.attr("data-product-handle");
+      if (prices.length === 0 && !hasProductAttr && !(/product|item|shop/i.test(href))) return;
       
       // Count images
       const imgCount = $el.find("img").length || 1;
@@ -571,6 +586,51 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
   }
   
   return products;
+}
+
+/** Detect if a page is a product page by analyzing its HTML content (not URL) */
+function detectProductPageByContent(html: string): boolean {
+  const $ = cheerio.load(html);
+  const htmlLower = html.toLowerCase();
+  
+  // Check 1: JSON-LD Product type
+  let hasJsonLdProduct = false;
+  $('script[type="application/ld+json"]').each((_, el) => {
+    try {
+      const json = JSON.parse($(el).html() ?? "");
+      if (json["@type"] === "Product" || (Array.isArray(json["@graph"]) && json["@graph"].some((g: Record<string, unknown>) => g["@type"] === "Product"))) {
+        hasJsonLdProduct = true;
+      }
+    } catch {}
+  });
+  if (hasJsonLdProduct) return true;
+  
+  // Check 2: Has price AND add-to-cart button → very likely a product page
+  const hasPrice = /\d+[.,]\d{2}\s*[€$£]|[€$£]\s*\d+[.,]\d{2}/i.test(html);
+  const hasAddToCart = /add.?to.?cart|ajouter.?au.?panier|acheter|buy.?now|commander|in.?den.?warenkorb/i.test(htmlLower);
+  if (hasPrice && hasAddToCart) return true;
+  
+  // Check 3: Shopify product page indicators
+  if (/shopify\.com|myshopify\.com/i.test(html)) {
+    if (/product-single|product-template|product__info|ProductForm|product-form/i.test(html)) return true;
+  }
+  
+  // Check 4: Common product page CSS classes
+  const productPageClasses = [
+    ".product-single", ".product-detail", ".product-page", ".product-info",
+    ".product__info", ".product-template", "#product-form", "[data-product-form]",
+    ".product-description", ".product-gallery", "#ProductPhoto", ".product-images",
+    ".woocommerce-product-gallery", ".product_title",
+  ];
+  for (const selector of productPageClasses) {
+    if ($(selector).length > 0) return true;
+  }
+  
+  // Check 5: OG type = product
+  if ($('meta[property="og:type"][content="product"]').length > 0) return true;
+  if ($('meta[property="product:price:amount"]').length > 0) return true;
+  
+  return false;
 }
 
 /** Build product analyses from Shopify API data (no crawling needed) */
@@ -740,7 +800,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     // ── Phase 3: Deep crawl collections + sitemap in parallel ──
     await emitProgress(input.onProgress, 18, "DISCOVER_PAGES", "Exploration des collections et du sitemap…");
     const collectionUrls = keyUrls
-      .filter((u) => /\/collection|\/collections|\/categor/i.test(u))
+      .filter((u) => COLLECTION_URL_REGEX.test(u))
       .slice(0, 6);
     
     // Launch collection crawl + sitemap fetch in parallel
@@ -752,7 +812,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     const deepProductUrls: string[] = [];
     for (const links of deepResults) {
       for (const link of links) {
-        if (/\/product|\/products|\/produit/i.test(link)) {
+        if (PRODUCT_URL_REGEX.test(link)) {
           try { deepProductUrls.push(new URL(link, homepageUrl).href); } catch {}
         }
       }
@@ -774,8 +834,8 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     }
 
     // ── Phase 5: Build prioritized URL list for parallel fetching ──
-    const productUrlsFromLinks = keyUrls.filter((u) => /\/product|\/products|\/produit/i.test(u));
-    const nonProductUrls = keyUrls.filter((u) => !/\/product|\/products|\/produit/i.test(u));
+    const productUrlsFromLinks = keyUrls.filter((u) => PRODUCT_URL_REGEX.test(u));
+    const nonProductUrls = keyUrls.filter((u) => !PRODUCT_URL_REGEX.test(u));
 
     // Product URLs first (they're more valuable for analysis)
     const allDiscoveredUrls = Array.from(new Set([
@@ -791,8 +851,8 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
       .filter(Boolean) as string[];
 
     // Prioritize product URLs
-    const productUrlsToFetch = allDiscoveredUrls.filter((u) => /\/product|\/products|\/produit/i.test(u));
-    const otherUrlsToFetch = allDiscoveredUrls.filter((u) => !/\/product|\/products|\/produit/i.test(u));
+    const productUrlsToFetch = allDiscoveredUrls.filter((u) => PRODUCT_URL_REGEX.test(u));
+    const otherUrlsToFetch = allDiscoveredUrls.filter((u) => !PRODUCT_URL_REGEX.test(u));
     const prioritizedUrls = [...productUrlsToFetch, ...otherUrlsToFetch].slice(0, MAX_DETAILED_SCAN_PAGES);
 
     await emitProgress(input.onProgress, 25, "EXTRACT", `${prioritizedUrls.length} pages à analyser en parallèle (${productUrlsToFetch.length} produits, ${sitemapProductUrls.length} sitemap)…`);
@@ -823,12 +883,16 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
           allSignals.push(extractSignalsFromHtml(html, url));
           detectedPrices.push(...extractPriceValues(html));
 
-          if (/\/product|\/products|\/produit/i.test(url)) {
+          // Detect product pages by URL pattern OR by content
+          const isProductUrl = PRODUCT_URL_REGEX.test(url);
+          const isProductContent = detectProductPageByContent(html);
+          
+          if (isProductUrl || isProductContent) {
             productPages.push(url);
             productAnalyses.push(analyzeProductPageFromHtml(html, url));
           }
 
-          // Also try to extract products from JSON-LD on any page
+          // Also try to extract products from JSON-LD / product cards on any page
           const pageProducts = extractProductsFromHtml(html, url);
           for (const p of pageProducts) {
             if (!seenUrls.has(p.url)) {
