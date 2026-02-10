@@ -48,8 +48,8 @@ export async function callOpenAIJson<T = unknown>(params: CallOpenAIJsonParams):
     throw new Error(OPENAI_ERROR_CODES.OPENAI_KEY_INVALID);
   }
 
-  const openai = new OpenAI({ apiKey: key, timeout: 30000 });
-  const maxOutputTokens = (params.maxTokens ?? Number(process.env.OPENAI_MAX_OUTPUT_TOKENS)) || 3000;
+  const openai = new OpenAI({ apiKey: key, timeout: 55000 });
+  const maxOutputTokens = (params.maxTokens ?? Number(process.env.OPENAI_MAX_OUTPUT_TOKENS)) || 2000;
   const temp = (params.temperature ?? Number(process.env.OPENAI_TEMPERATURE)) || 0.3;
 
   const userContent = schemaHint
@@ -60,7 +60,7 @@ export async function callOpenAIJson<T = unknown>(params: CallOpenAIJsonParams):
   try {
     // Add explicit timeout wrapper
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 35000);
+    const timeoutId = setTimeout(() => controller.abort(), 55000);
     
     try {
       const completion = await openai.chat.completions.create({

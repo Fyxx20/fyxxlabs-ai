@@ -1045,20 +1045,32 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
 
   await emitProgress(input.onProgress, 85, "AI_SUMMARY", "Synthèse IA en cours…");
 
-  // Build page contents for AI (truncated text per page)
-  const pageContents = allSignals.slice(0, 15).map((s) => ({
+  // Build page contents for AI (truncated — keep small for speed)
+  const pageContents = allSignals.slice(0, 8).map((s) => ({
     url: s.url,
     pageType: s.pageType,
     title: s.title,
     h1: s.h1,
-    visibleText: s.visibleText,
+    visibleText: (s.visibleText ?? "").slice(0, 2000),
     wordCount: s.wordCount,
-    h2Texts: s.h2Texts,
-    structuredData: s.structuredData,
+    h2Texts: s.h2Texts?.slice(0, 5),
     hasCanonical: s.hasCanonical,
     hasOpenGraph: s.hasOpenGraph,
     imageAltRatio: s.imageAltRatio,
   }));
+
+  // Build compact signal summary instead of sending all raw signals
+  const signalSummary = {
+    total_pages: allSignals.length,
+    pages_with_h1: allSignals.filter((s) => s.h1).length,
+    pages_with_canonical: allSignals.filter((s) => s.hasCanonical).length,
+    pages_with_og: allSignals.filter((s) => s.hasOpenGraph).length,
+    avg_word_count: Math.round(allSignals.reduce((a, s) => a + (s.wordCount ?? 0), 0) / Math.max(allSignals.length, 1)),
+    avg_image_alt_ratio: Number((allSignals.reduce((a, s) => a + (s.imageAltRatio ?? 0), 0) / Math.max(allSignals.length, 1)).toFixed(2)),
+    page_types: Object.entries(
+      allSignals.reduce((acc, s) => { acc[s.pageType ?? "unknown"] = (acc[s.pageType ?? "unknown"] ?? 0) + 1; return acc; }, {} as Record<string, number>)
+    ).map(([type, count]) => `${type}: ${count}`).join(", "),
+  };
 
   const userMessage = buildScanUserMessage({
     store: {
@@ -1069,11 +1081,11 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
       traffic_source: input.traffic_source,
       aov: input.aov,
     },
-    signals: { pages: allSignals },
-    pagesAnalyzed: pagesScanned,
+    signals: signalSummary,
+    pagesAnalyzed: pagesScanned.slice(0, 20),
     metrics: input.metrics ?? null,
     modeUrlOnly: !input.metrics?.orders && !input.metrics?.revenue,
-    productAnalysis: productAnalyses?.slice(0, 20) ?? null,
+    productAnalysis: productAnalyses?.slice(0, 10) ?? null,
     pageContents,
     priceInsights: result.raw.price_insights ? {
       own_average_price: result.raw.price_insights.own_average_price,

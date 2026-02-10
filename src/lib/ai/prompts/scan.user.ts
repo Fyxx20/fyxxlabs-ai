@@ -41,7 +41,6 @@ export interface ScanUserPromptInput {
     visibleText: string;
     wordCount: number;
     h2Texts: string[];
-    structuredData: unknown[];
     hasCanonical: boolean;
     hasOpenGraph: boolean;
     imageAltRatio: number;
@@ -65,17 +64,19 @@ export function buildScanUserMessage(input: ScanUserPromptInput): string {
     `Source trafic: ${store.traffic_source ?? "non précisé"}`,
     `Panier moyen (bucket): ${store.aov ?? "non précisé"}`,
     "",
-    "## Signaux extraits (données brutes)",
+    "## Signaux extraits (résumé)",
     JSON.stringify(signals, null, 2),
     "",
     "## Pages analysées",
-    ...pagesAnalyzed.map((u) => `- ${u}`),
+    `Total: ${pagesAnalyzed.length} pages`,
+    ...pagesAnalyzed.slice(0, 20).map((u) => `- ${u}`),
+    pagesAnalyzed.length > 20 ? `... et ${pagesAnalyzed.length - 20} autres pages` : "",
   ];
 
   // Add page content summaries for deep analysis
   if (pageContents && pageContents.length > 0) {
     lines.push("", "## Contenu des pages (texte visible tronqué)");
-    for (const page of pageContents.slice(0, 15)) {
+    for (const page of pageContents.slice(0, 8)) {
       lines.push(
         `\n### ${page.pageType.toUpperCase()} — ${page.url}`,
         `Titre: ${page.title}`,
@@ -86,13 +87,10 @@ export function buildScanUserMessage(input: ScanUserPromptInput): string {
         `Alt images: ${Math.round(page.imageAltRatio * 100)}%`,
       );
       if (page.h2Texts.length > 0) {
-        lines.push(`Structure H2: ${page.h2Texts.join(" | ")}`);
-      }
-      if (page.structuredData.length > 0) {
-        lines.push(`Données structurées JSON-LD: ${JSON.stringify(page.structuredData)}`);
+        lines.push(`Structure H2: ${page.h2Texts.slice(0, 5).join(" | ")}`);
       }
       if (page.visibleText) {
-        lines.push(`Extrait texte: "${page.visibleText}"`);
+        lines.push(`Extrait texte: "${page.visibleText.slice(0, 2000)}"`);
       }
     }
   }
@@ -101,22 +99,14 @@ export function buildScanUserMessage(input: ScanUserPromptInput): string {
   if (productAnalysis && productAnalysis.length > 0) {
     lines.push("", "## Analyse détaillée des produits");
     lines.push(`Nombre de produits analysés: ${productAnalysis.length}`);
-    for (const p of productAnalysis.slice(0, 20)) {
+    for (const p of productAnalysis.slice(0, 10)) {
       lines.push(
         `\n### Produit: ${p.title || p.url}`,
         `URL: ${p.url}`,
-        `H1: ${p.h1 ?? "ABSENT"}`,
-        `Description meta: ${p.meta_description ?? "ABSENTE"}`,
-        `Images: ${p.image_count}`,
-        `Prix détectés: ${p.detected_prices.length > 0 ? p.detected_prices.join(", ") + " €" : "AUCUN"}`,
-        `Prix moyen: ${p.average_price ?? "N/A"}`,
-        `CTA achat: ${p.has_cta ? "oui" : "NON"}`,
-        `Avis clients: ${p.has_reviews ? "oui" : "NON"}`,
-        `Badges confiance: ${p.has_trust_badges ? "oui" : "NON"}`,
-        `Livraison/retours: ${p.has_shipping_returns ? "oui" : "NON"}`,
+        `Images: ${p.image_count} | Prix: ${p.average_price ?? "N/A"} | CTA: ${p.has_cta ? "oui" : "NON"} | Avis: ${p.has_reviews ? "oui" : "NON"} | Confiance: ${p.has_trust_badges ? "oui" : "NON"} | Livraison: ${p.has_shipping_returns ? "oui" : "NON"}`,
       );
       if (p.issues.length > 0) {
-        lines.push(`Problèmes: ${p.issues.join("; ")}`);
+        lines.push(`Problèmes: ${p.issues.slice(0, 3).join("; ")}`);
       }
     }
   }
