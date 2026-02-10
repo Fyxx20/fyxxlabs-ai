@@ -319,18 +319,26 @@ async function fetchShopifyPublicProducts(baseUrl: string): Promise<Array<{
     const origin = new URL(baseUrl).origin;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000);
-    const res = await fetch(`${origin}/products.json?limit=250`, {
+    const productsUrl = `${origin}/products.json?limit=250`;
+    console.log(`[scan] Trying public products.json: ${productsUrl}`);
+    const res = await fetch(productsUrl, {
       signal: controller.signal,
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         Accept: "application/json",
       },
+      redirect: "follow",
     });
     clearTimeout(timeout);
+    console.log(`[scan] products.json response: ${res.status} ${res.statusText}`);
     if (!res.ok) return [];
     const data = await res.json();
     const products = data?.products;
-    if (!Array.isArray(products) || products.length === 0) return [];
+    if (!Array.isArray(products) || products.length === 0) {
+      console.log(`[scan] products.json: no products array found`);
+      return [];
+    }
+    console.log(`[scan] products.json: found ${products.length} products`);
 
     return products.map((p: Record<string, unknown>) => {
       const title = String(p.title ?? "");
@@ -396,7 +404,7 @@ async function fetchShopifyPublicProducts(baseUrl: string): Promise<Array<{
   }
 }
 
-/** Extract product data from HTML using JSON-LD structured data and meta tags */
+/** Extract product data from HTML using JSON-LD, Shopify JS objects, and product card patterns */
 function extractProductsFromHtml(html: string, pageUrl: string): Array<{
   url: string;
   title: string;
@@ -414,7 +422,10 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
   recommendations: string[];
 }> {
   const products: ReturnType<typeof extractProductsFromHtml> = [];
+  const seenTitles = new Set<string>();
   const $ = cheerio.load(html);
+  const origin = (() => { try { return new URL(pageUrl).origin; } catch { return ""; } })();
+  const htmlLower = html.toLowerCase();
   
   // 1. Extract from JSON-LD structured data
   $('script[type="application/ld+json"]').each((_, el) => {
@@ -427,58 +438,137 @@ function extractProductsFromHtml(html: string, pageUrl: string): Array<{
         : [];
       
       for (const item of items) {
-        const title = String(item.name ?? "");
-        if (!title) continue;
+        const title = String(item.name ?? "").trim();
+        if (!title || seenTitles.has(title.toLowerCase())) continue;
+        seenTitles.add(title.toLowerCase());
         const desc = String(item.description ?? "");
         const imgCount = Array.isArray(item.image) ? item.image.length : (item.image ? 1 : 0);
         const prices: number[] = [];
-        
-        // Extract price from offers
         const offers = Array.isArray(item.offers) ? item.offers : (item.offers ? [item.offers] : []);
         for (const offer of offers) {
           const p = parseFloat(String(offer.price ?? "0"));
           if (Number.isFinite(p) && p > 0) prices.push(p);
         }
-        
         const avgPrice = prices.length > 0 ? Number((prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2)) : null;
         const productUrl = String(item.url ?? item["@id"] ?? pageUrl);
         const issues: string[] = [];
         const recommendations: string[] = [];
-        
-        if (desc.length < 50) {
-          issues.push("Description produit trop courte.");
-          recommendations.push("Enrichir la description avec des bénéfices.");
-        }
-        if (imgCount < 3) {
-          issues.push(`Seulement ${imgCount} image(s) détectée(s).`);
-          recommendations.push("Ajouter au moins 3-5 images produit.");
-        }
-        if (prices.length === 0) {
-          issues.push("Prix non détecté dans les données structurées.");
-          recommendations.push("Ajouter un prix visible et des données structurées.");
-        }
-        
+        if (desc.length < 50) { issues.push("Description produit trop courte."); recommendations.push("Enrichir la description avec des bénéfices."); }
+        if (imgCount < 3) { issues.push(`Seulement ${imgCount} image(s) détectée(s).`); recommendations.push("Ajouter au moins 3-5 images produit."); }
+        if (prices.length === 0) { issues.push("Prix non détecté."); recommendations.push("Ajouter un prix visible."); }
         products.push({
-          url: productUrl,
-          title,
-          h1: title,
+          url: productUrl, title, h1: title,
           meta_description: desc.slice(0, 160) || null,
-          image_count: imgCount,
-          script_count: 0,
-          detected_prices: prices,
-          average_price: avgPrice,
-          has_cta: /acheter|ajouter|add to cart|buy now|commander/i.test(html),
-          has_reviews: /review|avis|rating|étoile|star/i.test(html),
-          has_trust_badges: /secure|paiement|garantie|guarantee|trust/i.test(html),
-          has_shipping_returns: /livraison|shipping|retour|return|delivery/i.test(html),
-          issues,
-          recommendations,
+          image_count: imgCount, script_count: 0,
+          detected_prices: prices, average_price: avgPrice,
+          has_cta: /acheter|ajouter|add to cart|buy now|commander/i.test(htmlLower),
+          has_reviews: /review|avis|rating|étoile|star/i.test(htmlLower),
+          has_trust_badges: /secure|paiement|garantie|guarantee|trust/i.test(htmlLower),
+          has_shipping_returns: /livraison|shipping|retour|return|delivery/i.test(htmlLower),
+          issues, recommendations,
         });
       }
-    } catch {
-      // invalid JSON-LD
-    }
+    } catch { /* invalid JSON-LD */ }
   });
+
+  // 2. Extract from Shopify embedded JS (meta.product, ShopifyAnalytics, etc.)
+  const scriptTexts = $("script").map((_, el) => $(el).html() ?? "").get().join("\n");
+  
+  // Shopify meta.product pattern
+  const metaProductMatch = scriptTexts.match(/meta\.product\s*=\s*(\{[\s\S]*?\});/);
+  if (metaProductMatch) {
+    try {
+      const p = JSON.parse(metaProductMatch[1]);
+      const title = String(p.type ?? p.vendor ?? "").trim();
+      // This is usually page-level metadata, not individual products
+    } catch { /* ignore */ }
+  }
+
+  // Shopify product JSON in script tags (common pattern: var product = {...})
+  const productJsonRegex = /(?:var|let|const)\s+(?:product|productData|__product)\s*=\s*(\{[\s\S]*?\});/g;
+  let productJsonMatch: RegExpExecArray | null;
+  while ((productJsonMatch = productJsonRegex.exec(scriptTexts)) !== null) {
+    try {
+      const p = JSON.parse(productJsonMatch[1]);
+      const title = String(p.title ?? p.name ?? "").trim();
+      if (!title || seenTitles.has(title.toLowerCase())) continue;
+      seenTitles.add(title.toLowerCase());
+      const variants = Array.isArray(p.variants) ? p.variants : [];
+      const prices = variants
+        .map((v: Record<string, unknown>) => parseFloat(String(v.price ?? "0")) / (String(v.price ?? "0").includes(".") ? 1 : 100))
+        .filter((v: number) => Number.isFinite(v) && v > 0);
+      const images = Array.isArray(p.images) ? p.images : (Array.isArray(p.media) ? p.media : []);
+      const avgPrice = prices.length > 0 ? Number((prices.reduce((a: number, b: number) => a + b, 0) / prices.length).toFixed(2)) : null;
+      const handle = String(p.handle ?? "");
+      products.push({
+        url: handle ? `${origin}/products/${handle}` : pageUrl,
+        title, h1: title,
+        meta_description: String(p.description ?? "").replace(/<[^>]*>/g, "").slice(0, 160) || null,
+        image_count: images.length, script_count: 0,
+        detected_prices: prices.slice(0, 20), average_price: avgPrice,
+        has_cta: true,
+        has_reviews: /review|avis|rating/i.test(htmlLower),
+        has_trust_badges: /secure|paiement|garantie|trust/i.test(htmlLower),
+        has_shipping_returns: /livraison|shipping|retour|return/i.test(htmlLower),
+        issues: [], recommendations: [],
+      });
+    } catch { /* invalid JSON */ }
+  }
+
+  // 3. Extract product cards from HTML (common patterns across platforms)
+  const productSelectors = [
+    ".product-card", ".product-item", ".product-grid-item", "[data-product-id]",
+    ".ProductItem", ".grid-product", ".product_card", ".card--product",
+    ".product-block", ".product-miniature", ".product-tile",
+    'a[href*="/products/"]', 'a[href*="/product/"]',
+  ];
+  
+  for (const selector of productSelectors) {
+    $(selector).each((_, el) => {
+      if (products.length >= 50) return; // cap
+      const $el = $(el);
+      
+      // Find product link
+      const href = $el.is("a") ? $el.attr("href") : $el.find("a").first().attr("href");
+      if (!href || !(/product/i.test(href))) return;
+      
+      let productUrl: string;
+      try { productUrl = new URL(href, pageUrl).href; } catch { return; }
+      
+      // Find product title
+      const title = (
+        $el.find("h2, h3, h4, .product-title, .product-name, .product-card__title, .card__heading, [class*='title'], [class*='name']").first().text().trim() ||
+        $el.find("a").first().text().trim() ||
+        $el.attr("aria-label")?.trim() || ""
+      );
+      if (!title || title.length < 3 || seenTitles.has(title.toLowerCase())) return;
+      seenTitles.add(title.toLowerCase());
+      
+      // Find price
+      const priceText = $el.find(".price, .product-price, [class*='price'], .money, .amount").first().text();
+      const priceMatch = priceText?.match(/[\d]+[.,]?\d*/);
+      const price = priceMatch ? parseFloat(priceMatch[0].replace(",", ".")) : null;
+      const prices = price && Number.isFinite(price) && price > 0 ? [price] : [];
+      
+      // Count images
+      const imgCount = $el.find("img").length || 1;
+      
+      products.push({
+        url: productUrl, title, h1: title,
+        meta_description: null,
+        image_count: imgCount, script_count: 0,
+        detected_prices: prices,
+        average_price: prices.length > 0 ? prices[0] : null,
+        has_cta: $el.find("button, .btn, [type='submit']").length > 0,
+        has_reviews: $el.find("[class*='review'], [class*='rating'], [class*='star']").length > 0,
+        has_trust_badges: false,
+        has_shipping_returns: false,
+        issues: ["Analyse limitée (données extraites depuis la grille produits)."],
+        recommendations: ["Scanner la fiche produit complète pour une analyse détaillée."],
+      });
+    });
+    if (products.length >= 50) break;
+  }
   
   return products;
 }
@@ -617,6 +707,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     const homeProducts = extractProductsFromHtml(homeHtml, homepageUrl);
     
     // Add public products.json results
+    console.log(`[scan] products.json returned ${publicProducts.length} products`);
     if (publicProducts.length > 0) {
       await emitProgress(input.onProgress, 10, "DISCOVER_PAGES", `${publicProducts.length} produits trouvés via /products.json`);
       for (const p of publicProducts) {
@@ -629,7 +720,8 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
       }
     }
     
-    // Add homepage JSON-LD products (if not already from products.json)
+    // Add homepage JSON-LD / product card products
+    console.log(`[scan] Homepage product extraction found ${homeProducts.length} products`);
     for (const p of homeProducts) {
       if (!seenUrls.has(p.url)) {
         seenUrls.add(p.url);
@@ -643,6 +735,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     await emitProgress(input.onProgress, 15, "DISCOVER_PAGES", "Détection de toutes les pages du site…");
     const homeLinks = extractLinks(homeHtml, homepageUrl);
     const keyUrls = discoverKeyPages(homeLinks, homepageUrl, 60);
+    console.log(`[scan] Homepage links: ${homeLinks.length} total, ${keyUrls.length} key pages`);
 
     // ── Phase 3: Deep crawl collections + sitemap in parallel ──
     await emitProgress(input.onProgress, 18, "DISCOVER_PAGES", "Exploration des collections et du sitemap…");
@@ -664,6 +757,7 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
         }
       }
     }
+    console.log(`[scan] Sitemap: ${sitemapProductUrls.length} URLs, Deep crawl: ${deepProductUrls.length} product URLs from ${collectionUrls.length} collections`);
 
     // ── Phase 4: If Shopify is connected, import products via API ──
     if (input.shopifyProducts && input.shopifyProducts.length > 0) {
@@ -704,12 +798,17 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
     await emitProgress(input.onProgress, 25, "EXTRACT", `${prioritizedUrls.length} pages à analyser en parallèle (${productUrlsToFetch.length} produits, ${sitemapProductUrls.length} sitemap)…`);
 
     // ── Phase 6: Parallel page fetching in batches ──
-    const BATCH_SIZE = 8;
+    const BATCH_SIZE = 5;
     let fetchedCount = 0;
+    
+    console.log(`[scan] Starting parallel fetch of ${prioritizedUrls.length} URLs (${productUrlsToFetch.length} products)`);
     
     for (let batchStart = 0; batchStart < prioritizedUrls.length; batchStart += BATCH_SIZE) {
       // Time guard: keep 18s for AI analysis + competitor prices
-      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 18000) break;
+      if (Date.now() - start > GLOBAL_TIMEOUT_MS - 18000) {
+        console.log(`[scan] Time guard hit at ${Date.now() - start}ms, stopping fetch`);
+        break;
+      }
 
       const batch = prioritizedUrls.slice(batchStart, batchStart + BATCH_SIZE);
       const results = await fetchMultipleHttp(batch, BATCH_SIZE);
@@ -752,6 +851,42 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
       );
     }
 
+    // ── Fallback: if parallel fetch failed, try individual product URLs ──
+    if (fetchedCount === 0 && productUrlsToFetch.length > 0 && Date.now() - start < GLOBAL_TIMEOUT_MS - 20000) {
+      console.log(`[scan] Parallel fetch returned 0 results, trying sequential fallback for ${Math.min(10, productUrlsToFetch.length)} product URLs`);
+      await emitProgress(input.onProgress, 40, "EXTRACT", "Tentative de récupération individuelle des produits…");
+      
+      for (const url of productUrlsToFetch.slice(0, 10)) {
+        if (Date.now() - start > GLOBAL_TIMEOUT_MS - 18000) break;
+        try {
+          const html = await fetchHtmlWithHttp(url);
+          if (seenUrls.has(url)) continue;
+          seenUrls.add(url);
+          fetchedCount++;
+          pagesScanned.push(url);
+          allSignals.push(extractSignalsFromHtml(html, url));
+          detectedPrices.push(...extractPriceValues(html));
+          productPages.push(url);
+          productAnalyses.push(analyzeProductPageFromHtml(html, url));
+          
+          const pageProducts = extractProductsFromHtml(html, url);
+          for (const p of pageProducts) {
+            if (!seenUrls.has(p.url)) {
+              seenUrls.add(p.url);
+              productAnalyses.push(p);
+              detectedPrices.push(...p.detected_prices);
+              productPages.push(p.url);
+            }
+          }
+        } catch (err) {
+          console.error(`[scan] Sequential fallback failed for ${url}: ${err instanceof Error ? err.message : "unknown"}`);
+        }
+        // Small delay between sequential requests
+        await new Promise((r) => setTimeout(r, 500));
+      }
+    }
+
+    console.log(`[scan] Fetch complete: ${fetchedCount} pages fetched, ${productAnalyses.length} products found`);
     await emitProgress(input.onProgress, 55, "EXTRACT", `Extraction terminée — ${pagesScanned.length} pages, ${productAnalyses.length} produits analysés.`);
   } catch (err) {
     const baseline = computeBaseline(allSignals);
