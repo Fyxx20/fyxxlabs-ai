@@ -93,12 +93,13 @@ export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isAddMode = searchParams.get("mode") === "add";
+  const [connectionMode, setConnectionMode] = useState<"url" | "shopify">("url");
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<CreateStoreInput>({
     name: "",
-    website_url: "https://placeholder.myshopify.com",
+    website_url: "",
     goal: "conversion",
-    platform: "shopify",
+    platform: "custom",
     stage: "0_sales",
     traffic_source: "other",
     aov_bucket: "0_30",
@@ -111,25 +112,27 @@ export default function OnboardingPage() {
 
   const parsed = createStoreSchema.safeParse(form);
   const canNextStep1 = form.name.trim().length > 0;
-  const canNextStep2 = !!shopifyDomainFromInput;
+  const canNextStep2 =
+    connectionMode === "shopify"
+      ? true
+      : form.website_url.trim().length > 0 &&
+        (form.website_url.startsWith("http://") || form.website_url.startsWith("https://"));
 
   const canNextStep3 = parsed.success;
 
   const summary = {
     name: form.name.trim() || "—",
-    url: shopifyDomainFromInput ?? "—",
-    platform: "Shopify",
+    url:
+      connectionMode === "shopify"
+        ? (shopifyDomainFromInput ?? "Connexion Shopify")
+        : (form.website_url.trim() || "—"),
+    platform: connectionMode === "shopify" ? "Shopify (connecté)" : "URL libre",
     goal: GOAL_OPTIONS.find((o) => o.value === form.goal)?.label ?? "—",
   };
 
   async function handleFinish() {
     setError(null);
     setLoading(true);
-    if (!shopifyDomainFromInput) {
-      setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
-      setLoading(false);
-      return;
-    }
     const supabase = createClient();
     const {
       data: { user },
@@ -140,10 +143,28 @@ export default function OnboardingPage() {
       return;
     }
 
+    let shopDomain: string | null = null;
+    if (connectionMode === "shopify") {
+      shopDomain = shopifyDomainFromInput;
+      if (!shopDomain) {
+        const prompted = window.prompt("Entre ton domaine Shopify (.myshopify.com)", "");
+        shopDomain = normalizeShopifyDomain(prompted ?? "");
+        if (!shopDomain) {
+          setError("Domaine Shopify invalide. Exemple: maboutique.myshopify.com");
+          setLoading(false);
+          return;
+        }
+        setShopifyDomainInput(shopDomain);
+      }
+    }
+
     const storePayload: CreateStoreInput = {
       ...form,
-      platform: "shopify",
-      website_url: `https://${shopifyDomainFromInput}`,
+      platform: connectionMode === "shopify" ? "shopify" : "custom",
+      website_url:
+        connectionMode === "shopify"
+          ? `https://${shopDomain}`
+          : form.website_url,
     };
 
     const res = await fetch("/api/store/create", {
@@ -155,23 +176,19 @@ export default function OnboardingPage() {
 
     if (!res.ok) {
       if (res.status === 409 && (data.error === "store_exists" || data.storeId)) {
-        const shopDomain = shopifyDomainFromInput;
-        if (!shopDomain) {
-          setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
-          setLoading(false);
-          return;
-        }
-        const { data: existingStore } = await supabase
-          .from("stores")
-          .select("id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (existingStore?.id) {
-          setLoading(false);
-          window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
-          return;
+        if (connectionMode === "shopify" && shopDomain) {
+          const { data: existingStore } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existingStore?.id) {
+            setLoading(false);
+            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
+            return;
+          }
         }
         setError("STORE_EXISTS");
         setLoading(false);
@@ -180,23 +197,19 @@ export default function OnboardingPage() {
         return;
       }
       if (res.status === 409 && data.error === "store_limit_reached") {
-        const shopDomain = shopifyDomainFromInput;
-        if (!shopDomain) {
-          setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
-          setLoading(false);
-          return;
-        }
-        const { data: existingStore } = await supabase
-          .from("stores")
-          .select("id")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (existingStore?.id) {
-          setLoading(false);
-          window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
-          return;
+        if (connectionMode === "shopify" && shopDomain) {
+          const { data: existingStore } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existingStore?.id) {
+            setLoading(false);
+            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
+            return;
+          }
         }
         setError(data.message ?? "Limite de boutiques atteinte pour ton abonnement.");
         setLoading(false);
@@ -232,14 +245,27 @@ export default function OnboardingPage() {
         { onConflict: "user_id" }
       );
 
-    const shopDomain = shopifyDomainFromInput;
-    if (!shopDomain) {
-      setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
+    if (connectionMode === "shopify" && shopDomain) {
       setLoading(false);
+      window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(storeId)}&shop=${encodeURIComponent(shopDomain)}`;
       return;
     }
+
+    setScanStatus("queued");
+    const scanRes = await fetch("/api/scan/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ store_id: storeId }),
+    });
+    if (scanRes.ok) {
+      setScanStatus("running");
+      const scanData = await scanRes.json();
+      if (scanData.status === "succeeded") setScanStatus("done");
+    }
+
     setLoading(false);
-    window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(storeId)}&shop=${encodeURIComponent(shopDomain)}`;
+    router.push("/app/dashboard");
+    router.refresh();
     return;
   }
 
@@ -299,12 +325,12 @@ export default function OnboardingPage() {
           <CardHeader>
             <CardTitle className="text-white">
               {step === 1 && "Nom de ta boutique"}
-              {step === 2 && "Connexion Shopify"}
+              {step === 2 && "Connexion de ta boutique"}
               {step === 3 && "Récapitulatif de l'analyse"}
             </CardTitle>
             <CardDescription className="text-slate-300">
               {step === 1 && "Un nom pour reconnaître cette boutique dans ton dashboard."}
-              {step === 2 && "Connecte simplement ta boutique Shopify, sans URL publique ni plateforme à choisir."}
+              {step === 2 && "Choisis ton mode: scan via URL libre ou connexion Shopify directe."}
               {step === 3 && "Ces informations permettent à FyxxLabs d'adapter l'analyse."}
             </CardDescription>
           </CardHeader>
@@ -362,26 +388,63 @@ export default function OnboardingPage() {
 
             {step === 2 && (
               <>
-                <div className="rounded-lg border border-white/15 bg-white/[0.03] p-3">
-                  <p className="text-sm font-medium text-white">Connexion directe Shopify</p>
-                  <p className="mt-1 text-xs text-slate-300">
-                    Renseigne uniquement ton domaine Shopify interne, puis clique sur connecter.
-                  </p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setConnectionMode("url")}
+                    className={`rounded-lg border p-3 text-left transition-colors ${
+                      connectionMode === "url"
+                        ? "border-violet-400/40 bg-violet-500/15"
+                        : "border-white/15 bg-white/[0.02] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-white">Option 1 — URL libre</p>
+                    <p className="mt-1 text-xs text-slate-300">Analyse n’importe quelle URL de boutique.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConnectionMode("shopify")}
+                    className={`rounded-lg border p-3 text-left transition-colors ${
+                      connectionMode === "shopify"
+                        ? "border-violet-400/40 bg-violet-500/15"
+                        : "border-white/15 bg-white/[0.02] hover:bg-white/[0.06]"
+                    }`}
+                  >
+                    <p className="text-sm font-medium text-white">Option 2 — Connecter Shopify</p>
+                    <p className="mt-1 text-xs text-slate-300">Connexion OAuth directe avec Shopify.</p>
+                  </button>
                 </div>
-                <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
-                  <Label htmlFor="shopify_domain" className="text-slate-100">Boutique Shopify (.myshopify.com)</Label>
-                  <Input
-                    id="shopify_domain"
-                    type="text"
-                    placeholder="maboutique.myshopify.com"
-                    value={shopifyDomainInput}
-                    onChange={(e) => setShopifyDomainInput(e.target.value)}
-                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
-                  />
-                  <p className="text-xs text-slate-300">
-                    Exemple: `ma-boutique.myshopify.com`. Tu choisiras ensuite et autoriseras la connexion sur Shopify.
-                  </p>
-                </div>
+
+                {connectionMode === "url" ? (
+                  <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
+                    <Label htmlFor="website_url" className="text-slate-100">URL de la boutique</Label>
+                    <Input
+                      id="website_url"
+                      type="url"
+                      placeholder="https://maboutique.com"
+                      value={form.website_url}
+                      onChange={(e) => setForm((f) => ({ ...f, website_url: e.target.value }))}
+                      className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
+                    />
+                    <p className="text-xs text-slate-300">Tu peux mettre n’importe quel domaine e-commerce.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
+                    <Label htmlFor="shopify_domain" className="text-slate-100">Boutique Shopify (.myshopify.com)</Label>
+                    <Input
+                      id="shopify_domain"
+                      type="text"
+                      placeholder="maboutique.myshopify.com"
+                      value={shopifyDomainInput}
+                      onChange={(e) => setShopifyDomainInput(e.target.value)}
+                      className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
+                    />
+                    <p className="text-xs text-slate-300">
+                      Clique ensuite sur connecter pour ouvrir Shopify et autoriser FyxxLabs.
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <Button
                     type="button"
@@ -394,10 +457,12 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-500"
-                    onClick={handleFinish}
+                    onClick={connectionMode === "shopify" ? handleFinish : () => setStep(3)}
                     disabled={loading || !canNextStep2}
                   >
-                    {loading ? "Connexion Shopify…" : "Connecter Shopify"}
+                    {connectionMode === "shopify"
+                      ? (loading ? "Connexion Shopify…" : "Connecter")
+                      : "Suivant"}
                   </Button>
                 </div>
               </>
@@ -559,15 +624,15 @@ export default function OnboardingPage() {
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Connexion Shopify…
+                        Analyse en cours…
                       </>
                     ) : (
-                      "Créer et connecter Shopify"
+                      "Lancer l'analyse FyxxLabs"
                     )}
                   </Button>
                 </div>
                 <p className="text-center text-xs text-slate-300">
-                  Tu seras redirigé vers Shopify pour autoriser la connexion.
+                  L'analyse peut prendre 1 à 3 minutes.
                 </p>
               </>
             )}
