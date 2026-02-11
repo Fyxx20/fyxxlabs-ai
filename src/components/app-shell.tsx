@@ -296,7 +296,7 @@ export function AppShell({
                 Facturation
               </Link>
             </DropdownMenuItem>
-            {userRole === "admin" && (
+            {(userRole === "admin" || userRole === "super_admin") && (
               <DropdownMenuItem asChild>
                 <Link href="/admin/dashboard">
                   <Shield className="mr-2 h-4 w-4" />

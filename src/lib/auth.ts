@@ -2,7 +2,7 @@
  * Helpers d'autorisation côté serveur. Ne jamais se baser uniquement sur le client.
  */
 
-export type ProfileRole = "user" | "admin";
+export type ProfileRole = "user" | "admin" | "super_admin";
 
 export interface ProfileRow {
   role: ProfileRole;
@@ -19,7 +19,12 @@ export interface SubscriptionForAccess {
 
 /** true si le profil a le rôle admin */
 export function isAdmin(profile: ProfileRow | null): boolean {
-  return profile?.role === "admin";
+  return profile?.role === "admin" || profile?.role === "super_admin";
+}
+
+/** true si le profil a le rôle super admin */
+export function isSuperAdmin(profile: ProfileRow | null): boolean {
+  return profile?.role === "super_admin";
 }
 
 /**

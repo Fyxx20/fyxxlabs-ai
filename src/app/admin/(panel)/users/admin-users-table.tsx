@@ -171,6 +171,7 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
                 <SelectItem value="all">Tous les rôles</SelectItem>
                 <SelectItem value="user">User</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
+                            <SelectItem value="super_admin">Super admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -210,8 +211,10 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
                       </td>
                       <td className="py-3">
                         <span className="flex items-center gap-1 flex-wrap">
-                          <Badge variant={p.role === "admin" ? "default" : "secondary"}>
-                            {p.role === "admin" ? (
+                          <Badge variant={p.role === "user" ? "secondary" : "default"}>
+                            {p.role === "super_admin" ? (
+                              <><Crown className="mr-1 h-3 w-3" /> Super admin</>
+                            ) : p.role === "admin" ? (
                               <><Crown className="mr-1 h-3 w-3" /> Admin</>
                             ) : (
                               <><User className="mr-1 h-3 w-3" /> User</>
@@ -286,12 +289,16 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
                           <DropdownMenuContent align="end">
                             <DropdownMenuItem
                               onClick={() => setRole(p.user_id, p.role === "admin" ? "user" : "admin")}
-                              disabled={loadingRole === p.user_id}
+                              disabled={loadingRole === p.user_id || p.role === "super_admin"}
                             >
                               {loadingRole === p.user_id ? (
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               ) : null}
-                              {p.role === "admin" ? "Passer en User" : "Passer en Admin"}
+                              {p.role === "super_admin"
+                                ? "Rôle protégé (super admin)"
+                                : p.role === "admin"
+                                  ? "Passer en User"
+                                  : "Passer en Admin"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => activateLifetime(p.user_id)}

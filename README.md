@@ -49,8 +49,9 @@ Copier `.env.example` vers `.env.local` et renseigner :
 - Exécuter les migrations dans l’ordre : `001_initial_schema.sql`, `002_profiles_and_admin_rls.sql`, `003_stores_onboarding_columns_and_policies.sql`, `004_connectors_and_metrics.sql` (Dashboard Supabase → SQL Editor, ou `supabase link` + `supabase db push`). Si l’app affiche « table stores introuvable », les migrations n’ont pas été appliquées sur le bon projet.
 - En dev, la page **/debug** affiche l’état Supabase et un test sur la table `stores` (utile en cas d’erreur « schema cache »).
 - Activer Auth (Email) et configurer l’URL de redirection si besoin.
-- **Rôles** : table `profiles` (user_id, role, email) avec `role` = `user` ou `admin`. À chaque signup, un profil `user` et un abonnement en trial sont créés.
-- **Créer les comptes de base (user + admin)** : exécuter **une fois** `npm run seed:users` (avec `.env.local` configuré). Cela crée `m.harea@storepilot.ia` (user) et `admin@storepilot.ia` (admin) avec des mots de passe complexes générés, affichés dans la console. **Sauvegardez-les en lieu sûr.** Pour un admin manuel : voir `supabase/seed_admin.sql`.
+- **Rôles** : table `profiles` (user_id, role, email) avec `role` = `user`, `admin` ou `super_admin`. À chaque signup, un profil `user` et un abonnement en trial sont créés.
+- **Créer les comptes de base (user + admin)** : exécuter **une fois** `npm run seed:users` (avec `.env.local` configuré). Cela crée `m.harea@storepilot.ia` (user) et `admin@storepilot.ia` (admin) avec des mots de passe complexes générés, affichés dans la console. **Sauvegardez-les en lieu sûr.**
+- **Créer un super admin total** : `npm run create:super-admin -- --email <email> --password <mot_de_passe_fort>`.
 - **Double authentification (2FA)** : disponible dans Paramètres (app user) et Paramètres admin. Les utilisateurs peuvent activer un facteur TOTP (Google Authenticator, Authy, etc.) ; à la connexion suivante, un code à 6 chiffres sera demandé après le mot de passe.
 
 4. **Connexion Google, Facebook, Apple (optionnel)**
@@ -84,10 +85,10 @@ Ouvrir [http://localhost:3000](http://localhost:3000).
 ## Architecture (résumé)
 
 - **Landing** (`/`) : hero, CTA unique, avant/après, comment ça marche, tarifs, FAQ.
-- **Auth** : `/login`, `/signup` (utilisateurs) ; `/admin/login` (admins, même Auth, rôle vérifié).
+- **Auth** : `/login`, `/signup` (utilisateurs) ; `/admin/login` (admins et super admins, même Auth, rôle vérifié).
 - **Onboarding** (`/onboarding`) : nom boutique, URL, objectif → création store + redirect dashboard.
 - **App utilisateur** (`/app/*`) : protégé par session + onboarding. Sidebar : Dashboard, Scans, Coach IA, Issues, Settings, Billing. Paywall selon abonnement / trial.
-- **App admin** (`/admin/*`) : protégé par session + `profiles.role = 'admin'`. Dashboard (KPIs), Utilisateurs, Boutiques, Scans (liste + détail), Paramètres (feature flags).
+- **App admin** (`/admin/*`) : protégé par session + `profiles.role IN ('admin', 'super_admin')`. Dashboard (KPIs), Utilisateurs, Boutiques, Scans (liste + détail), Paramètres (feature flags).
 - **Scan** : `POST /api/scan/start` → création scan (trigger remplit `user_id`) → pipeline Playwright + Cheerio → LLM (scores + issues ou 1 conseil trial) → mise à jour scan.
 - **Monétisation** : essai 3 jours + 1 scan + 1 conseil unique ; puis abonnement Stripe (Pro 39€/390€). Paywall sur coach, issues complètes, rescans.
 

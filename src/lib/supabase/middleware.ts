@@ -1,6 +1,22 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+function parseEnvEmailList(raw?: string): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+function isPrivilegedRoleOrEmail(role: string | null | undefined, email: string | null | undefined): boolean {
+  if (role === "admin" || role === "super_admin") return true;
+  const lower = (email ?? "").toLowerCase();
+  if (!lower) return false;
+  const adminEmails = parseEnvEmailList(process.env.ADMIN_EMAILS);
+  const superAdminEmails = parseEnvEmailList(process.env.SUPER_ADMIN_EMAILS);
+  return adminEmails.includes(lower) || superAdminEmails.includes(lower);
+}
+
 export async function updateSession(request: NextRequest) {
   try {
     let supabaseResponse = NextResponse.next({ request });
@@ -44,7 +60,7 @@ export async function updateSession(request: NextRequest) {
       .select("role")
       .eq("user_id", user.id)
       .single();
-    if (profile?.role === "admin") {
+    if (isPrivilegedRoleOrEmail(profile?.role, user.email)) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/dashboard";
       return NextResponse.redirect(url);
@@ -95,7 +111,7 @@ export async function updateSession(request: NextRequest) {
       .select("role")
       .eq("user_id", user.id)
       .single();
-    if (profile?.role !== "admin") {
+    if (!isPrivilegedRoleOrEmail(profile?.role, user.email)) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/login";
       url.searchParams.set("error", "unauthorized");
@@ -111,7 +127,9 @@ export async function updateSession(request: NextRequest) {
       .eq("user_id", user.id)
       .single();
     const url = request.nextUrl.clone();
-    url.pathname = profile?.role === "admin" ? "/admin/dashboard" : "/app/dashboard";
+    url.pathname = isPrivilegedRoleOrEmail(profile?.role, user.email)
+      ? "/admin/dashboard"
+      : "/app/dashboard";
     return NextResponse.redirect(url);
   }
 
@@ -122,7 +140,7 @@ export async function updateSession(request: NextRequest) {
       .select("role")
       .eq("user_id", user.id)
       .single();
-    if (profile?.role === "admin") {
+    if (isPrivilegedRoleOrEmail(profile?.role, user.email)) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/dashboard";
       return NextResponse.redirect(url);

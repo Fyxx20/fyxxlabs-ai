@@ -81,6 +81,15 @@ function getAdminEmailsFromEnv(): string[] {
     .filter(Boolean);
 }
 
+/** Emails considérés super admin (env SUPER_ADMIN_EMAILS, séparés par des virgules). */
+function getSuperAdminEmailsFromEnv(): string[] {
+  const raw = process.env.SUPER_ADMIN_EMAILS ?? "";
+  return raw
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 /**
  * Vérifie session + role admin. À appeler dans chaque route /api/admin/*.
  * Utilise le client Supabase serveur (cookies), pas le service role.
@@ -103,16 +112,21 @@ export async function requireAdmin(
     .single();
 
   const adminEmails = getAdminEmailsFromEnv();
+  const superAdminEmails = getSuperAdminEmailsFromEnv();
   const emailLower = (user.email ?? "").toLowerCase();
   const isAdminByEmail = adminEmails.length > 0 && adminEmails.includes(emailLower);
+  const isSuperAdminByEmail = superAdminEmails.length > 0 && superAdminEmails.includes(emailLower);
+  const normalizedRole = profile?.role ?? "user";
+  const isAdminRole = normalizedRole === "admin" || normalizedRole === "super_admin";
+  const targetRole = isSuperAdminByEmail ? "super_admin" : "admin";
 
-  if (profile?.role === "admin" || isAdminByEmail) {
-    if (isAdminByEmail && profile?.role !== "admin") {
+  if (isAdminRole || isAdminByEmail || isSuperAdminByEmail) {
+    if ((isAdminByEmail || isSuperAdminByEmail) && normalizedRole !== targetRole) {
       try {
         const admin = getSupabaseAdmin();
         await admin
           .from("profiles")
-          .update({ role: "admin", email: user.email ?? undefined, updated_at: new Date().toISOString() })
+          .update({ role: targetRole, email: user.email ?? undefined, updated_at: new Date().toISOString() })
           .eq("user_id", user.id);
       } catch {
         // ignore update error
@@ -121,9 +135,26 @@ export async function requireAdmin(
     return {
       ok: true,
       user,
-      profile: { role: "admin", is_banned: profile?.is_banned ?? false },
+      profile: {
+        role: isSuperAdminByEmail ? "super_admin" : isAdminRole ? normalizedRole : "admin",
+        is_banned: profile?.is_banned ?? false,
+      },
     };
   }
 
   return { ok: false, error: NextResponse.json({ error: "Réservé aux admins" }, { status: 403 }) };
+}
+
+/** Vérifie session + rôle super admin strict. */
+export async function requireSuperAdmin(
+  getServerSupabase: () => Promise<SupabaseClient>
+): Promise<{ ok: true; user: User; profile: { role: string; is_banned?: boolean } } | { ok: false; error: NextResponse }> {
+  const auth = await requireAdmin(getServerSupabase);
+  if (!auth.ok) return auth;
+  const superAdminEmails = getSuperAdminEmailsFromEnv();
+  const isSuperAdminByEmail = superAdminEmails.includes((auth.user.email ?? "").toLowerCase());
+  if (auth.profile.role === "super_admin" || isSuperAdminByEmail) {
+    return auth;
+  }
+  return { ok: false, error: NextResponse.json({ error: "Réservé aux super admins" }, { status: 403 }) };
 }

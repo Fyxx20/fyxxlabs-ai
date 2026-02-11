@@ -51,7 +51,7 @@ function AdminLoginPageContent() {
       .select("role")
       .eq("user_id", data.user.id)
       .single();
-    if (profile?.role !== "admin") {
+    if (profile?.role !== "admin" && profile?.role !== "super_admin") {
       await supabase.auth.signOut();
       setError("Accès réservé aux administrateurs.");
       return;

@@ -15,7 +15,9 @@ export default async function AdminUsersPage() {
     .select("role")
     .eq("user_id", user.id)
     .single();
-  if (profile?.role !== "admin") redirect("/admin/login?error=unauthorized");
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") {
+    redirect("/admin/login?error=unauthorized");
+  }
 
   const admin = getSupabaseAdmin();
   const { data: profiles } = await admin

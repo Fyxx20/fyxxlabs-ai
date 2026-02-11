@@ -5,6 +5,13 @@ import { AppShell } from "@/components/app-shell";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
 
+function parseEnvEmailList(raw?: string): string[] {
+  return (raw ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+}
+
 export default async function AppLayout({
   children,
 }: {
@@ -29,9 +36,17 @@ export default async function AppLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan, trial_ends_at, scans_used")
+    .select("role, plan, trial_ends_at, scans_used")
     .eq("user_id", user.id)
     .single();
+  const emailLower = (user.email ?? "").toLowerCase();
+  const adminEmails = parseEnvEmailList(process.env.ADMIN_EMAILS);
+  const superAdminEmails = parseEnvEmailList(process.env.SUPER_ADMIN_EMAILS);
+  const isPrivilegedByEnv = adminEmails.includes(emailLower) || superAdminEmails.includes(emailLower);
+  const isPrivilegedByRole = profile?.role === "admin" || profile?.role === "super_admin";
+  if (isPrivilegedByRole || isPrivilegedByEnv) {
+    redirect("/admin/dashboard");
+  }
 
   const { data: subscription } = await supabase
     .from("subscriptions")
@@ -52,6 +67,7 @@ export default async function AppLayout({
       currentStoreId={currentStore?.id ?? null}
       subscription={subscription ?? null}
       entitlements={entitlements}
+      userRole={profile?.role ?? null}
     >
       {children}
     </AppShell>

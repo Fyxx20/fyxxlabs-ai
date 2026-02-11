@@ -22,7 +22,7 @@ export default async function AdminPanelLayout({
     .eq("user_id", user.id)
     .single();
 
-  if (profile?.role !== "admin") {
+  if (profile?.role !== "admin" && profile?.role !== "super_admin") {
     redirect("/admin/login?error=unauthorized");
   }
 

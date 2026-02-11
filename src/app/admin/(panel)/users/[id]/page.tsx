@@ -67,7 +67,7 @@ export default async function AdminUserDetailPage({
           user_id: {userId} · Créé le {formatDate(profile.created_at)}
         </p>
         <div className="mt-2 flex gap-2">
-          <Badge variant={profile.role === "admin" ? "default" : "secondary"}>
+          <Badge variant={profile.role === "user" ? "secondary" : "default"}>
             {profile.role}
           </Badge>
           {(profile as { is_banned?: boolean }).is_banned && (

@@ -54,9 +54,9 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="w-full border-b border-border bg-card md:w-56 md:border-b-0 md:border-r">
-        <div className="flex h-14 items-center gap-2 border-b border-border px-4">
+    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100 md:flex-row">
+      <aside className="w-full border-b border-white/10 bg-slate-900 md:w-56 md:border-b-0 md:border-r">
+        <div className="flex h-14 items-center gap-2 border-b border-white/10 px-4">
           <BrandLogo href="/admin/dashboard" label="FyxxLabs Admin" />
         </div>
         <nav className="flex flex-row gap-1 overflow-x-auto p-2 md:flex-col md:overflow-x-visible">
@@ -66,8 +66,8 @@ export function AdminShell({
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   pathname === item.href
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-violet-500/20 text-violet-200"
+                    : "text-slate-300 hover:bg-white/10 hover:text-white"
                 )}
               >
                 <item.icon className="h-4 w-4 shrink-0" />
@@ -79,17 +79,17 @@ export function AdminShell({
       </aside>
 
       <div className="flex flex-1 flex-col">
-        <div className="border-b border-amber-500/30 bg-amber-500/5 px-4 py-1.5 text-center text-xs font-medium text-amber-800 dark:text-amber-200">
+        <div className="border-b border-violet-400/30 bg-violet-500/10 px-4 py-1.5 text-center text-xs font-semibold text-violet-100">
           Mode administrateur FyxxLabs
         </div>
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-end gap-4 border-b border-border bg-background/95 px-4 backdrop-blur">
-          <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs font-medium text-amber-800 dark:text-amber-200">
-            {userRole === "admin" ? "Admin" : "Espace sécurisé"}
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-end gap-4 border-b border-white/10 bg-slate-950/90 px-4 backdrop-blur">
+          <span className="rounded-md border border-violet-400/40 bg-violet-500/15 px-2 py-1 text-xs font-semibold text-violet-100">
+            {userRole === "super_admin" ? "Super Admin" : userRole === "admin" ? "Admin" : "Espace sécurisé"}
           </span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <span className="hidden truncate text-sm md:inline">
+              <Button variant="ghost" size="sm" className="gap-2 text-slate-100 hover:bg-white/10 hover:text-white">
+                <span className="hidden truncate text-sm font-medium md:inline">
                   {user.email}
                 </span>
                 <ChevronDown className="h-4 w-4" />
@@ -107,7 +107,7 @@ export function AdminShell({
           </DropdownMenu>
         </header>
 
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+        <main className="flex-1 bg-slate-950 p-4 md:p-6">{children}</main>
       </div>
     </div>
   );

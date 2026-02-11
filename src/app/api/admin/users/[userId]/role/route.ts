@@ -16,13 +16,41 @@ export async function POST(
   } catch {
     return NextResponse.json({ error: "Body JSON invalide" }, { status: 400 });
   }
-  const role = body.role === "admin" ? "admin" : "user";
+  const requestedRole =
+    body.role === "super_admin"
+      ? "super_admin"
+      : body.role === "admin"
+        ? "admin"
+        : "user";
 
   const admin = getSupabaseAdmin();
+  const { data: actorProfile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("user_id", auth.user.id)
+    .single();
+  const actorIsSuperAdmin = actorProfile?.role === "super_admin";
+
   const { data: before } = await admin.from("profiles").select("role").eq("user_id", userId).single();
+  if (!before) {
+    return NextResponse.json({ error: "Profil cible introuvable" }, { status: 404 });
+  }
+  if (before.role === "super_admin" && !actorIsSuperAdmin) {
+    return NextResponse.json(
+      { error: "Seul un super admin peut modifier un super admin" },
+      { status: 403 }
+    );
+  }
+  if (requestedRole === "super_admin" && !actorIsSuperAdmin) {
+    return NextResponse.json(
+      { error: "Seul un super admin peut promouvoir en super admin" },
+      { status: 403 }
+    );
+  }
+
   const { error } = await admin
     .from("profiles")
-    .update({ role, updated_at: new Date().toISOString() })
+    .update({ role: requestedRole, updated_at: new Date().toISOString() })
     .eq("user_id", userId);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -34,10 +62,10 @@ export async function POST(
     target_type: "profile",
     target_id: userId,
     before_state: before ?? null,
-    after_state: { role },
+    after_state: { role: requestedRole },
     ip: meta.ip,
     user_agent: meta.user_agent,
   });
 
-  return NextResponse.json({ ok: true, role });
+  return NextResponse.json({ ok: true, role: requestedRole });
 }

@@ -12,7 +12,8 @@
     "playwright:install": "playwright install chromium",
     "db:generate": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "seed:users": "node scripts/seed-users.mjs",
-    "activate-lifetime": "node scripts/activate-lifetime.mjs"
+    "activate-lifetime": "node scripts/activate-lifetime.mjs",
+    "create:super-admin": "node scripts/create-super-admin.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.0.5",
