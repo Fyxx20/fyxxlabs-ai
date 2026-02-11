@@ -95,11 +95,11 @@ export function AdminShell({
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem asChild>
+            <DropdownMenuContent align="end" className="w-56 border-white/10 bg-slate-900 text-slate-100">
+              <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white">
                 <Link href="/">Voir le site</Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSignOut}>
+              <DropdownMenuItem onClick={handleSignOut} className="focus:bg-white/10 focus:text-white">
                 <LogOut className="mr-2 h-4 w-4" />
                 Déconnexion
               </DropdownMenuItem>

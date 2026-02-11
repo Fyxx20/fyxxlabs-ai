@@ -27,6 +27,9 @@ export function AdminScansTable({
   storeNameById: Map<string, string>;
 }) {
   const router = useRouter();
+  const actionOutlineClass =
+    "border-white/20 bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-white disabled:opacity-100 disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500";
+  const actionGhostClass = "text-slate-100 hover:bg-slate-800 hover:text-white";
   const [loading, setLoading] = useState<string | null>(null);
 
   async function retry(scanId: string) {
@@ -54,7 +57,7 @@ export function AdminScansTable({
       </CardHeader>
       <CardContent>
         {!scans.length ? (
-          <p className="text-sm text-muted-foreground">Aucun scan.</p>
+          <p className="text-sm text-slate-300">Aucun scan.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -96,14 +99,14 @@ export function AdminScansTable({
                     </td>
                     <td className="py-3">
                       <Link href={`/admin/scans/${s.id}`}>
-                        <Button variant="ghost" size="sm">
+                        <Button variant="ghost" size="sm" className={actionGhostClass}>
                           Détail
                         </Button>
                       </Link>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="ml-1"
+                        className={`ml-1 ${actionOutlineClass}`}
                         disabled={loading === s.id}
                         onClick={() => retry(s.id)}
                       >

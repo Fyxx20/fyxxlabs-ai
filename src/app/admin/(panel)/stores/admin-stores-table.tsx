@@ -34,6 +34,8 @@ export function AdminStoresTable({
   emailByUser: Map<string, string | null>;
 }) {
   const router = useRouter();
+  const actionOutlineClass =
+    "border-white/20 bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-white disabled:opacity-100 disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500";
   const [loading, setLoading] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<StoreRow | null>(null);
   const [deleteTyped, setDeleteTyped] = useState("");
@@ -80,7 +82,7 @@ export function AdminStoresTable({
         </CardHeader>
         <CardContent>
           {!stores.length ? (
-            <p className="text-sm text-muted-foreground">Aucune boutique.</p>
+            <p className="text-sm text-slate-300">Aucune boutique.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -119,7 +121,7 @@ export function AdminStoresTable({
                         <Button
                           variant="outline"
                           size="sm"
-                          className="mr-1"
+                          className={`mr-1 ${actionOutlineClass}`}
                           disabled={loading === s.id}
                           onClick={() => rescan(s.id)}
                         >
@@ -143,13 +145,13 @@ export function AdminStoresTable({
       </Card>
 
       <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
-        <DialogContent>
+        <DialogContent className="border-white/10 bg-slate-900 text-slate-100">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               Supprimer la boutique
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-slate-300">
               Action irréversible. Les scans associés seront supprimés.
               {deleteConfirm && <span className="mt-2 block font-medium">{deleteConfirm.name}</span>}
               <span className="mt-2 block">Tapez <strong>DELETE</strong> pour confirmer.</span>
@@ -160,11 +162,15 @@ export function AdminStoresTable({
               placeholder="DELETE"
               value={deleteTyped}
               onChange={(e) => setDeleteTyped(e.target.value)}
-              className="font-mono border-destructive"
+              className="font-mono border-rose-500/60 bg-slate-950 text-slate-100"
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setDeleteConfirm(null); setDeleteTyped(""); }}>
+            <Button
+              variant="outline"
+              className="border-white/20 bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-white"
+              onClick={() => { setDeleteConfirm(null); setDeleteTyped(""); }}
+            >
               Annuler
             </Button>
             <Button variant="destructive" onClick={deleteStore} disabled={deleteTyped !== "DELETE"}>

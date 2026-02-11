@@ -32,18 +32,18 @@ export default async function AdminScanDetailPage({
     .single();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-slate-100">
       <div className="flex items-center gap-4">
         <Link href="/admin/scans">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="text-slate-100 hover:bg-slate-800 hover:text-white">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          <h1 className="text-2xl font-bold tracking-tight text-white">
             Scan {id.slice(0, 8)}…
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-slate-300">
             {formatDate(scan.created_at)}
             {store?.name && ` · ${store.name}`}
           </p>
@@ -51,7 +51,7 @@ export default async function AdminScanDetailPage({
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Statut</CardTitle>
           </CardHeader>
@@ -82,7 +82,7 @@ export default async function AdminScanDetailPage({
             )}
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Boutique</CardTitle>
           </CardHeader>
@@ -106,12 +106,12 @@ export default async function AdminScanDetailPage({
       </div>
 
       {scan.summary && (
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Résumé</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+            <p className="whitespace-pre-wrap text-sm text-slate-300">
               {scan.summary}
             </p>
           </CardContent>
@@ -119,7 +119,7 @@ export default async function AdminScanDetailPage({
       )}
 
       {scan.trial_single_advice && (
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Conseil trial</CardTitle>
           </CardHeader>
@@ -130,12 +130,12 @@ export default async function AdminScanDetailPage({
       )}
 
       {scan.scores_json && (
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Scores (JSON)</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="max-h-48 overflow-auto rounded bg-muted p-3 text-xs">
+            <pre className="max-h-48 overflow-auto rounded border border-white/10 bg-slate-950 p-3 text-xs text-slate-200">
               {JSON.stringify(scan.scores_json, null, 2)}
             </pre>
           </CardContent>
@@ -143,12 +143,12 @@ export default async function AdminScanDetailPage({
       )}
 
       {scan.issues_json && (
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Issues (JSON)</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="max-h-64 overflow-auto rounded bg-muted p-3 text-xs">
+            <pre className="max-h-64 overflow-auto rounded border border-white/10 bg-slate-950 p-3 text-xs text-slate-200">
               {JSON.stringify(scan.issues_json, null, 2)}
             </pre>
           </CardContent>
@@ -156,12 +156,12 @@ export default async function AdminScanDetailPage({
       )}
 
       {scan.scan_data_json && (
-        <Card>
+        <Card className="border-white/10 bg-slate-900/70 text-slate-100">
           <CardHeader>
             <CardTitle>Scan data (aperçu)</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="max-h-64 overflow-auto rounded bg-muted p-3 text-xs">
+            <pre className="max-h-64 overflow-auto rounded border border-white/10 bg-slate-950 p-3 text-xs text-slate-200">
               {JSON.stringify(scan.scan_data_json, null, 2).slice(0, 3000)}…
             </pre>
           </CardContent>

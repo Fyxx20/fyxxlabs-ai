@@ -48,11 +48,11 @@ export default async function AdminUserDetailPage({
   const nameByStore = new Map((storeNames ?? []).map((s) => [s.id, s.name]));
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-slate-100">
       <div className="flex items-center gap-4">
         <Link
           href="/admin/users"
-          className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          className="flex items-center gap-1 text-sm text-slate-300 hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
           Retour
@@ -60,10 +60,10 @@ export default async function AdminUserDetailPage({
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           {profile.email ?? userId}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-slate-300">
           user_id: {userId} · Créé le {formatDate(profile.created_at)}
         </p>
         <div className="mt-2 flex gap-2">
@@ -76,24 +76,24 @@ export default async function AdminUserDetailPage({
         </div>
       </div>
 
-      <Card>
+      <Card className="border-white/10 bg-slate-900/70 text-slate-100">
         <CardHeader>
           <CardTitle>Abonnement</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             Plan, statut, trial, conseil consommé
           </CardDescription>
         </CardHeader>
         <CardContent>
           {subscription ? (
             <dl className="grid gap-2 text-sm">
-              <div><span className="text-muted-foreground">Plan:</span> {subscription.plan}</div>
-              <div><span className="text-muted-foreground">Statut:</span> {subscription.status}</div>
-              <div><span className="text-muted-foreground">Source:</span> {subscription.source ?? "—"}</div>
-              <div><span className="text-muted-foreground">Trial end:</span> {subscription.trial_end ? formatDate(subscription.trial_end) : "—"}</div>
-              <div><span className="text-muted-foreground">Conseil consommé:</span> {subscription.advice_consumed ? "Oui" : "Non"}</div>
+              <div><span className="text-slate-300">Plan:</span> {subscription.plan}</div>
+              <div><span className="text-slate-300">Statut:</span> {subscription.status}</div>
+              <div><span className="text-slate-300">Source:</span> {subscription.source ?? "—"}</div>
+              <div><span className="text-slate-300">Trial end:</span> {subscription.trial_end ? formatDate(subscription.trial_end) : "—"}</div>
+              <div><span className="text-slate-300">Conseil consommé:</span> {subscription.advice_consumed ? "Oui" : "Non"}</div>
             </dl>
           ) : (
-            <p className="text-sm text-muted-foreground">Aucun abonnement.</p>
+            <p className="text-sm text-slate-300">Aucun abonnement.</p>
           )}
           <Link href="/admin/subscriptions" className="mt-2 inline-block text-sm text-primary hover:underline">
             Gérer les abonnements
@@ -101,16 +101,16 @@ export default async function AdminUserDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-white/10 bg-slate-900/70 text-slate-100">
         <CardHeader>
           <CardTitle>Boutiques</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {stores?.length ?? 0} boutique(s)
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!stores?.length ? (
-            <p className="text-sm text-muted-foreground">Aucune boutique.</p>
+            <p className="text-sm text-slate-300">Aucune boutique.</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {stores.map((s) => (
@@ -119,7 +119,7 @@ export default async function AdminUserDetailPage({
                     {s.name}
                   </Link>
                   {" — "}
-                  <a href={s.website_url} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:underline">
+                  <a href={s.website_url} target="_blank" rel="noopener noreferrer" className="text-slate-300 hover:underline">
                     {s.website_url}
                   </a>
                   {" · "}
@@ -131,21 +131,21 @@ export default async function AdminUserDetailPage({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-white/10 bg-slate-900/70 text-slate-100">
         <CardHeader>
           <CardTitle>Derniers scans</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {scans?.length ?? 0} scan(s)
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!scans?.length ? (
-            <p className="text-sm text-muted-foreground">Aucun scan.</p>
+            <p className="text-sm text-slate-300">Aucun scan.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/10">
                     <th className="pb-2 text-left font-medium">Date</th>
                     <th className="pb-2 text-left font-medium">Boutique</th>
                     <th className="pb-2 text-left font-medium">Statut</th>
@@ -155,7 +155,7 @@ export default async function AdminUserDetailPage({
                 </thead>
                 <tbody>
                   {scans.map((s) => (
-                    <tr key={s.id} className="border-b border-border/50">
+                    <tr key={s.id} className="border-b border-white/10">
                       <td className="py-2">{formatDate(s.created_at)}</td>
                       <td className="py-2">{nameByStore.get(s.store_id) ?? s.store_id}</td>
                       <td className="py-2">{s.status}</td>
