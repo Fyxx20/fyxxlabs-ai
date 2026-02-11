@@ -7,17 +7,10 @@ import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { AuthOAuthButtons } from "@/components/auth-oauth-buttons";
 import { MfaVerify } from "@/components/mfa-verify";
 import { BrandLogo } from "@/components/brand-logo";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ShieldCheck, Sparkles, Star } from "lucide-react";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -49,86 +42,207 @@ function LoginPageContent() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    // ...existing login logic (not shown for brevity)
+    if (!isSupabaseConfigured()) {
+      setError("Configuration Supabase manquante.");
+      setLoading(false);
+      return;
+    }
+
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError) {
+      setError(signInError.message);
+      setLoading(false);
+      return;
+    }
+
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     setLoading(false);
+    if (aal?.nextLevel === "aal2" && aal?.currentLevel !== "aal2") {
+      setShowMfaVerify(true);
+      return;
+    }
+
+    router.push(redirectTo);
+    router.refresh();
   }
 
-  if (alreadyLoggedIn) {
+  function handleMfaSuccess() {
+    router.push(redirectTo);
+    router.refresh();
+  }
+
+  if (showMfaVerify) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-        <div className="mb-8 flex justify-center">
-          <BrandLogo href="/" showText={false} />
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-600/20 blur-3xl" />
+          <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
         </div>
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Connexion</CardTitle>
-            <CardDescription>Vous êtes déjà connecté.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Accédez à votre espace pour continuer le diagnostic ou gérer votre boutique.
-            </p>
-            <Button asChild className="w-full gap-2">
-              <Link href="/app/dashboard">
-                Continuer vers mon espace
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              <Link href="/" className="font-medium text-primary hover:underline">
-                Retour à l’accueil
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+        <div className="relative z-10 w-full max-w-md space-y-6">
+          <div className="flex justify-center">
+            <BrandLogo href="/" showText={false} className="text-white" />
+          </div>
+          <MfaVerify onSuccess={handleMfaSuccess} />
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
-      <div className="mb-6 mt-12 flex flex-col items-center">
-        <BrandLogo className="mb-4 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-xl border-4 border-accent" />
-      </div>
-      <Card className="w-full max-w-md rounded-3xl border border-border bg-card shadow-2xl p-6">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-foreground">Connexion</CardTitle>
-          <CardDescription className="text-base text-muted-foreground">Accédez à votre tableau de bord FyxxLabs</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AuthOAuthButtons />
-          <div className="my-4 text-center text-xs text-muted-foreground">OU AVEC EMAIL</div>
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Label htmlFor="email" className="text-sm font-semibold text-foreground">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              className="bg-secondary rounded-xl border border-border focus:ring-2 focus:ring-primary"
-            />
-            <Label htmlFor="password" className="text-sm font-semibold text-foreground">Mot de passe</Label>
-            <Input
-              id="password"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              minLength={6}
-              className="bg-secondary rounded-xl border border-border focus:ring-2 focus:ring-primary"
-            />
-            <Button type="submit" className="w-full mt-2 bg-primary text-primary-foreground font-semibold text-lg rounded-xl shadow-md hover:bg-primary/90 transition-all">
-              Se connecter
-            </Button>
-          </form>
-          <div className="mt-6 text-center text-sm text-muted-foreground">
-            Pas encore de compte ? <Link href="/signup" className="text-accent underline font-semibold">S'inscrire</Link>
+  if (alreadyLoggedIn) {
+    return (
+      <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12 text-white">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-600/20 blur-3xl" />
+        </div>
+        <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
+          <div className="mb-6 flex justify-center">
+            <BrandLogo href="/" showText={false} className="text-white" />
           </div>
-        </CardContent>
-      </Card>
+          <h1 className="text-center text-2xl font-bold">Vous êtes déjà connecté</h1>
+          <p className="mt-2 text-center text-sm text-slate-300">
+            Accédez directement à votre espace FyxxLabs.
+          </p>
+          <Button asChild className="mt-6 w-full gap-2 rounded-xl bg-violet-600 hover:bg-violet-500">
+            <Link href="/app/dashboard">
+              Continuer vers mon espace
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+          <p className="mt-4 text-center text-sm text-slate-400">
+            <Link href="/" className="font-medium text-violet-300 hover:text-white">
+              Retour à l’accueil
+            </Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (alreadyLoggedIn === null) {
+    return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">Chargement…</div>;
+  }
+
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-violet-600/[0.22] blur-3xl" />
+        <div className="absolute -right-24 top-24 h-80 w-80 rounded-full bg-cyan-500/[0.2] blur-3xl" />
+        <div className="absolute bottom-0 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-blue-600/[0.15] blur-3xl" />
+      </div>
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
+        <div className="grid w-full gap-10 lg:grid-cols-2 lg:items-center">
+          <section className="hidden lg:block">
+            <Link href="/" className="inline-flex items-center gap-2 text-white">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 font-bold">
+                F
+              </span>
+              <span className="text-lg font-semibold">FyxxLabs</span>
+            </Link>
+            <h1 className="mt-8 text-5xl font-black leading-tight">
+              Reprenez le contrôle
+              <span className="block bg-gradient-to-r from-violet-300 via-white to-cyan-300 bg-clip-text text-transparent">
+                de votre croissance.
+              </span>
+            </h1>
+            <p className="mt-5 max-w-xl text-lg text-slate-300">
+              Connectez-vous et transformez votre boutique avec des recommandations IA, un dashboard premium et des actions à fort impact.
+            </p>
+            <div className="mt-8 grid gap-3">
+              {[
+                { icon: ShieldCheck, text: "Connexion sécurisée avec Supabase" },
+                { icon: Sparkles, text: "Insights IA prêts à exécuter" },
+                { icon: Star, text: "Expérience premium conçue pour convertir" },
+              ].map(({ icon: Icon, text }) => (
+                <div key={text} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+                  <Icon className="h-4 w-4 text-violet-300" />
+                  <span className="text-sm text-slate-200">{text}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="w-full">
+            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
+              <div className="mb-6 flex items-center justify-between">
+                <BrandLogo href="/" showText={false} className="text-white" />
+                <Link href="/" className="text-sm text-slate-300 hover:text-white">
+                  Retour accueil
+                </Link>
+              </div>
+
+              <h2 className="text-3xl font-bold tracking-tight">Connexion</h2>
+              <p className="mt-2 text-sm text-slate-300">
+                Accédez à votre tableau de bord FyxxLabs.
+              </p>
+
+              <div className="mt-6">
+                <AuthOAuthButtons redirectTo={redirectTo} />
+              </div>
+
+              <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
+                <div className="h-px flex-1 bg-white/10" />
+                OU AVEC EMAIL
+                <div className="h-px flex-1 bg-white/10" />
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
+                    {error}
+                  </p>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-slate-200">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    required
+                    className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
+                    placeholder="vous@exemple.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-slate-200">Mot de passe</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
+                    placeholder="••••••••"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-xl bg-violet-600 text-base font-semibold hover:bg-violet-500"
+                >
+                  {loading ? "Connexion…" : "Se connecter"}
+                </Button>
+              </form>
+
+              <p className="mt-6 text-center text-sm text-slate-300">
+                Pas encore de compte ?{" "}
+                <Link href="/signup" className="font-semibold text-violet-300 hover:text-white">
+                  S’inscrire
+                </Link>
+              </p>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
