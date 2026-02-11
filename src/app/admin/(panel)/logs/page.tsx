@@ -21,20 +21,20 @@ export default async function AdminLogsPage({
   const { data: logs } = await query;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-slate-100">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Logs d’audit
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-slate-300">
           Historique des actions admin (before/after). Filtres: target_type, target_id.
         </p>
       </div>
 
-      <Card>
+      <Card className="border-white/10 bg-slate-900/70 text-slate-100">
         <CardHeader>
           <CardTitle>Dernières actions</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {logs?.length ?? 0} entrée(s)
           </CardDescription>
         </CardHeader>
@@ -45,7 +45,7 @@ export default async function AdminLogsPage({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/10">
                     <th className="pb-2 text-left font-medium">Date</th>
                     <th className="pb-2 text-left font-medium">Action</th>
                     <th className="pb-2 text-left font-medium">Cible</th>
@@ -56,14 +56,14 @@ export default async function AdminLogsPage({
                 </thead>
                 <tbody>
                   {logs.map((log) => (
-                    <tr key={log.id} className="border-b border-border/50">
-                      <td className="py-2 text-muted-foreground">{formatDate(log.created_at)}</td>
+                    <tr key={log.id} className="border-b border-white/10">
+                      <td className="py-2 text-slate-300">{formatDate(log.created_at)}</td>
                       <td className="py-2 font-medium">{log.action}</td>
                       <td className="py-2">
                         {log.target_type} {log.target_id ? `· ${log.target_id.slice(0, 8)}…` : ""}
                       </td>
-                      <td className="py-2 text-muted-foreground">{log.admin_user_id?.slice(0, 8)}…</td>
-                      <td className="py-2 text-muted-foreground">{log.ip ?? "—"}</td>
+                      <td className="py-2 text-slate-300">{log.admin_user_id?.slice(0, 8)}…</td>
+                      <td className="py-2 text-slate-300">{log.ip ?? "—"}</td>
                       <td className="py-2 max-w-[200px]">
                         {log.before_state || log.after_state ? (
                           <span className="text-xs">

@@ -45,10 +45,10 @@ export function AdminScansTable({
   }
 
   return (
-    <Card>
+    <Card className="border-white/10 bg-slate-900/70 text-slate-100">
       <CardHeader>
         <CardTitle>Derniers scans</CardTitle>
-        <CardDescription>
+        <CardDescription className="text-slate-300">
           {scans.length} scan(s) — Relancer un scan (crée un nouveau scan).
         </CardDescription>
       </CardHeader>
@@ -59,7 +59,7 @@ export function AdminScansTable({
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-white/10">
                   <th className="pb-2 text-left font-medium">Date</th>
                   <th className="pb-2 text-left font-medium">Boutique</th>
                   <th className="pb-2 text-left font-medium">Statut</th>
@@ -70,7 +70,7 @@ export function AdminScansTable({
               </thead>
               <tbody>
                 {scans.map((s) => (
-                  <tr key={s.id} className="border-b border-border/50">
+                  <tr key={s.id} className="border-b border-white/10">
                     <td className="py-3">{formatDate(s.created_at)}</td>
                     <td className="py-3">
                       {storeNameById.get(s.store_id) ?? s.store_id}
@@ -91,7 +91,7 @@ export function AdminScansTable({
                     <td className="py-3">
                       {s.score_global != null ? `${s.score_global}/100` : "—"}
                     </td>
-                    <td className="max-w-[200px] truncate py-3 text-muted-foreground">
+                    <td className="max-w-[200px] truncate py-3 text-slate-300">
                       {s.error_message ?? "—"}
                     </td>
                     <td className="py-3">

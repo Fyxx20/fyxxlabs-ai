@@ -66,10 +66,10 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
   }
 
   return (
-    <Card>
+    <Card className="border-white/10 bg-slate-900/70 text-slate-100">
       <CardHeader>
         <CardTitle>Liste des abonnements</CardTitle>
-        <CardDescription>
+        <CardDescription className="text-slate-300">
           {rows.length} abonnement(s) — actions: plan, reset trial, conseil consommé
         </CardDescription>
       </CardHeader>
@@ -80,7 +80,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-white/10">
                   <th className="pb-2 text-left font-medium">Email</th>
                   <th className="pb-2 text-left font-medium">Plan</th>
                   <th className="pb-2 text-left font-medium">Statut</th>
@@ -93,7 +93,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.user_id} className="border-b border-border/50">
+                  <tr key={r.user_id} className="border-b border-white/10">
                     <td className="py-3">
                       <Link href={`/admin/users/${r.user_id}`} className="text-primary hover:underline flex items-center gap-1">
                         {r.email ?? r.user_id.slice(0, 8) + "…"}
@@ -107,11 +107,11 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                     </td>
                     <td className="py-3">{r.status}</td>
                     <td className="py-3">{r.source}</td>
-                    <td className="py-3 text-muted-foreground">
+                    <td className="py-3 text-slate-300">
                       {r.trial_end ? formatDate(r.trial_end) : "—"}
                     </td>
                     <td className="py-3">{r.advice_consumed ? "Oui" : "Non"}</td>
-                    <td className="py-3 text-muted-foreground">{formatDate(r.updated_at)}</td>
+                    <td className="py-3 text-slate-300">{formatDate(r.updated_at)}</td>
                     <td className="py-3 text-right">
                       <div className="flex flex-wrap gap-1 justify-end">
                         {r.plan !== "lifetime" && (

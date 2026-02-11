@@ -71,10 +71,10 @@ export function AdminStoresTable({
 
   return (
     <>
-      <Card>
+      <Card className="border-white/10 bg-slate-900/70 text-slate-100">
         <CardHeader>
           <CardTitle>Stores</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {stores.length} boutique(s) — Relancer un scan ou supprimer (danger).
           </CardDescription>
         </CardHeader>
@@ -85,7 +85,7 @@ export function AdminStoresTable({
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/10">
                     <th className="pb-2 text-left font-medium">Nom</th>
                     <th className="pb-2 text-left font-medium">URL</th>
                     <th className="pb-2 text-left font-medium">Objectif</th>
@@ -96,7 +96,7 @@ export function AdminStoresTable({
                 </thead>
                 <tbody>
                   {stores.map((s) => (
-                    <tr key={s.id} className="border-b border-border/50">
+                    <tr key={s.id} className="border-b border-white/10">
                       <td className="py-3 font-medium">{s.name}</td>
                       <td className="py-3">
                         <a

@@ -144,12 +144,12 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
 
   return (
     <>
-    <Card>
+    <Card className="border-white/10 bg-slate-900/70 text-slate-100">
       <CardHeader>
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <CardTitle>Comptes</CardTitle>
-            <CardDescription>
+            <CardDescription className="text-slate-300">
               {filtered.length} utilisateur(s) — recherche et actions
             </CardDescription>
           </div>
@@ -160,7 +160,7 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
                 placeholder="Rechercher par email…"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-48 pl-8"
+                className="w-48 border-white/15 bg-slate-950 pl-8 text-slate-100 placeholder:text-slate-400"
               />
             </div>
             <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -184,7 +184,7 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
+                <tr className="border-b border-white/10">
                   <th className="pb-2 text-left font-medium">Email / ID</th>
                   <th className="pb-2 text-left font-medium">Rôle</th>
                   <th className="pb-2 text-left font-medium">Abonnement</th>
@@ -200,11 +200,11 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
                 {filtered.map((p) => {
                   const sub = p.subscription;
                   return (
-                    <tr key={p.user_id} className="border-b border-border/50">
+                    <tr key={p.user_id} className="border-b border-white/10">
                       <td className="py-3">
                         <span className="font-medium">{p.email || p.user_id}</span>
                         {!p.email && (
-                          <span className="ml-1 text-xs text-muted-foreground truncate max-w-[120px] inline-block" title={p.user_id}>
+                          <span className="ml-1 inline-block max-w-[120px] truncate text-xs text-slate-400" title={p.user_id}>
                             {p.user_id.slice(0, 8)}…
                           </span>
                         )}
@@ -278,7 +278,7 @@ export function AdminUsersTable({ rows }: { rows: Row[] }) {
                           <span className="text-muted-foreground">0</span>
                         )}
                       </td>
-                      <td className="py-3 text-muted-foreground">{formatDate(p.created_at)}</td>
+                      <td className="py-3 text-slate-300">{formatDate(p.created_at)}</td>
                       <td className="py-3 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

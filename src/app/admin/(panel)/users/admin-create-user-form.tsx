@@ -40,17 +40,17 @@ export function AdminCreateUserForm() {
   }
 
   return (
-    <Card>
+    <Card className="border-white/10 bg-slate-900/70 text-slate-100">
       <CardHeader>
         <CardTitle>Créer un utilisateur</CardTitle>
-        <CardDescription>
+        <CardDescription className="text-slate-300">
           Email + mot de passe ou lien magique (à envoyer manuellement).
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-slate-200">Email</Label>
             <Input
               id="email"
               type="email"
@@ -58,11 +58,12 @@ export function AdminCreateUserForm() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="border-white/15 bg-slate-950 text-slate-100 placeholder:text-slate-400"
             />
           </div>
           {!magicLink && (
             <div className="space-y-2">
-              <Label htmlFor="password">Mot de passe</Label>
+              <Label htmlFor="password" className="text-slate-200">Mot de passe</Label>
               <Input
                 id="password"
                 type="password"
@@ -70,6 +71,7 @@ export function AdminCreateUserForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 minLength={6}
+                className="border-white/15 bg-slate-950 text-slate-100 placeholder:text-slate-400"
               />
             </div>
           )}
@@ -80,14 +82,14 @@ export function AdminCreateUserForm() {
               checked={magicLink}
               onChange={(e) => setMagicLink(e.target.checked)}
             />
-            <Label htmlFor="magic">Générer un lien magique (pas de mot de passe)</Label>
+            <Label htmlFor="magic" className="text-slate-200">Générer un lien magique (pas de mot de passe)</Label>
           </div>
           {message && (
-            <p className={`text-sm ${message.startsWith("Erreur") ? "text-destructive" : "text-muted-foreground"}`}>
+            <p className={`text-sm ${message.startsWith("Erreur") ? "text-rose-300" : "text-emerald-300"}`}>
               {message}
             </p>
           )}
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} className="bg-violet-600 text-white hover:bg-violet-500">
             {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Créer
           </Button>

@@ -35,20 +35,20 @@ export default async function AdminIntegrationsPage() {
   }>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-slate-100">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl font-bold tracking-tight text-white">
           Intégrations
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-slate-300">
           Connexions plateforme par boutique. Les credentials ne sont jamais affichés.
         </p>
       </div>
 
-      <Card>
+      <Card className="border-white/10 bg-slate-900/70 text-slate-100">
         <CardHeader>
           <CardTitle>Liste des connexions</CardTitle>
-          <CardDescription>
+          <CardDescription className="text-slate-300">
             {rows.length} enregistrement(s) store_integrations
           </CardDescription>
         </CardHeader>
@@ -59,7 +59,7 @@ export default async function AdminIntegrationsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-border">
+                  <tr className="border-b border-white/10">
                     <th className="text-left py-2 font-medium">Boutique</th>
                     <th className="text-left py-2 font-medium">Provider</th>
                     <th className="text-left py-2 font-medium">Statut</th>
@@ -71,7 +71,7 @@ export default async function AdminIntegrationsPage() {
                 </thead>
                 <tbody>
                   {rows.map((r) => (
-                    <tr key={r.id} className="border-b border-border">
+                    <tr key={r.id} className="border-b border-white/10">
                       <td className="py-2">
                         <Link
                           href={`/admin/stores`}
@@ -94,18 +94,18 @@ export default async function AdminIntegrationsPage() {
                           {r.status}
                         </Badge>
                       </td>
-                      <td className="py-2 text-muted-foreground">{r.shop_domain ?? "—"}</td>
-                      <td className="py-2 text-muted-foreground">
+                      <td className="py-2 text-slate-300">{r.shop_domain ?? "—"}</td>
+                      <td className="py-2 text-slate-300">
                         {r.connected_at
                           ? new Date(r.connected_at).toLocaleDateString("fr-FR")
                           : "—"}
                       </td>
-                      <td className="py-2 text-muted-foreground">
+                      <td className="py-2 text-slate-300">
                         {r.last_sync_at
                           ? new Date(r.last_sync_at).toLocaleString("fr-FR")
                           : "—"}
                       </td>
-                      <td className="py-2 max-w-[200px] truncate text-muted-foreground">
+                      <td className="py-2 max-w-[200px] truncate text-slate-300">
                         {r.metadata && Object.keys(r.metadata).length > 0
                           ? JSON.stringify(r.metadata)
                           : "—"}
