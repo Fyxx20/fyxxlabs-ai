@@ -430,17 +430,10 @@ export default function OnboardingPage() {
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
-                    <Label htmlFor="shopify_domain" className="text-slate-100">Boutique Shopify (.myshopify.com)</Label>
-                    <Input
-                      id="shopify_domain"
-                      type="text"
-                      placeholder="maboutique.myshopify.com"
-                      value={shopifyDomainInput}
-                      onChange={(e) => setShopifyDomainInput(e.target.value)}
-                      className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
-                    />
+                    <p className="text-sm font-medium text-white">Connexion Shopify sans lien</p>
                     <p className="text-xs text-slate-300">
-                      Clique ensuite sur connecter pour ouvrir Shopify et autoriser FyxxLabs.
+                      Clique sur le bouton pour te connecter à Shopify. Si besoin, on te demandera ton domaine
+                      Shopify pendant la connexion.
                     </p>
                   </div>
                 )}
@@ -461,7 +454,7 @@ export default function OnboardingPage() {
                     disabled={loading || !canNextStep2}
                   >
                     {connectionMode === "shopify"
-                      ? (loading ? "Connexion Shopify…" : "Connecter")
+                      ? (loading ? "Connexion Shopify…" : "Se connecter à Shopify")
                       : "Suivant"}
                   </Button>
                 </div>
