@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Loader2,
   Link as LinkIcon,
@@ -23,6 +24,9 @@ import {
   DollarSign,
   Tag,
   Edit3,
+  ShoppingBag,
+  Search,
+  Wand2,
 } from "lucide-react";
 
 interface ScrapedProduct {
@@ -184,21 +188,21 @@ export function ImportProductClient({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-purple-500" />
+          <Sparkles className="h-6 w-6 text-primary" />
           Importer un produit avec l&apos;IA
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Collez un lien produit (AliExpress, Amazon, etc.) → l&apos;IA génère une fiche optimisée → importez sur Shopify en 1 clic.
+          Collez un lien produit → l&apos;IA génère une fiche optimisée → importez sur Shopify en 1 clic.
         </p>
       </div>
 
       {/* Steps indicator */}
       <div className="flex items-center gap-2 text-sm">
         {[
-          { key: "input", label: "1. Lien" },
-          { key: "scraped", label: "2. Extraction" },
-          { key: "preview", label: "3. IA" },
-          { key: "done", label: "4. Import" },
+          { key: "input", label: "1. Lien", icon: LinkIcon },
+          { key: "scraped", label: "2. Extraction", icon: Search },
+          { key: "preview", label: "3. IA", icon: Wand2 },
+          { key: "done", label: "4. Import", icon: Upload },
         ].map((s, i) => {
           const stepOrder = ["input", "scraped", "preview", "done"];
           const currentOrder = stepOrder.indexOf(
@@ -209,20 +213,20 @@ export function ImportProductClient({
           );
           const thisOrder = stepOrder.indexOf(s.key);
           const isActive = thisOrder <= currentOrder;
+          const Icon = s.icon;
           return (
             <div key={s.key} className="flex items-center gap-2">
               {i > 0 && (
-                <div
-                  className={`h-0.5 w-6 ${isActive ? "bg-purple-500" : "bg-muted"}`}
-                />
+                <div className={`h-0.5 w-6 rounded-full ${isActive ? "bg-primary" : "bg-muted"}`} />
               )}
               <span
-                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
-                    : "bg-muted text-muted-foreground"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/50 text-muted-foreground"
                 }`}
               >
+                <Icon className="h-3 w-3" />
                 {s.label}
               </span>
             </div>
@@ -233,50 +237,120 @@ export function ImportProductClient({
       {error && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-400">
           {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Fermer</button>
         </div>
       )}
 
       {/* Step 1: Input URL */}
       {(step === "input" || step === "scraping") && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <LinkIcon className="h-5 w-5" />
-              Coller le lien du produit
-            </CardTitle>
-            <CardDescription>
-              AliExpress, Amazon, Temu, eBay ou n&apos;importe quel site e-commerce.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://fr.aliexpress.com/item/..."
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-              disabled={step === "scraping"}
-              onKeyDown={(e) => e.key === "Enter" && handleScrape()}
-            />
-            <Button
-              onClick={handleScrape}
-              disabled={!url.trim() || step === "scraping"}
-              className="w-full"
-            >
-              {step === "scraping" ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Extraction en cours…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Extraire le produit
-                </>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {/* Hero Card */}
+          <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/[0.04] via-background to-primary/[0.02] p-8 sm:p-10">
+            <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative text-center space-y-3 mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Collez le lien du produit
+              </h2>
+              <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+                AliExpress, Amazon, Temu, eBay ou n&apos;importe quel site e-commerce.
+                L&apos;IA extrait et optimise tout automatiquement.
+              </p>
+            </div>
+
+            {/* URL Input */}
+            <div className="relative max-w-2xl mx-auto space-y-3">
+              <div className="relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <LinkIcon className="h-4 w-4" />
+                </div>
+                <Input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://fr.aliexpress.com/item/..."
+                  className="h-12 text-sm pl-10 pr-4 rounded-xl border-border/60 bg-background focus:border-primary shadow-sm"
+                  disabled={step === "scraping"}
+                  onKeyDown={(e) => e.key === "Enter" && handleScrape()}
+                />
+              </div>
+              <Button
+                onClick={handleScrape}
+                disabled={!url.trim() || step === "scraping"}
+                className="w-full h-12 rounded-xl shadow-sm text-sm"
+              >
+                {step === "scraping" ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Extraction en cours…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Extraire le produit
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {/* Supported sources */}
+            <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
+              <span className="font-medium">Sources supportées :</span>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">🧡</span> AliExpress
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">📦</span> Amazon
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">🛒</span> Temu
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">🌐</span> Autres
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Search className="h-4 w-4 text-primary" />
+                </div>
+                <h4 className="text-sm font-semibold">Extraction intelligente</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Images, titre, prix, description extraits automatiquement depuis n&apos;importe quel site.
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                  <Wand2 className="h-4 w-4 text-violet-600" />
+                </div>
+                <h4 className="text-sm font-semibold">Optimisation IA</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Titre accrocheur, description SEO, pricing stratégique générés par l&apos;IA.
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShoppingBag className="h-4 w-4 text-emerald-600" />
+                </div>
+                <h4 className="text-sm font-semibold">Import Shopify</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Produit créé sur votre boutique Shopify en un clic avec images et SEO.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Step 2: Scraped data preview */}
@@ -371,7 +445,7 @@ export function ImportProductClient({
       {step === "generating" && (
         <Card>
           <CardContent className="py-12 text-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin mx-auto text-purple-500" />
+            <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
             <p className="font-medium">L&apos;IA génère votre fiche produit…</p>
             <p className="text-sm text-muted-foreground">
               Titre optimisé, description persuasive, SEO, pricing stratégique…
@@ -386,7 +460,7 @@ export function ImportProductClient({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
+                <Sparkles className="h-5 w-5 text-primary" />
                 Fiche produit générée par l&apos;IA
               </CardTitle>
               <CardDescription>
@@ -522,7 +596,7 @@ export function ImportProductClient({
                 Importer sur Shopify
               </Button>
             ) : (
-              <a href="/app/integrations" className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium">
+              <a href="/app/integrations" className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
                 Connecter Shopify pour importer
               </a>
             )}
@@ -534,7 +608,7 @@ export function ImportProductClient({
       {step === "importing" && (
         <Card>
           <CardContent className="py-12 text-center space-y-4">
-            <Loader2 className="h-10 w-10 animate-spin mx-auto text-purple-500" />
+            <Loader2 className="h-10 w-10 animate-spin mx-auto text-primary" />
             <p className="font-medium">Import en cours sur Shopify…</p>
             <p className="text-sm text-muted-foreground">
               Création du produit, upload des images, configuration du prix…
@@ -560,7 +634,7 @@ export function ImportProductClient({
                 href={`https://${shopDomain ?? ""}/admin/products/${importResult.productId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
               >
                 <ExternalLink className="h-4 w-4" />
                 Voir sur Shopify Admin
