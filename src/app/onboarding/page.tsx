@@ -347,26 +347,26 @@ export default function OnboardingPage() {
               </div>
             )}
             {error === "STORE_EXISTS" && (
-              <p className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+              <p className="rounded-md border border-primary/30 bg-primary/10 p-3 text-sm text-white">
                 Boutique déjà configurée. Redirection…
               </p>
             )}
             {error && error !== "BASE_ERROR" && error !== "STORE_EXISTS" && (
-              <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>
+              <p className="rounded-md border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-200">{error}</p>
             )}
 
             {step === 1 && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Nom</Label>
+                  <Label htmlFor="name" className="text-slate-100">Nom</Label>
                   <Input
                     id="name"
                     placeholder="Ex: Boutique Bijoux Paris"
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
+                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
                   />
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-300">
                     Tu pourras modifier plus tard.
                   </p>
                 </div>
@@ -384,7 +384,7 @@ export default function OnboardingPage() {
             {step === 2 && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="website_url">URL du site</Label>
+                  <Label htmlFor="website_url" className="text-slate-100">URL du site</Label>
                   <Input
                     id="website_url"
                     type="url"
@@ -393,27 +393,27 @@ export default function OnboardingPage() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, website_url: e.target.value }))
                     }
-                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
+                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
                   />
                   {form.website_url && !canNextStep2 && (
-                    <p className="text-xs text-destructive">
+                    <p className="text-xs text-rose-300">
                       Entrez une URL valide (https://…)
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-slate-300">
                     Aucune installation. Analyse via URL.
                   </p>
                 </div>
                 {requiresShopifyDomainInput && (
                   <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
-                    <Label htmlFor="shopify_domain">Domaine Shopify interne</Label>
+                    <Label htmlFor="shopify_domain" className="text-slate-100">Domaine Shopify interne</Label>
                     <Input
                       id="shopify_domain"
                       type="text"
                       placeholder="maboutique.myshopify.com"
                       value={shopifyDomainInput}
                       onChange={(e) => setShopifyDomainInput(e.target.value)}
-                      className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
+                      className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-400"
                     />
                     <p className="text-xs text-slate-300">
                       Ton domaine public peut etre `www...`, mais la connexion OAuth Shopify demande le domaine
@@ -426,7 +426,7 @@ export default function OnboardingPage() {
                     Plateforme
                     <span
                       title="Ta solution e‑commerce (Shopify, WooCommerce, etc.)"
-                      className="cursor-help text-muted-foreground"
+                      className="cursor-help text-slate-400"
                     >
                       <HelpCircle className="h-3.5 w-3.5" />
                     </span>
@@ -452,17 +452,17 @@ export default function OnboardingPage() {
                     </SelectContent>
                   </Select>
                   {connectableSelected ? (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-300">
                       Connexion sécurisée via OAuth. Après validation, on te redirige vers Shopify pour autoriser FyxxLabs.
                     </p>
                   ) : (
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-slate-300">
                       Scan URL uniquement (pour l’instant). Connecter Google Analytics (bientôt).
                     </p>
                   )}
                 </div>
                 {connectableSelected && (
-                  <p className="rounded-md border border-primary/30 bg-primary/5 p-2 text-xs text-foreground">
+                  <p className="rounded-md border border-primary/30 bg-primary/10 p-2 text-xs text-white">
                     Recommandé : connecte ta boutique après la création pour un diagnostic plus précis.
                   </p>
                 )}
@@ -502,7 +502,7 @@ export default function OnboardingPage() {
             {step === 3 && (
               <>
                 <div className="space-y-2">
-                  <Label>Objectif principal</Label>
+                  <Label className="text-slate-100">Objectif principal</Label>
                   <div className="grid gap-2">
                     {GOAL_OPTIONS.map((opt) => (
                       <button
@@ -511,8 +511,8 @@ export default function OnboardingPage() {
                         onClick={() => setForm((f) => ({ ...f, goal: opt.value }))}
                         className={`rounded-lg border p-3 text-left text-sm transition-colors ${
                           form.goal === opt.value
-                            ? "border-primary bg-primary/5 text-foreground"
-                            : "border-border hover:bg-muted/50"
+                            ? "border-violet-400/40 bg-violet-500/15 text-white"
+                            : "border-white/15 bg-white/[0.02] text-slate-200 hover:bg-white/[0.08]"
                         }`}
                       >
                         {opt.label}
@@ -526,7 +526,7 @@ export default function OnboardingPage() {
                     Étape actuelle
                     <span
                       title="Ça adapte le niveau de conseils à ton stade (débutant à rentable)."
-                      className="cursor-help text-muted-foreground"
+                      className="cursor-help text-slate-400"
                     >
                       <HelpCircle className="h-3.5 w-3.5" />
                     </span>
@@ -539,8 +539,8 @@ export default function OnboardingPage() {
                         onClick={() => setForm((f) => ({ ...f, stage: o.value as CreateStoreInput["stage"] }))}
                         className={`rounded-md border px-3 py-1.5 text-sm ${
                           form.stage === o.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-muted/50"
+                            ? "border-violet-400/40 bg-violet-500/15 text-white"
+                            : "border-white/15 bg-white/[0.02] text-slate-200 hover:bg-white/[0.08]"
                         }`}
                       >
                         {o.label}
@@ -553,7 +553,7 @@ export default function OnboardingPage() {
                     Source de trafic principale
                     <span
                       title="D’où priorité CRO / Ads selon ta source (Meta, Google, SEO…)."
-                      className="cursor-help text-muted-foreground"
+                      className="cursor-help text-slate-400"
                     >
                       <HelpCircle className="h-3.5 w-3.5" />
                     </span>
@@ -566,8 +566,8 @@ export default function OnboardingPage() {
                         onClick={() => setForm((f) => ({ ...f, traffic_source: o.value as CreateStoreInput["traffic_source"] }))}
                         className={`rounded-md border px-3 py-1.5 text-sm ${
                           form.traffic_source === o.value
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:bg-muted/50"
+                            ? "border-violet-400/40 bg-violet-500/15 text-white"
+                            : "border-white/15 bg-white/[0.02] text-slate-200 hover:bg-white/[0.08]"
                         }`}
                       >
                         {o.label}
@@ -581,7 +581,7 @@ export default function OnboardingPage() {
                       Panier moyen
                       <span
                         title="Influence la stratégie (upsell, confiance, positionnement)."
-                        className="cursor-help text-muted-foreground"
+                      className="cursor-help text-slate-400"
                       >
                         <HelpCircle className="h-3.5 w-3.5" />
                       </span>
@@ -603,7 +603,7 @@ export default function OnboardingPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Pays</Label>
+                    <Label className="text-slate-100">Pays</Label>
                     <Select
                       value={form.country}
                       onValueChange={(v) => setForm((f) => ({ ...f, country: v as CreateStoreInput["country"] }))}
@@ -668,7 +668,7 @@ export default function OnboardingPage() {
                     )}
                   </Button>
                 </div>
-                <p className="text-center text-xs text-muted-foreground">
+                <p className="text-center text-xs text-slate-300">
                   {form.platform === "shopify"
                     ? "Tu seras redirigé vers Shopify pour autoriser la connexion."
                     : "L'analyse peut prendre 1 à 3 minutes."}
