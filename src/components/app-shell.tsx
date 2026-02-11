@@ -158,7 +158,7 @@ export function AppShell({
   const planBadge = entitlements.isLifetime
     ? { label: "Lifetime", className: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30" }
     : entitlements.isPro
-      ? { label: entitlements.plan === "starter" ? "Starter" : entitlements.plan === "elite" ? "Elite" : "Pro", className: "bg-primary/10 text-primary border-primary/20" }
+      ? { label: entitlements.plan === "elite" ? "Agence" : "Pro", className: "bg-primary/10 text-primary border-primary/20" }
       : entitlements.isTrialActive
         ? { label: `Essai${entitlements.trialEndsAt ? ` · J-${Math.max(0, Math.ceil((new Date(entitlements.trialEndsAt).getTime() - Date.now()) / 86400000))}` : ""}`, className: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20" }
         : { label: "Gratuit", className: "bg-muted text-muted-foreground border-border" };

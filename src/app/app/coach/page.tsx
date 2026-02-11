@@ -80,8 +80,8 @@ export default async function CoachPage() {
               Réservé aux abonnés
             </p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Passez à Starter, Pro ou Elite pour activer le coach IA et obtenir
-              des recommandations personnalisées.
+              Passez à Pro ou Agence pour activer le coach IA et obtenir des
+              recommandations personnalisées.
             </p>
             <Link href="/app/billing">
               <Button>

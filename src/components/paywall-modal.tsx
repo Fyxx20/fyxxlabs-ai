@@ -56,7 +56,7 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">
-          Essai gratuit: 3 jours avec 1 scan. Ensuite: Starter 9,99 €, Pro 19,99 €, Elite 34,99 € (mensuel) ou annuel.
+          Plans actifs: Create 29€ (one-shot), Pro 39€/mois, Agence 79€/mois.
         </p>
         <div className="flex gap-2 pt-2">
           <Button asChild className="flex-1">
