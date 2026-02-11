@@ -24,7 +24,6 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      // Step 1: Create the user via our server API (auto-confirmed, no email verification)
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -32,14 +31,12 @@ export default function SignupPage() {
       });
 
       const result = await res.json();
-
       if (!res.ok) {
         setError(result.error || "Erreur lors de la création du compte.");
         setLoading(false);
         return;
       }
 
-      // Step 2: Sign in immediately with the confirmed credentials
       const supabase = createClient();
       const { error: signInErr } = await supabase.auth.signInWithPassword({
         email,
@@ -47,14 +44,13 @@ export default function SignupPage() {
       });
 
       setLoading(false);
-
       if (signInErr) {
         setError(signInErr.message);
         return;
       }
 
-      // Success → redirect to dashboard
-      router.push("/app/dashboard");
+      router.push("/onboarding");
+      router.refresh();
     } catch {
       setLoading(false);
       setError("Erreur réseau. Réessayez.");
@@ -125,7 +121,7 @@ export default function SignupPage() {
               </div>
 
               <div className="mt-6">
-                <AuthOAuthButtons redirectTo="/app/dashboard" />
+                <AuthOAuthButtons redirectTo="/onboarding" />
               </div>
 
               <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
@@ -135,7 +131,7 @@ export default function SignupPage() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
+                {!!error && (
                   <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                     {error}
                   </p>
@@ -148,7 +144,7 @@ export default function SignupPage() {
                     type="email"
                     autoComplete="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
                     placeholder="vous@exemple.com"
@@ -162,7 +158,7 @@ export default function SignupPage() {
                     type="password"
                     autoComplete="new-password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
                     className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
@@ -176,7 +172,7 @@ export default function SignupPage() {
                   className="w-full rounded-xl bg-violet-600 text-base font-semibold hover:bg-violet-500"
                 >
                   <span className="inline-flex items-center gap-2">
-                    {loading ? "Création…" : "Créer mon compte"}
+                    {loading ? "Création..." : "Créer mon compte"}
                     {!loading && <ArrowRight className="h-4 w-4" />}
                   </span>
                 </Button>

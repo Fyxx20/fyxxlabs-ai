@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -11,6 +11,16 @@ import { AuthOAuthButtons } from "@/components/auth-oauth-buttons";
 import { MfaVerify } from "@/components/mfa-verify";
 import { BrandLogo } from "@/components/brand-logo";
 import { ArrowRight, ShieldCheck, Sparkles, Star } from "lucide-react";
+
+function BackgroundDecor() {
+  return (
+    <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+      <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-violet-600/[0.22] blur-3xl" />
+      <div className="absolute -right-24 top-24 h-80 w-80 rounded-full bg-cyan-500/[0.2] blur-3xl" />
+      <div className="absolute bottom-0 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-blue-600/[0.15] blur-3xl" />
+    </div>
+  );
+}
 
 function LoginPageContent() {
   const router = useRouter();
@@ -32,6 +42,12 @@ function LoginPageContent() {
   );
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setError("Configuration Supabase manquante. Vérifie les variables d'environnement.");
+      setAlreadyLoggedIn(false);
+      return;
+    }
+
     const supabase = createClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       setAlreadyLoggedIn(!!user);
@@ -42,7 +58,9 @@ function LoginPageContent() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    if (!isSupabaseConfigured()) {
+    setShowMfaVerify(false);
+
+    if (!isSupabaseConfigured) {
       setError("Configuration Supabase manquante.");
       setLoading(false);
       return;
@@ -55,7 +73,13 @@ function LoginPageContent() {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      const message = signInError.message ?? "Connexion impossible. Réessaie.";
+      const mfaRequired = /mfa|factor|assurance_level|aal2|two-factor/i.test(message);
+      if (mfaRequired) {
+        setShowMfaVerify(true);
+      } else {
+        setError(message);
+      }
       setLoading(false);
       return;
     }
@@ -76,13 +100,18 @@ function LoginPageContent() {
     router.refresh();
   }
 
+  if (alreadyLoggedIn === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
+        Chargement...
+      </div>
+    );
+  }
+
   if (showMfaVerify) {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-violet-600/20 blur-3xl" />
-          <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-        </div>
+        <BackgroundDecor />
         <div className="relative z-10 w-full max-w-md space-y-6">
           <div className="flex justify-center">
             <BrandLogo href="/" showText={false} className="text-white" />
@@ -96,9 +125,7 @@ function LoginPageContent() {
   if (alreadyLoggedIn) {
     return (
       <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 py-12 text-white">
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute left-1/2 top-16 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-600/20 blur-3xl" />
-        </div>
+        <BackgroundDecor />
         <div className="relative z-10 w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl backdrop-blur-xl">
           <div className="mb-6 flex justify-center">
             <BrandLogo href="/" showText={false} className="text-white" />
@@ -123,17 +150,9 @@ function LoginPageContent() {
     );
   }
 
-  if (alreadyLoggedIn === null) {
-    return <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">Chargement…</div>;
-  }
-
   return (
     <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-24 -top-24 h-80 w-80 rounded-full bg-violet-600/[0.22] blur-3xl" />
-        <div className="absolute -right-24 top-24 h-80 w-80 rounded-full bg-cyan-500/[0.2] blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-72 w-[36rem] -translate-x-1/2 rounded-full bg-blue-600/[0.15] blur-3xl" />
-      </div>
+      <BackgroundDecor />
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
         <div className="grid w-full gap-10 lg:grid-cols-2 lg:items-center">
@@ -192,7 +211,7 @@ function LoginPageContent() {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
+                {!!error && (
                   <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
                     {error}
                   </p>
@@ -204,7 +223,7 @@ function LoginPageContent() {
                     type="email"
                     autoComplete="email"
                     value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
                     placeholder="vous@exemple.com"
@@ -217,7 +236,7 @@ function LoginPageContent() {
                     type="password"
                     autoComplete="current-password"
                     value={password}
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     minLength={6}
                     className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
@@ -229,14 +248,14 @@ function LoginPageContent() {
                   disabled={loading}
                   className="w-full rounded-xl bg-violet-600 text-base font-semibold hover:bg-violet-500"
                 >
-                  {loading ? "Connexion…" : "Se connecter"}
+                  {loading ? "Connexion..." : "Se connecter"}
                 </Button>
               </form>
 
               <p className="mt-6 text-center text-sm text-slate-300">
                 Pas encore de compte ?{" "}
                 <Link href="/signup" className="font-semibold text-violet-300 hover:text-white">
-                  S’inscrire
+                  S&apos;inscrire
                 </Link>
               </p>
             </div>
@@ -249,7 +268,7 @@ function LoginPageContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-muted/30">Chargement…</div>}>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-200">Chargement...</div>}>
       <LoginPageContent />
     </Suspense>
   );
