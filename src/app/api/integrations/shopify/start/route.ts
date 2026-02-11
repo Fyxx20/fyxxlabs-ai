@@ -14,9 +14,9 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const storeId = searchParams.get("store_id");
   const shop = searchParams.get("shop")?.trim();
-  if (!storeId || !shop) {
+  if (!storeId) {
     return NextResponse.json(
-      { error: "store_id et shop (domaine Shopify) requis" },
+      { error: "store_id requis" },
       { status: 400 }
     );
   }
@@ -39,6 +39,28 @@ export async function GET(request: Request) {
   const redirectUri = `${baseUrl}/api/integrations/shopify/callback`;
 
   try {
+    if (!shop) {
+      const installUrl = process.env.SHOPIFY_APP_INSTALL_URL?.trim();
+      if (!installUrl) {
+        return NextResponse.json(
+          {
+            error:
+              "Connexion Shopify indisponible: configure SHOPIFY_APP_INSTALL_URL pour activer la selection de boutique sans domaine.",
+          },
+          { status: 500 }
+        );
+      }
+      const response = NextResponse.redirect(installUrl);
+      response.cookies.set("fyxx_shopify_store_id", storeId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 10,
+      });
+      return response;
+    }
+
     const shopUrl = shop.startsWith("http") ? new URL(shop).hostname : shop;
     if (!shopUrl || !shopUrl.includes(".")) {
       throw new Error("Domaine Shopify invalide");

@@ -77,18 +77,6 @@ function isSchemaError(message: string): boolean {
   );
 }
 
-function normalizeShopifyDomain(input: string): string | null {
-  const raw = input.trim();
-  if (!raw) return null;
-  const withProtocol = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
-  try {
-    const host = new URL(withProtocol).hostname.toLowerCase();
-    return host.endsWith(".myshopify.com") ? host : null;
-  } catch {
-    return null;
-  }
-}
-
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -107,8 +95,6 @@ export default function OnboardingPage() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [shopifyDomainInput, setShopifyDomainInput] = useState("");
-  const shopifyDomainFromInput = normalizeShopifyDomain(shopifyDomainInput);
 
   const parsed = createStoreSchema.safeParse(form);
   const canNextStep1 = form.name.trim().length > 0;
@@ -124,7 +110,7 @@ export default function OnboardingPage() {
     name: form.name.trim() || "—",
     url:
       connectionMode === "shopify"
-        ? (shopifyDomainFromInput ?? "Connexion Shopify")
+        ? "Connexion Shopify externe"
         : (form.website_url.trim() || "—"),
     platform: connectionMode === "shopify" ? "Shopify (connecté)" : "URL libre",
     goal: GOAL_OPTIONS.find((o) => o.value === form.goal)?.label ?? "—",
@@ -143,27 +129,12 @@ export default function OnboardingPage() {
       return;
     }
 
-    let shopDomain: string | null = null;
-    if (connectionMode === "shopify") {
-      shopDomain = shopifyDomainFromInput;
-      if (!shopDomain) {
-        const prompted = window.prompt("Entre ton domaine Shopify (.myshopify.com)", "");
-        shopDomain = normalizeShopifyDomain(prompted ?? "");
-        if (!shopDomain) {
-          setError("Domaine Shopify invalide. Exemple: maboutique.myshopify.com");
-          setLoading(false);
-          return;
-        }
-        setShopifyDomainInput(shopDomain);
-      }
-    }
-
     const storePayload: CreateStoreInput = {
       ...form,
       platform: connectionMode === "shopify" ? "shopify" : "custom",
       website_url:
         connectionMode === "shopify"
-          ? `https://${shopDomain}`
+          ? "https://shopify.com"
           : form.website_url,
     };
 
@@ -176,7 +147,7 @@ export default function OnboardingPage() {
 
     if (!res.ok) {
       if (res.status === 409 && (data.error === "store_exists" || data.storeId)) {
-        if (connectionMode === "shopify" && shopDomain) {
+        if (connectionMode === "shopify") {
           const { data: existingStore } = await supabase
             .from("stores")
             .select("id")
@@ -186,7 +157,7 @@ export default function OnboardingPage() {
             .maybeSingle();
           if (existingStore?.id) {
             setLoading(false);
-            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
+            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}`;
             return;
           }
         }
@@ -197,7 +168,7 @@ export default function OnboardingPage() {
         return;
       }
       if (res.status === 409 && data.error === "store_limit_reached") {
-        if (connectionMode === "shopify" && shopDomain) {
+        if (connectionMode === "shopify") {
           const { data: existingStore } = await supabase
             .from("stores")
             .select("id")
@@ -207,7 +178,7 @@ export default function OnboardingPage() {
             .maybeSingle();
           if (existingStore?.id) {
             setLoading(false);
-            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
+            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}`;
             return;
           }
         }
@@ -245,9 +216,9 @@ export default function OnboardingPage() {
         { onConflict: "user_id" }
       );
 
-    if (connectionMode === "shopify" && shopDomain) {
+    if (connectionMode === "shopify") {
       setLoading(false);
-      window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(storeId)}&shop=${encodeURIComponent(shopDomain)}`;
+      window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(storeId)}`;
       return;
     }
 
@@ -449,10 +420,10 @@ export default function OnboardingPage() {
                   </div>
                 ) : (
                   <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
-                    <p className="text-sm font-medium text-white">Connexion Shopify sans lien</p>
+                    <p className="text-sm font-medium text-white">Connexion Shopify directe</p>
                     <p className="text-xs text-slate-300">
-                      Clique sur le bouton pour te connecter à Shopify. Si besoin, on te demandera ton domaine
-                      Shopify pendant la connexion.
+                      Clique sur le bouton pour ouvrir la page Shopify sécurisée et choisir ta boutique, sans
+                      saisir de domaine ici.
                     </p>
                   </div>
                 )}
