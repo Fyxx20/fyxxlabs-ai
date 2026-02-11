@@ -13,7 +13,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("generated_stores")
-    .select("id, brand_name, brand_color, product_title, product_price, product_image, shopify_product_id, shop_domain, source_url, created_at")
+    .select("id, brand_name, brand_color, product_title, product_price, product_image, shopify_product_id, shop_domain, source_url, language, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20);
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     shopify_product_id,
     shop_domain,
     source_url,
+    language,
   } = body;
 
   if (!store_id || !brand_name || !product_title)
@@ -68,6 +69,7 @@ export async function POST(req: NextRequest) {
       shopify_product_id: shopify_product_id ?? null,
       shop_domain: shop_domain ?? null,
       source_url: source_url ?? null,
+      language: language ?? null,
     })
     .select("id")
     .single();

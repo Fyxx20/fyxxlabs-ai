@@ -30,7 +30,22 @@ import {
   Eye,
   History,
   Trash2,
+  Pencil,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { StoreMobilePreview, type StorePageData } from "./store-mobile-preview";
 
 /* ─── Types ─── */
@@ -62,6 +77,7 @@ interface GeneratedStoreHistory {
   shopify_product_id: number | null;
   shop_domain: string | null;
   source_url: string | null;
+  language: string | null;
   created_at: string;
 }
 
@@ -82,6 +98,16 @@ const GEN_PHASE_DEFS = [
   { icon: "🏷️", label: "Pricing & SEO" },
   { icon: "✨", label: "Finalisation" },
 ];
+
+/* ─── Languages ─── */
+const LANGUAGES = [
+  { code: "en", label: "Anglais", flag: "🇬🇧" },
+  { code: "fr", label: "Français", flag: "🇫🇷" },
+  { code: "es", label: "Espagnol", flag: "🇪🇸" },
+  { code: "de", label: "Allemand", flag: "🇩🇪" },
+  { code: "it", label: "Italien", flag: "🇮🇹" },
+  { code: "pt", label: "Portugais", flag: "🇵🇹" },
+] as const;
 
 /* ─── Section definitions ─── */
 const SECTIONS = [
@@ -351,6 +377,7 @@ export function StoreGeneratorClient({
                     shopify_product_id: firstResult?.productId ?? null,
                     shop_domain: shopDomain,
                     source_url: scraped?.url ?? null,
+                    language,
                   }),
                 });
                 // Refresh history
@@ -556,16 +583,27 @@ export function StoreGeneratorClient({
                 onKeyDown={(e) => e.key === "Enter" && handleImport()}
               />
             </div>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="h-12 px-3 rounded-xl border border-border/60 bg-background text-sm"
-            >
-              <option value="fr">🇫🇷 Français</option>
-              <option value="en">🇬🇧 English</option>
-              <option value="es">🇪🇸 Español</option>
-              <option value="de">🇩🇪 Deutsch</option>
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="h-12 px-4 rounded-xl border border-border/60 bg-background text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors min-w-[150px]">
+                  <span className="text-lg leading-none">{LANGUAGES.find(l => l.code === language)?.flag}</span>
+                  <span className="font-medium">{LANGUAGES.find(l => l.code === language)?.label}</span>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[180px]">
+                {LANGUAGES.map((lang) => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => setLanguage(lang.code)}
+                    className={`flex items-center gap-3 py-2.5 px-3 cursor-pointer ${language === lang.code ? "bg-accent font-semibold" : ""}`}
+                  >
+                    <span className="text-lg leading-none">{lang.flag}</span>
+                    <span>{lang.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button
               onClick={handleImport}
               disabled={!url.trim()}
@@ -586,90 +624,117 @@ export function StoreGeneratorClient({
           {/* ─── HISTORY ─── */}
           {!historyLoading && history.length > 0 && (
             <div className="pt-6 border-t">
-              <div className="flex items-center gap-2 mb-4">
-                <History className="h-4 w-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold">Dernières boutiques créées</h3>
-                <span className="text-xs text-muted-foreground">({history.length})</span>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {history.map((h) => (
-                  <div
-                    key={h.id}
-                    className="group relative flex items-center gap-3 p-3 rounded-xl border bg-card hover:shadow-md transition-all"
-                  >
-                    {/* Product image */}
-                    {h.product_image ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={h.product_image}
-                        alt={h.product_title}
-                        className="w-14 h-14 rounded-lg object-cover bg-muted shrink-0"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                        <Store className="h-6 w-6 text-muted-foreground/40" />
-                      </div>
-                    )}
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <div
-                          className="w-3 h-3 rounded-full shrink-0 border"
-                          style={{ backgroundColor: h.brand_color ?? "#000" }}
-                        />
-                        <span className="text-xs font-bold tracking-wide uppercase truncate">
-                          {h.brand_name}
-                        </span>
-                      </div>
-                      <p className="text-sm font-medium truncate">{h.product_title}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        {h.product_price != null && (
-                          <span className="text-xs font-semibold text-emerald-600">
-                            {Number(h.product_price).toFixed(2)}€
-                          </span>
-                        )}
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(h.created_at).toLocaleDateString("fr-FR", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                    </div>
-                    {/* Actions */}
-                    <div className="flex flex-col gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {h.shopify_product_id && h.shop_domain && (
-                        <a
-                          href={`https://${h.shop_domain}/admin/products/${h.shopify_product_id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-1.5 rounded-md hover:bg-primary/10 text-primary"
-                          title="Voir sur Shopify"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      )}
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          await fetch("/api/store/generated-history", {
-                            method: "DELETE",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ id: h.id }),
-                          });
-                          setHistory((prev) => prev.filter((x) => x.id !== h.id));
-                        }}
-                        className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                        title="Supprimer"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+              <h3 className="text-lg font-bold mb-4">Historique</h3>
+              <div className="rounded-xl border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
+                      <TableHead className="font-semibold text-foreground">Les produits</TableHead>
+                      <TableHead className="font-semibold text-foreground text-center">Langue du site</TableHead>
+                      <TableHead className="font-semibold text-foreground text-center">Type</TableHead>
+                      <TableHead className="font-semibold text-foreground text-center">Dernière mise à jour</TableHead>
+                      <TableHead className="font-semibold text-foreground text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {history.map((h) => {
+                      const sourceDomain = h.source_url
+                        ? (() => { try { return new URL(h.source_url).hostname; } catch { return null; } })()
+                        : null;
+                      const sourceIcon = sourceDomain?.includes("aliexpress") ? "🧡"
+                        : sourceDomain?.includes("amazon") ? "📦"
+                        : sourceDomain?.includes("shopify") || sourceDomain?.includes("myshopify") ? "🟢"
+                        : "🔗";
+                      const langInfo = LANGUAGES.find(l => l.code === h.language) ?? LANGUAGES[0];
+                      return (
+                        <TableRow key={h.id} className="group">
+                          {/* Product */}
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {h.product_image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={h.product_image}
+                                  alt={h.product_title}
+                                  className="w-12 h-12 rounded-lg object-cover bg-muted shrink-0"
+                                />
+                              ) : (
+                                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                                  <Store className="h-5 w-5 text-muted-foreground/40" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-sm font-semibold truncate max-w-[280px]">{h.product_title}</p>
+                                {h.source_url && (
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <span>{sourceIcon}</span>
+                                    <span className="truncate max-w-[200px]">{h.source_url.length > 40 ? h.source_url.slice(0, 40) + "..." : h.source_url}</span>
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                          {/* Language */}
+                          <TableCell className="text-center">
+                            <span className="text-xl" title={langInfo.label}>{langInfo.flag}</span>
+                          </TableCell>
+                          {/* Type */}
+                          <TableCell className="text-center">
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-3 py-1 text-xs font-medium">
+                              Boutique
+                            </Badge>
+                          </TableCell>
+                          {/* Date */}
+                          <TableCell className="text-center text-sm text-muted-foreground">
+                            {(() => {
+                              const d = new Date(h.created_at);
+                              const now = new Date();
+                              const diff = now.getTime() - d.getTime();
+                              const mins = Math.floor(diff / 60000);
+                              const hours = Math.floor(diff / 3600000);
+                              const days = Math.floor(diff / 86400000);
+                              if (mins < 60) return `il y a ${mins} min`;
+                              if (hours < 24) return `il y a ${hours} heure${hours > 1 ? "s" : ""}`;
+                              if (days < 7) return `il y a ${days} jour${days > 1 ? "s" : ""}`;
+                              return d.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+                            })()}
+                          </TableCell>
+                          {/* Actions */}
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {h.shopify_product_id && h.shop_domain && (
+                                <a
+                                  href={`https://${h.shop_domain}/admin/products/${h.shopify_product_id}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium hover:bg-muted/50 transition-colors"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                  Configurer
+                                </a>
+                              )}
+                              <button
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  await fetch("/api/store/generated-history", {
+                                    method: "DELETE",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ id: h.id }),
+                                  });
+                                  setHistory((prev) => prev.filter((x) => x.id !== h.id));
+                                }}
+                                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500 transition-colors"
+                                title="Supprimer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           )}
