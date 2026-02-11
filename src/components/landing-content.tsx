@@ -150,7 +150,14 @@ function FakeStorefront() {
     return () => timers.forEach(clearTimeout);
   }, []);
 
-  const PRODUCT_THUMBS = ["🧥", "👤", "🖤", "🍂", "💼"];
+  const PRODUCT_IMAGES = [
+    "/demo/hoodie-front.jpg",
+    "/demo/hoodie-angle.jpg",
+    "/demo/hoodie-cafe.jpg",
+    "/demo/hoodie-autumn.jpg",
+    "/demo/hoodie-before-after.jpg",
+  ];
+  const PRODUCT_THUMB_LABELS = ["Face", "Angle", "Lifestyle", "Automne", "Avant/Après"];
   const FEATURES = [
     "Design oversize ultra tendance",
     "Double poches fonctionnelles",
@@ -200,7 +207,7 @@ function FakeStorefront() {
         </motion.div>
       )}
 
-      {/* ─── Product Hero ─── */}
+      {/* ─── Product Hero with real images ─── */}
       {visibleSections >= 2 && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -209,24 +216,37 @@ function FakeStorefront() {
           className="px-4 pb-3 pt-4"
         >
           {/* Main product image */}
-          <div className="relative mx-auto flex h-36 w-full max-w-[240px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50 sm:h-44">
-            <div className="text-5xl sm:text-6xl">🧥</div>
-            <button className="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[10px] text-gray-400 shadow">
+          <div className="relative mx-auto w-full max-w-[280px] overflow-hidden rounded-lg border border-gray-100 bg-gray-50">
+            <img
+              src={PRODUCT_IMAGES[selectedThumb]}
+              alt="Hoodie oversize noir"
+              className="h-44 w-full object-cover object-center sm:h-52"
+            />
+            <button
+              onClick={() => setSelectedThumb((selectedThumb + 1) % PRODUCT_IMAGES.length)}
+              className="absolute right-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[11px] text-gray-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+            >
               ›
+            </button>
+            <button
+              onClick={() => setSelectedThumb((selectedThumb - 1 + PRODUCT_IMAGES.length) % PRODUCT_IMAGES.length)}
+              className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-[11px] text-gray-600 shadow-sm backdrop-blur-sm transition-colors hover:bg-white"
+            >
+              ‹
             </button>
           </div>
 
           {/* Thumbnails */}
           <div className="mt-2 flex justify-center gap-1.5">
-            {PRODUCT_THUMBS.map((thumb, i) => (
+            {PRODUCT_IMAGES.map((src, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedThumb(i)}
-                className={`flex h-8 w-8 items-center justify-center rounded border text-xs transition-all sm:h-9 sm:w-9 ${
-                  selectedThumb === i ? "border-gray-900 shadow-sm" : "border-gray-200"
+                className={`h-9 w-9 overflow-hidden rounded border transition-all sm:h-10 sm:w-10 ${
+                  selectedThumb === i ? "border-gray-900 shadow-sm ring-1 ring-gray-900/20" : "border-gray-200 opacity-70 hover:opacity-100"
                 }`}
               >
-                {thumb}
+                <img src={src} alt={PRODUCT_THUMB_LABELS[i]} className="h-full w-full object-cover" />
               </button>
             ))}
           </div>
@@ -382,19 +402,12 @@ function FakeStorefront() {
             Transformez votre style avec notre hoodie <span className="italic">oversize</span>
           </h3>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div className="text-center">
-              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-gray-500">BEFORE</p>
-              <div className="flex h-28 items-center justify-center rounded-lg bg-gray-100 sm:h-32">
-                <span className="text-3xl">👤</span>
-              </div>
-            </div>
-            <div className="text-center">
-              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-gray-500">AFTER</p>
-              <div className="flex h-28 items-center justify-center rounded-lg bg-gray-100 sm:h-32">
-                <span className="text-3xl">🧥</span>
-              </div>
-            </div>
+          <div className="mt-3 overflow-hidden rounded-lg border border-gray-100">
+            <img
+              src="/demo/hoodie-before-after.jpg"
+              alt="Avant / Après — Hoodie oversize"
+              className="h-36 w-full object-cover sm:h-44"
+            />
           </div>
 
           <div className="mt-3 flex items-baseline gap-1.5">
