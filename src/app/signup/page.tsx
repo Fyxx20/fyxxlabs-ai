@@ -81,9 +81,7 @@ export default function SignupPage() {
           </CardHeader>
           <CardContent>
             <Link href="/login">
-              <Button variant="outline" className="w-full">
-                Retour à la connexion
-              </Button>
+              <Button variant="outline" className="w-full">Retour à la connexion</Button>
             </Link>
           </CardContent>
         </Card>
@@ -93,73 +91,50 @@ export default function SignupPage() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-8 flex justify-center">
-          <BrandLogo href="/" showText={false} />
-        </div>
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Voir pourquoi ta boutique ne vend pas</CardTitle>
-            <CardDescription>
-              Diagnostic IA gratuit · 3 minutes · 1 recommandation concrète. Essai 3 jours, puis Starter 9,99 €, Pro 19,99 € ou Elite 34,99 €.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <AuthOAuthButtons />
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                  ou avec email
-                </span>
-              </div>
-            </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <p className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-                  {error}
-                </p>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="toi@exemple.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                />
-                <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Création…" : "Voir pourquoi ma boutique ne vend pas"}
-              </Button>
-            </form>
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              Déjà un compte ?{" "}
-              <Link href="/login" className="font-medium text-primary hover:underline">
-                Se connecter
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="w-full max-w-sm shadow-lg">
+        <CardHeader>
+          <BrandLogo className="mx-auto mb-2 h-8 w-8" />
+          <CardTitle>Créer mon compte</CardTitle>
+          <CardDescription>
+            Analyse gratuite de votre boutique Shopify. Aucun paiement requis.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Label htmlFor="email" className="text-sm font-semibold text-foreground">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              required
+              className="bg-secondary rounded-xl border border-border focus:ring-2 focus:ring-primary"
+            />
+            <Label htmlFor="password" className="text-sm font-semibold text-foreground">Mot de passe</Label>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="new-password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              className="bg-secondary rounded-xl border border-border focus:ring-2 focus:ring-primary"
+            />
+            <div className="text-xs text-muted-foreground">Minimum 6 caractères</div>
+            <Button type="submit" className="w-full mt-2 bg-primary text-primary-foreground font-semibold text-lg rounded-xl shadow-md hover:bg-primary/90 transition-all">
+              {loading ? "Création…" : "Voir pourquoi ma boutique ne vend pas"}
+            </Button>
+          </form>
+          <div className="mt-6 text-center text-sm text-muted-foreground">
+            Déjà un compte ? <Link href="/login" className="text-accent underline font-semibold">Se connecter</Link>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
-}
+  }
+
+
+

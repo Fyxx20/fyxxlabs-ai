@@ -32,27 +32,17 @@ const products = [
     ],
   },
   {
-    name: "Starter",
-    description: "AXIS Starter — 2 scans/jour, 10 messages chatbot/heure, dashboard complet",
-    prices: [
-      { envKey: "STRIPE_PRICE_STARTER_MONTHLY", unit_amount: 999, currency: "eur", interval: "month" },
-      { envKey: "STRIPE_PRICE_STARTER_YEARLY", unit_amount: 9999, currency: "eur", interval: "year" },
-    ],
-  },
-  {
     name: "Pro",
-    description: "AXIS Pro — 10 scans/jour, chatbot illimité, historique complet",
+    description: "FyxxLabs Pro — Analyse avancée, scans quotidiens, chatbot illimité",
     prices: [
       { envKey: "STRIPE_PRICE_PRO_MONTHLY", unit_amount: 1999, currency: "eur", interval: "month" },
-      { envKey: "STRIPE_PRICE_PRO_YEARLY", unit_amount: 19999, currency: "eur", interval: "year" },
     ],
   },
   {
-    name: "Elite",
-    description: "AXIS Elite — Scans illimités, chatbot illimité, nouveautés en avant-première",
+    name: "Agence",
+    description: "FyxxLabs Agence — Pour les agences, multi-boutiques, fonctionnalités premium",
     prices: [
-      { envKey: "STRIPE_PRICE_ELITE_MONTHLY", unit_amount: 3499, currency: "eur", interval: "month" },
-      { envKey: "STRIPE_PRICE_ELITE_YEARLY", unit_amount: 34999, currency: "eur", interval: "year" },
+      { envKey: "STRIPE_PRICE_AGENCE_MONTHLY", unit_amount: 9900, currency: "eur", interval: "month" },
     ],
   },
 ];
