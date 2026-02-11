@@ -7,9 +7,10 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthOAuthButtons } from "@/components/auth-oauth-buttons";
 import { BrandLogo } from "@/components/brand-logo";
-import { ArrowRight, CheckCircle2, Sparkles, WandSparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Zap, Shield, Star } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -31,6 +32,7 @@ export default function SignupPage() {
       });
 
       const result = await res.json();
+
       if (!res.ok) {
         setError(result.error || "Erreur lors de la création du compte.");
         setLoading(false);
@@ -44,13 +46,13 @@ export default function SignupPage() {
       });
 
       setLoading(false);
+
       if (signInErr) {
         setError(signInErr.message);
         return;
       }
 
-      router.push("/onboarding");
-      router.refresh();
+      router.push("/app/dashboard");
     } catch {
       setLoading(false);
       setError("Erreur réseau. Réessayez.");
@@ -58,141 +60,118 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
-        <div className="absolute -left-24 top-10 h-80 w-80 rounded-full bg-violet-600/[0.24] blur-3xl" />
-        <div className="absolute -right-24 bottom-10 h-80 w-80 rounded-full bg-cyan-500/[0.2] blur-3xl" />
-        <div className="absolute left-1/2 top-1/2 h-72 w-[30rem] -translate-x-1/2 rounded-full bg-blue-600/[0.15] blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden text-white">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-slate-900" />
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute -left-28 top-0 h-80 w-80 rounded-full bg-violet-600/20 blur-[90px]" />
+        <div className="absolute right-0 top-24 h-80 w-80 rounded-full bg-cyan-500/15 blur-[90px]" />
+        <div className="absolute bottom-0 left-1/2 h-72 w-[38rem] -translate-x-1/2 rounded-full bg-blue-600/10 blur-[100px]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-12 sm:px-6 lg:px-8">
-        <div className="grid w-full gap-10 lg:grid-cols-2 lg:items-center">
-          <section className="hidden lg:block">
-            <Link href="/" className="inline-flex items-center gap-2 text-white">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-cyan-500 font-bold">
-                F
-              </span>
-              <span className="text-lg font-semibold">FyxxLabs</span>
-            </Link>
+      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 px-4 py-10 lg:grid-cols-2">
+        <section className="hidden lg:block">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/10 px-4 py-1.5 text-xs font-medium text-violet-200">
+            <Sparkles className="h-3.5 w-3.5" />
+            Crée ton espace FyxxLabs
+          </div>
+          <h1 className="font-display text-5xl font-extrabold leading-tight tracking-tight">
+            Un compte, puis un{" "}
+            <span className="bg-gradient-to-r from-violet-300 to-cyan-300 bg-clip-text text-transparent">
+              avantage énorme
+            </span>
+          </h1>
+          <p className="mt-5 max-w-xl text-lg text-slate-300">
+            Lance ton diagnostic e-commerce en quelques minutes avec des recommandations prêtes à exécuter.
+          </p>
+          <div className="mt-8 space-y-3 text-slate-300">
+            <p className="flex items-center gap-2"><Zap className="h-4 w-4 text-violet-300" /> IA orientée conversion et marge</p>
+            <p className="flex items-center gap-2"><Shield className="h-4 w-4 text-cyan-300" /> Données sécurisées et architecture fiable</p>
+            <p className="flex items-center gap-2"><Star className="h-4 w-4 text-violet-300" /> Expérience premium, pensée pour vendre</p>
+          </div>
+        </section>
 
-            <h1 className="mt-8 text-5xl font-black leading-tight">
-              Crée un compte.
-              <span className="block bg-gradient-to-r from-violet-300 via-white to-cyan-300 bg-clip-text text-transparent">
-                Débloque une boutique incroyable.
-              </span>
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-slate-300">
-              En quelques clics, tu accèdes à l’IA FyxxLabs pour analyser, optimiser et faire passer ton e-commerce au niveau supérieur.
+        <Card className="w-full rounded-3xl border border-white/10 bg-white/[0.04] shadow-2xl backdrop-blur-xl">
+          <CardHeader className="space-y-4">
+            <div className="flex items-center justify-between">
+              <BrandLogo href="/" className="h-10 w-10 rounded-xl bg-violet-600 text-white" />
+              <Link href="/" className="text-sm text-slate-400 hover:text-white">
+                Accueil
+              </Link>
+            </div>
+            <div>
+              <CardTitle className="text-3xl font-bold text-white">Créer mon compte</CardTitle>
+              <CardDescription className="mt-1 text-slate-300">
+                Accède à ton diagnostic et à tes recommandations IA.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {error && (
+              <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </p>
+            )}
+
+            <AuthOAuthButtons redirectTo="/app/dashboard" />
+
+            <div className="relative my-2 text-center text-xs uppercase tracking-wider text-slate-400">
+              <span className="relative z-10 bg-transparent px-2">ou avec email</span>
+              <div className="absolute left-0 right-0 top-1/2 h-px bg-white/10" />
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-slate-200">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="h-11 rounded-xl border-white/15 bg-slate-950/70 text-white placeholder:text-slate-500 focus-visible:ring-violet-400"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-slate-200">Mot de passe</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="h-11 rounded-xl border-white/15 bg-slate-950/70 text-white placeholder:text-slate-500 focus-visible:ring-violet-400"
+                />
+                <p className="text-xs text-slate-400">Minimum 6 caractères</p>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-11 w-full rounded-xl bg-violet-600 text-base font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:bg-violet-500"
+              >
+                {loading ? "Création..." : "Créer mon compte"}
+              </Button>
+            </form>
+
+            <p className="text-center text-sm text-slate-400">
+              Déjà un compte ?{" "}
+              <Link href="/login" className="font-semibold text-cyan-300 hover:text-cyan-200">
+                Se connecter
+              </Link>
             </p>
-
-            <div className="mt-8 grid gap-3">
-              {[
-                "Analyse IA de conversion immédiate",
-                "Actions prioritaires prêtes à exécuter",
-                "Dashboard premium pensé pour scaler",
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
-                  <span className="text-sm text-slate-200">{item}</span>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="w-full">
-            <div className="mx-auto w-full max-w-md rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-2xl backdrop-blur-xl sm:p-8">
-              <div className="mb-6 flex items-center justify-between">
-                <BrandLogo href="/" showText={false} className="text-white" />
-                <Link href="/" className="text-sm text-slate-300 hover:text-white">
-                  Retour accueil
-                </Link>
-              </div>
-
-              <h2 className="text-3xl font-bold tracking-tight">Créer mon compte</h2>
-              <p className="mt-2 text-sm text-slate-300">
-                Analyse gratuite de ta boutique Shopify. Aucun paiement requis.
-              </p>
-
-              <div className="mt-5 rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs text-violet-100">
-                <span className="inline-flex items-center gap-1">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Offre de lancement : onboarding instantané + recommandations IA.
-                </span>
-              </div>
-
-              <div className="mt-6">
-                <AuthOAuthButtons redirectTo="/onboarding" />
-              </div>
-
-              <div className="my-5 flex items-center gap-3 text-xs text-slate-400">
-                <div className="h-px flex-1 bg-white/10" />
-                OU AVEC EMAIL
-                <div className="h-px flex-1 bg-white/10" />
-              </div>
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {!!error && (
-                  <p className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">
-                    {error}
-                  </p>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-slate-200">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
-                    placeholder="vous@exemple.com"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-slate-200">Mot de passe</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    className="h-11 rounded-xl border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
-                    placeholder="Minimum 6 caractères"
-                  />
-                </div>
-
-                <Button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full rounded-xl bg-violet-600 text-base font-semibold hover:bg-violet-500"
-                >
-                  <span className="inline-flex items-center gap-2">
-                    {loading ? "Création..." : "Créer mon compte"}
-                    {!loading && <ArrowRight className="h-4 w-4" />}
-                  </span>
-                </Button>
-              </form>
-
-              <p className="mt-6 text-center text-sm text-slate-300">
-                Déjà un compte ?{" "}
-                <Link href="/login" className="font-semibold text-violet-300 hover:text-white">
-                  Se connecter
-                </Link>
-              </p>
-              <p className="mt-2 text-center text-xs text-slate-500">
-                <span className="inline-flex items-center gap-1">
-                  <WandSparkles className="h-3.5 w-3.5" />
-                  Prêt à impressionner dès la première visite.
-                </span>
-              </p>
-            </div>
-          </section>
-        </div>
+            <Link
+              href="/app/dashboard"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-4 py-2.5 text-sm text-slate-200 transition hover:bg-white/[0.08]"
+            >
+              Voir une démo du dashboard
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
