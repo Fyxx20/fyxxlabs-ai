@@ -109,6 +109,7 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [scanStatus, setScanStatus] = useState<"idle" | "queued" | "running" | "done">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [shopifyDomainInput, setShopifyDomainInput] = useState("");
 
   const parsed = createStoreSchema.safeParse(form);
   const canNextStep1 = form.name.trim().length > 0;
@@ -126,6 +127,10 @@ export default function OnboardingPage() {
   };
 
   const connectableSelected = isConnectable(form.platform);
+  const shopifyDomainFromUrl = normalizeShopifyDomain(form.website_url);
+  const requiresShopifyDomainInput =
+    form.platform === "shopify" && !shopifyDomainFromUrl;
+  const shopifyDomainFromInput = normalizeShopifyDomain(shopifyDomainInput);
 
   async function handleFinish() {
     setError(null);
@@ -191,9 +196,9 @@ export default function OnboardingPage() {
       );
 
     if (form.platform === "shopify") {
-      const shopDomain = normalizeShopifyDomain(form.website_url);
+      const shopDomain = shopifyDomainFromUrl ?? shopifyDomainFromInput;
       if (!shopDomain) {
-        setError("Pour connecter Shopify, utilise l'URL .myshopify.com de ta boutique.");
+        setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
         setLoading(false);
         return;
       }
@@ -359,6 +364,23 @@ export default function OnboardingPage() {
                     Aucune installation. Analyse via URL.
                   </p>
                 </div>
+                {requiresShopifyDomainInput && (
+                  <div className="space-y-2 rounded-lg border border-white/15 bg-white/[0.03] p-3">
+                    <Label htmlFor="shopify_domain">Domaine Shopify interne</Label>
+                    <Input
+                      id="shopify_domain"
+                      type="text"
+                      placeholder="maboutique.myshopify.com"
+                      value={shopifyDomainInput}
+                      onChange={(e) => setShopifyDomainInput(e.target.value)}
+                      className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
+                    />
+                    <p className="text-xs text-slate-300">
+                      Ton domaine public peut etre `www...`, mais la connexion OAuth Shopify demande le domaine
+                      interne en `.myshopify.com`.
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
                     Plateforme
@@ -417,7 +439,10 @@ export default function OnboardingPage() {
                     type="button"
                     className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-500"
                     onClick={() => setStep(3)}
-                    disabled={!canNextStep2}
+                    disabled={
+                      !canNextStep2 ||
+                      (requiresShopifyDomainInput && !shopifyDomainFromInput)
+                    }
                   >
                     {form.platform === "shopify" ? "Continuer vers connexion Shopify" : "Suivant"}
                   </Button>
