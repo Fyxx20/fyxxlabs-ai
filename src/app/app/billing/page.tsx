@@ -42,7 +42,7 @@ const PLANS = [
   {
     title: "Agence",
     monthlyPrice: "79",
-    priceKey: "elite_monthly",
+    priceKey: "agence_monthly",
     icon: Building2,
     features: [
       "Tous les outils du plan Pro",

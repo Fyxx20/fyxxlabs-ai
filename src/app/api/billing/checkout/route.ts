@@ -4,14 +4,17 @@ import { stripe, PRICE_IDS } from "@/lib/stripe";
 
 type PriceKey = keyof typeof PRICE_IDS;
 
+function isSupportedPriceKey(value: string): value is PriceKey {
+  return value in PRICE_IDS;
+}
+
 function isOneTime(priceKey: PriceKey): boolean {
   return priceKey === "create_one_time";
 }
 
-function getPlanFromPriceKey(priceKey: PriceKey): "create" | "starter" | "pro" | "elite" {
+function getPlanFromPriceKey(priceKey: PriceKey): "create" | "pro" | "elite" {
   if (priceKey === "create_one_time") return "create";
-  if (priceKey.startsWith("starter_")) return "starter";
-  if (priceKey.startsWith("elite_")) return "elite";
+  if (priceKey.startsWith("elite_") || priceKey.startsWith("agence_")) return "elite";
   return "pro";
 }
 
@@ -30,13 +33,21 @@ export async function POST(request: Request) {
   }
 
   const formData = await request.formData();
-  const priceKey = formData.get("price_key") as PriceKey | null;
-  if (!priceKey) {
+  const rawPriceKey = formData.get("price_key");
+  if (typeof rawPriceKey !== "string" || !rawPriceKey) {
     return NextResponse.json({ error: "Tarif invalide" }, { status: 400 });
   }
+  if (!isSupportedPriceKey(rawPriceKey)) {
+    return NextResponse.json({ error: "Tarif non reconnu" }, { status: 400 });
+  }
+  const priceKey: PriceKey = rawPriceKey;
+
   const priceId = PRICE_IDS[priceKey];
   if (!priceId) {
-    return NextResponse.json({ error: "Tarif invalide" }, { status: 400 });
+    return NextResponse.json(
+      { error: `Tarif indisponible: ${priceKey}. Vérifie la configuration Stripe.` },
+      { status: 400 }
+    );
   }
   const plan = getPlanFromPriceKey(priceKey);
   const interval = getIntervalFromPriceKey(priceKey);
