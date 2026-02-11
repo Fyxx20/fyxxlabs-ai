@@ -79,6 +79,18 @@ function isSchemaError(message: string): boolean {
   );
 }
 
+function normalizeShopifyDomain(input: string): string | null {
+  const raw = input.trim();
+  if (!raw) return null;
+  const withProtocol = raw.startsWith("http://") || raw.startsWith("https://") ? raw : `https://${raw}`;
+  try {
+    const host = new URL(withProtocol).hostname.toLowerCase();
+    return host.endsWith(".myshopify.com") ? host : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function OnboardingPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -177,6 +189,18 @@ export default function OnboardingPage() {
         { user_id: user.id, completed: true, updated_at: new Date().toISOString() },
         { onConflict: "user_id" }
       );
+
+    if (form.platform === "shopify") {
+      const shopDomain = normalizeShopifyDomain(form.website_url);
+      if (!shopDomain) {
+        setError("Pour connecter Shopify, utilise l'URL .myshopify.com de ta boutique.");
+        setLoading(false);
+        return;
+      }
+      setLoading(false);
+      window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(storeId)}&shop=${encodeURIComponent(shopDomain)}`;
+      return;
+    }
 
     setScanStatus("queued");
     const scanRes = await fetch("/api/scan/start", {
@@ -367,7 +391,7 @@ export default function OnboardingPage() {
                   </Select>
                   {connectableSelected ? (
                     <p className="text-xs text-muted-foreground">
-                      Connexion sécurisée. Aucune installation. Tu pourras connecter ta boutique après sa création (Paramètres).
+                      Connexion sécurisée via OAuth. Après validation, on te redirige vers Shopify pour autoriser FyxxLabs.
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground">
@@ -395,7 +419,7 @@ export default function OnboardingPage() {
                     onClick={() => setStep(3)}
                     disabled={!canNextStep2}
                   >
-                    Suivant
+                    {form.platform === "shopify" ? "Continuer vers connexion Shopify" : "Suivant"}
                   </Button>
                 </div>
               </>
@@ -557,14 +581,24 @@ export default function OnboardingPage() {
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {scanStatus === "idle" ? "Création…" : "Analyse en cours…"}
+                        {form.platform === "shopify"
+                          ? "Connexion Shopify…"
+                          : scanStatus === "idle"
+                            ? "Création…"
+                            : "Analyse en cours…"}
                       </>
                     ) : (
-                      "Lancer l'analyse FyxxLabs"
+                      form.platform === "shopify"
+                        ? "Créer et connecter Shopify"
+                        : "Lancer l'analyse FyxxLabs"
                     )}
                   </Button>
                 </div>
-                <p className="text-center text-xs text-muted-foreground">L'analyse peut prendre 1 à 3 minutes.</p>
+                <p className="text-center text-xs text-muted-foreground">
+                  {form.platform === "shopify"
+                    ? "Tu seras redirigé vers Shopify pour autoriser la connexion."
+                    : "L'analyse peut prendre 1 à 3 minutes."}
+                </p>
               </>
             )}
           </CardContent>
