@@ -43,6 +43,9 @@ export async function GET(request: Request) {
     if (!shopUrl || !shopUrl.includes(".")) {
       throw new Error("Domaine Shopify invalide");
     }
+    if (!shopUrl.toLowerCase().endsWith(".myshopify.com")) {
+      throw new Error("Le domaine Shopify doit se terminer par .myshopify.com");
+    }
 
     const url = await connector.startConnect({
       storeId,

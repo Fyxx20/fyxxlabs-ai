@@ -154,6 +154,26 @@ export default function OnboardingPage() {
 
     if (!res.ok) {
       if (res.status === 409 && (data.error === "store_exists" || data.storeId)) {
+        if (form.platform === "shopify") {
+          const shopDomain = shopifyDomainFromUrl ?? shopifyDomainFromInput;
+          if (!shopDomain) {
+            setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
+            setLoading(false);
+            return;
+          }
+          const { data: existingStore } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existingStore?.id) {
+            setLoading(false);
+            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
+            return;
+          }
+        }
         setError("STORE_EXISTS");
         setLoading(false);
         router.push("/app/dashboard");
@@ -161,6 +181,26 @@ export default function OnboardingPage() {
         return;
       }
       if (res.status === 409 && data.error === "store_limit_reached") {
+        if (form.platform === "shopify") {
+          const shopDomain = shopifyDomainFromUrl ?? shopifyDomainFromInput;
+          if (!shopDomain) {
+            setError("Ajoute ton domaine Shopify interne (ex: maboutique.myshopify.com).");
+            setLoading(false);
+            return;
+          }
+          const { data: existingStore } = await supabase
+            .from("stores")
+            .select("id")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (existingStore?.id) {
+            setLoading(false);
+            window.location.href = `/api/integrations/shopify/start?store_id=${encodeURIComponent(existingStore.id)}&shop=${encodeURIComponent(shopDomain)}`;
+            return;
+          }
+        }
         setError(data.message ?? "Limite de boutiques atteinte pour ton abonnement.");
         setLoading(false);
         return;
@@ -438,13 +478,22 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-500"
-                    onClick={() => setStep(3)}
+                    onClick={
+                      form.platform === "shopify"
+                        ? handleFinish
+                        : () => setStep(3)
+                    }
                     disabled={
+                      loading ||
                       !canNextStep2 ||
                       (requiresShopifyDomainInput && !shopifyDomainFromInput)
                     }
                   >
-                    {form.platform === "shopify" ? "Continuer vers connexion Shopify" : "Suivant"}
+                    {form.platform === "shopify"
+                      ? loading
+                        ? "Connexion Shopify…"
+                        : "Connecter Shopify"
+                      : "Suivant"}
                   </Button>
                 </div>
               </>
