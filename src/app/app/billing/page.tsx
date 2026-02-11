@@ -18,6 +18,21 @@ import {
 
 const PLANS = [
   {
+    title: "Create",
+    oneTimePrice: "19",
+    priceKey: "create_one_time",
+    icon: Sparkles,
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-500/10",
+    border: "border-violet-500/20",
+    oneTime: true,
+    features: [
+      "1 boutique Shopify générée par IA",
+      "Produit AliExpress optimisé",
+      "Design professionnel clé en main",
+    ],
+  },
+  {
     title: "Starter",
     monthlyPrice: "9,99",
     yearlyPrice: "99,99",
@@ -59,7 +74,7 @@ const PLANS = [
     yearlyCaption: "2 mois offerts",
     monthlyKey: "elite_monthly",
     yearlyKey: "elite_yearly",
-    icon: Sparkles,
+    icon: Crown,
     color: "text-amber-600 dark:text-amber-400",
     bg: "bg-amber-500/10",
     border: "border-amber-500/20",
@@ -179,7 +194,7 @@ export default async function BillingPage() {
           <h2 className="text-lg font-semibold mb-4">
             {entitlements.isPro ? "Changer de plan" : "Choisir un abonnement"}
           </h2>
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-4">
             {PLANS.map((plan) => {
               const Icon = plan.icon;
               return (
@@ -207,15 +222,31 @@ export default async function BillingPage() {
                   <CardContent className="space-y-4">
                     {/* Pricing */}
                     <div>
-                      <p className="text-3xl font-bold tabular-nums">
-                        {plan.monthlyPrice} &euro;
-                        <span className="text-sm font-normal text-muted-foreground">
-                          /mois
-                        </span>
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        ou {plan.yearlyPrice} &euro;/an &mdash; {plan.yearlyCaption}
-                      </p>
+                      {plan.oneTime ? (
+                        <>
+                          <p className="text-3xl font-bold tabular-nums">
+                            {plan.oneTimePrice} &euro;
+                            <span className="text-sm font-normal text-muted-foreground">
+                              {" "}unique
+                            </span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Paiement unique &mdash; pas d&apos;abonnement
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-3xl font-bold tabular-nums">
+                            {plan.monthlyPrice} &euro;
+                            <span className="text-sm font-normal text-muted-foreground">
+                              /mois
+                            </span>
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            ou {plan.yearlyPrice} &euro;/an &mdash; {plan.yearlyCaption}
+                          </p>
+                        </>
+                      )}
                     </div>
 
                     {/* Features */}
@@ -232,46 +263,68 @@ export default async function BillingPage() {
                     </ul>
 
                     {/* CTA */}
-                    <div className="flex gap-2 pt-2">
-                      <form
-                        action="/api/billing/checkout"
-                        method="POST"
-                        className="flex-1"
-                      >
-                        <input
-                          type="hidden"
-                          name="price_key"
-                          value={plan.monthlyKey}
-                        />
-                        <Button
-                          type="submit"
-                          size="sm"
-                          className="w-full"
-                          variant={plan.popular ? "default" : "outline"}
+                    {plan.oneTime ? (
+                      <div className="pt-2">
+                        <form
+                          action="/api/billing/checkout"
+                          method="POST"
                         >
-                          Mensuel
-                        </Button>
-                      </form>
-                      <form
-                        action="/api/billing/checkout"
-                        method="POST"
-                        className="flex-1"
-                      >
-                        <input
-                          type="hidden"
-                          name="price_key"
-                          value={plan.yearlyKey}
-                        />
-                        <Button
-                          type="submit"
-                          size="sm"
-                          className="w-full"
-                          variant="outline"
+                          <input
+                            type="hidden"
+                            name="price_key"
+                            value={plan.priceKey}
+                          />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            className="w-full"
+                          >
+                            Acheter — {plan.oneTimePrice} €
+                          </Button>
+                        </form>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 pt-2">
+                        <form
+                          action="/api/billing/checkout"
+                          method="POST"
+                          className="flex-1"
                         >
-                          Annuel
-                        </Button>
-                      </form>
-                    </div>
+                          <input
+                            type="hidden"
+                            name="price_key"
+                            value={plan.monthlyKey}
+                          />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            className="w-full"
+                            variant={plan.popular ? "default" : "outline"}
+                          >
+                            Mensuel
+                          </Button>
+                        </form>
+                        <form
+                          action="/api/billing/checkout"
+                          method="POST"
+                          className="flex-1"
+                        >
+                          <input
+                            type="hidden"
+                            name="price_key"
+                            value={plan.yearlyKey}
+                          />
+                          <Button
+                            type="submit"
+                            size="sm"
+                            className="w-full"
+                            variant="outline"
+                          >
+                            Annuel
+                          </Button>
+                        </form>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               );

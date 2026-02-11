@@ -95,7 +95,7 @@ const navGroups = [
 ];
 
 export interface AppEntitlements {
-  plan?: "trial" | "free" | "starter" | "pro" | "elite" | "lifetime";
+  plan?: "trial" | "free" | "create" | "starter" | "pro" | "elite" | "lifetime";
   isTrialActive: boolean;
   isPro: boolean;
   isLifetime: boolean;

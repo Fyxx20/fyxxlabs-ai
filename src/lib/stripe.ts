@@ -20,6 +20,7 @@ export const stripe = new Proxy({} as Stripe, {
 });
 
 export const PRICE_IDS = {
+  create_one_time: process.env.STRIPE_PRICE_CREATE_ONE_TIME!,
   starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY!,
   starter_yearly: process.env.STRIPE_PRICE_STARTER_YEARLY!,
   pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY!,

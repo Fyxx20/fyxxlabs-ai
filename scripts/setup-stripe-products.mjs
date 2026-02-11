@@ -1,5 +1,5 @@
 /**
- * Creates the 3 products (Starter, Pro, Elite) and 6 prices in Stripe,
+ * Creates the 4 products (Create, Starter, Pro, Elite) and prices in Stripe,
  * then prints the env vars to paste into .env.local.
  */
 import Stripe from "stripe";
@@ -24,6 +24,13 @@ const stripe = new Stripe(secretKey, { apiVersion: "2025-02-24.acacia" });
 
 // ── Product & Price definitions ───────────────────────────────────────
 const products = [
+  {
+    name: "Create",
+    description: "FyxxLabs Create — Génération complète d'une boutique Shopify (paiement unique)",
+    prices: [
+      { envKey: "STRIPE_PRICE_CREATE_ONE_TIME", unit_amount: 1900, currency: "eur", interval: null },
+    ],
+  },
   {
     name: "Starter",
     description: "AXIS Starter — 2 scans/jour, 10 messages chatbot/heure, dashboard complet",
@@ -63,15 +70,18 @@ for (const prod of products) {
   console.log(`   ✅ Produit créé: ${product.id}`);
 
   for (const p of prod.prices) {
-    const price = await stripe.prices.create({
+    const priceParams = {
       product: product.id,
       unit_amount: p.unit_amount,
       currency: p.currency,
-      recurring: { interval: p.interval },
-      metadata: { app: "axis", plan: prod.name.toLowerCase(), interval: p.interval },
-    });
+      metadata: { app: "fyxxlabs", plan: prod.name.toLowerCase(), interval: p.interval ?? "one_time" },
+    };
+    if (p.interval) {
+      priceParams.recurring = { interval: p.interval };
+    }
+    const price = await stripe.prices.create(priceParams);
     priceIds[p.envKey] = price.id;
-    console.log(`   ✅ Prix ${p.interval}: ${price.id} (${(p.unit_amount / 100).toFixed(2)} €/${p.interval})`);
+    console.log(`   ✅ Prix ${p.interval ?? "one_time"}: ${price.id} (${(p.unit_amount / 100).toFixed(2)} €${p.interval ? "/" + p.interval : ""})`);
   }
 }
 

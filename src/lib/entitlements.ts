@@ -41,7 +41,7 @@ export function getUserEntitlements(sub: SubscriptionRow | null): UserEntitlemen
 
   const isLifetime = sub.plan === "lifetime" && sub.status === "active";
   const isPaid =
-    sub.status === "active" && ["starter", "pro", "elite", "business", "lifetime"].includes(sub.plan);
+    sub.status === "active" && ["create", "starter", "pro", "elite", "business", "lifetime"].includes(sub.plan);
 
   if (isLifetime || isPaid) {
     return {

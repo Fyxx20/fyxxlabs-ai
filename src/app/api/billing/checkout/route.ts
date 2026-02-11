@@ -4,13 +4,19 @@ import { stripe, PRICE_IDS } from "@/lib/stripe";
 
 type PriceKey = keyof typeof PRICE_IDS;
 
-function getPlanFromPriceKey(priceKey: PriceKey): "starter" | "pro" | "elite" {
+function isOneTime(priceKey: PriceKey): boolean {
+  return priceKey === "create_one_time";
+}
+
+function getPlanFromPriceKey(priceKey: PriceKey): "create" | "starter" | "pro" | "elite" {
+  if (priceKey === "create_one_time") return "create";
   if (priceKey.startsWith("starter_")) return "starter";
   if (priceKey.startsWith("elite_")) return "elite";
   return "pro";
 }
 
-function getIntervalFromPriceKey(priceKey: PriceKey): "month" | "year" {
+function getIntervalFromPriceKey(priceKey: PriceKey): "month" | "year" | "one_time" {
+  if (priceKey === "create_one_time") return "one_time";
   return priceKey.endsWith("_yearly") ? "year" : "month";
 }
 
@@ -55,18 +61,24 @@ export async function POST(request: Request) {
       .eq("user_id", user.id);
   }
 
+  const oneTime = isOneTime(priceKey);
+
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
-    mode: "subscription",
+    mode: oneTime ? "payment" : "subscription",
     payment_method_types: ["card"],
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? request.headers.get("origin")}/app/billing?success=1`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? request.headers.get("origin")}/app/billing`,
     metadata: { user_id: user.id, plan_key: plan, billing_interval: interval },
-    subscription_data: {
-      metadata: { user_id: user.id, plan_key: plan, billing_interval: interval },
-      trial_period_days: undefined,
-    },
+    ...(oneTime
+      ? {}
+      : {
+          subscription_data: {
+            metadata: { user_id: user.id, plan_key: plan, billing_interval: interval },
+            trial_period_days: undefined,
+          },
+        }),
   });
 
   if (!session.url) {

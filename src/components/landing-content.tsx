@@ -828,7 +828,7 @@ const EXAMPLES = [
 const PLANS = [
   {
     name: "CREATE",
-    price: "29",
+    price: "19",
     unit: "€",
     period: "par création",
     color: "violet",

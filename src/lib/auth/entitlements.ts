@@ -1,6 +1,6 @@
 import "server-only";
 
-export type Plan = "trial" | "free" | "starter" | "pro" | "elite" | "lifetime";
+export type Plan = "trial" | "free" | "create" | "starter" | "pro" | "elite" | "lifetime";
 
 export interface FreemiumProfile {
   plan: Plan;
@@ -46,6 +46,7 @@ function getEffectivePlan(
   const subActive = subscription?.status === "active";
 
   if (subActive) {
+    if (subPlan === "create") return "create";
     if (subPlan === "starter") return "starter";
     if (subPlan === "pro") return "pro";
     if (subPlan === "elite" || subPlan === "business") return "elite";
@@ -85,7 +86,7 @@ export function getEntitlements(
     };
   }
 
-  const isPaidPlan = plan === "starter" || plan === "pro" || plan === "elite" || plan === "lifetime";
+  const isPaidPlan = plan === "create" || plan === "starter" || plan === "pro" || plan === "elite" || plan === "lifetime";
   const isPro = isPaidPlan;
   const isLifetime = plan === "lifetime";
   const isEarlyAccess = plan === "elite" || plan === "lifetime";
@@ -99,22 +100,26 @@ export function getEntitlements(
   const canViewFullScan = isPaidPlan;
 
   const scanLimitPerDay =
-    plan === "starter"
-      ? 2
-      : plan === "pro"
-        ? 10
-        : plan === "elite" || plan === "lifetime"
-          ? null
-          : isTrialActive
-            ? 1
-            : 0;
+    plan === "create"
+      ? 1
+      : plan === "starter"
+        ? 2
+        : plan === "pro"
+          ? 10
+          : plan === "elite" || plan === "lifetime"
+            ? null
+            : isTrialActive
+              ? 1
+              : 0;
 
   const coachMessagesPerHour =
-    plan === "starter"
-      ? 10
-      : plan === "pro" || plan === "elite" || plan === "lifetime"
-        ? null
-        : 0;
+    plan === "create"
+      ? 5
+      : plan === "starter"
+        ? 10
+        : plan === "pro" || plan === "elite" || plan === "lifetime"
+          ? null
+          : 0;
 
   return {
     plan,

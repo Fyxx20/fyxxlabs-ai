@@ -4,8 +4,9 @@ import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-function normalizeStripePlan(plan: string | null | undefined): "starter" | "pro" | "elite" | "lifetime" | "free" {
+function normalizeStripePlan(plan: string | null | undefined): "create" | "starter" | "pro" | "elite" | "lifetime" | "free" {
   const p = (plan ?? "").toLowerCase();
+  if (p === "create") return "create";
   if (p === "starter") return "starter";
   if (p === "elite" || p === "business") return "elite";
   if (p === "lifetime") return "lifetime";
