@@ -42,9 +42,11 @@ export const shopifyConnector: Connector = {
   async startConnect(params: OAuthStartParams): Promise<string | null> {
     if (!SHOPIFY_CLIENT_ID) return null;
     const shop = (params.shop ?? "").replace(/^https?:\/\//, "").replace(/\/.*$/, "").trim();
-    if (!shop) return null;
     const redirectUri = params.redirectUri;
     const state = params.state ?? params.storeId;
+    if (!shop) {
+      return `https://shopify.com/admin/oauth/authorize?client_id=${SHOPIFY_CLIENT_ID}&scope=${SCOPES}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
+    }
     return `https://${shop}/admin/oauth/authorize?client_id=${SHOPIFY_CLIENT_ID}&scope=${SCOPES}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
   },
 

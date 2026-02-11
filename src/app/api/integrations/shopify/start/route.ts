@@ -41,16 +41,19 @@ export async function GET(request: Request) {
   try {
     if (!shop) {
       const installUrl = process.env.SHOPIFY_APP_INSTALL_URL?.trim();
-      if (!installUrl) {
+      const autoOAuthUrl = await connector.startConnect({
+        storeId,
+        redirectUri,
+        state: storeId,
+      });
+      const targetUrl = installUrl || autoOAuthUrl;
+      if (!targetUrl) {
         return NextResponse.json(
-          {
-            error:
-              "Connexion Shopify indisponible: configure SHOPIFY_APP_INSTALL_URL pour activer la selection de boutique sans domaine.",
-          },
+          { error: "OAuth Shopify non configuré (SHOPIFY_CLIENT_ID)" },
           { status: 500 }
         );
       }
-      const response = NextResponse.redirect(installUrl);
+      const response = NextResponse.redirect(targetUrl);
       response.cookies.set("fyxx_shopify_store_id", storeId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
