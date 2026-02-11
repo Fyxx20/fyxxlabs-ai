@@ -43,7 +43,7 @@ function LoginPageContent() {
     setLoading(true);
     setError(null);
 
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured()) {
       setError("Configuration Supabase manquante. Ajoute NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY.");
       setLoading(false);
       return;
