@@ -64,7 +64,7 @@ export default async function CoachPage() {
   /* Locked state */
   if (!entitlements.canUseCoach) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -98,7 +98,7 @@ export default async function CoachPage() {
   /* Needs scan */
   if (!hasScanForAssistant || scanRunning) {
     return (
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -147,7 +147,7 @@ export default async function CoachPage() {
 
   /* Chat */
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-4xl mx-auto">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
         <p className="text-sm text-muted-foreground mt-1">

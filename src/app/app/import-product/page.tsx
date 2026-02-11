@@ -32,7 +32,7 @@ export default async function ImportProductPage() {
     .maybeSingle();
 
   return (
-    <div className="max-w-4xl">
+    <div className="max-w-4xl mx-auto">
       <ImportProductClient
         storeId={currentStore.id}
         shopDomain={integration?.shop_domain ?? null}

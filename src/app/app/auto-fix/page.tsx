@@ -37,7 +37,7 @@ export default async function AutoFixPage() {
 
   if (!integration) {
     return (
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-3xl mx-auto">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Auto-Fix IA</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -66,7 +66,7 @@ export default async function AutoFixPage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <AutoFixClient storeId={currentStore.id} />
     </div>
   );
