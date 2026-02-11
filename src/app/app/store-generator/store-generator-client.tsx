@@ -1448,7 +1448,7 @@ export function StoreGeneratorClient({
 
             {/* Phone preview */}
             <div className="flex-1 flex items-start justify-center py-6 px-4">
-              <div className={previewMode === "desktop" ? "w-full max-w-[800px]" : ""}>
+              <div className={previewMode === "desktop" ? "w-full max-w-[900px]" : ""}>
                 <StoreMobilePreview
                   data={pageData}
                   images={previewImages}
@@ -1457,6 +1457,7 @@ export function StoreGeneratorClient({
                   faqImage={previewImages[2] ?? previewImages[1]}
                   beforeImage={previewImages.length > 4 ? previewImages[4] : undefined}
                   afterImage={previewImages.length > 5 ? previewImages[5] : undefined}
+                  mode={previewMode}
                 />
               </div>
             </div>
