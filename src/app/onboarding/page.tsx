@@ -303,22 +303,41 @@ export default function OnboardingPage() {
         </div>
 
         {/* Stepper */}
-        <div className="mb-6 flex items-center justify-center gap-2">
-          {[1, 2, 3].map((s) => (
+        <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.04] p-4 backdrop-blur-xl">
+          <div className="mb-3 flex items-center justify-between text-xs text-slate-300">
+            <span>Progression onboarding</span>
+            <span className="font-semibold text-violet-200">
+              Étape {step} sur 3
+            </span>
+          </div>
+          <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/10">
             <div
-              key={s}
-              className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium ${
-                step >= s
-                  ? "border-violet-400/50 bg-violet-500/90 text-white"
-                  : "border-white/15 bg-white/5 text-slate-300"
-              }`}
-            >
-              {s}
-            </div>
-          ))}
-          <span className="ml-2 text-sm text-slate-300">
-            {step} / 3
-          </span>
+              className="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-all duration-500"
+              style={{ width: `${(step / 3) * 100}%` }}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { id: 1, label: "Boutique" },
+              { id: 2, label: "Connexion" },
+              { id: 3, label: "Contexte" },
+            ].map((item) => (
+              <div
+                key={item.id}
+                className={`rounded-xl border px-3 py-2 text-center transition-colors ${
+                  step === item.id
+                    ? "border-violet-400/40 bg-violet-500/15 text-white"
+                    : step > item.id
+                      ? "border-violet-400/20 bg-violet-500/10 text-violet-200"
+                      : "border-white/10 bg-white/[0.02] text-slate-400"
+                }`}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-wide">
+                  {item.label}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <Card className="border-white/10 bg-white/[0.05] shadow-2xl backdrop-blur-xl">
