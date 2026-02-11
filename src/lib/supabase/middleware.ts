@@ -63,6 +63,7 @@ export async function updateSession(request: NextRequest) {
     if (isPrivilegedRoleOrEmail(profile?.role, user.email)) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/dashboard";
+      url.search = "";
       return NextResponse.redirect(url);
     }
   }
@@ -130,6 +131,9 @@ export async function updateSession(request: NextRequest) {
     url.pathname = isPrivilegedRoleOrEmail(profile?.role, user.email)
       ? "/admin/dashboard"
       : "/app/dashboard";
+    if (url.pathname === "/admin/dashboard") {
+      url.search = "";
+    }
     return NextResponse.redirect(url);
   }
 
@@ -143,6 +147,7 @@ export async function updateSession(request: NextRequest) {
     if (isPrivilegedRoleOrEmail(profile?.role, user.email)) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/dashboard";
+      url.search = "";
       return NextResponse.redirect(url);
     }
   }

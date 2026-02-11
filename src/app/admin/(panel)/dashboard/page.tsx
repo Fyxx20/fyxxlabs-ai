@@ -10,14 +10,6 @@ export default async function AdminDashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/admin/login");
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("user_id", user.id)
-    .single();
-  if (profile?.role !== "admin" && profile?.role !== "super_admin") {
-    redirect("/admin/login?error=unauthorized");
-  }
 
   const admin = getSupabaseAdmin();
   const now = new Date();

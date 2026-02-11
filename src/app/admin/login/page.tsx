@@ -37,23 +37,13 @@ function AdminLoginPageContent() {
     setError(null);
     setLoading(true);
     const supabase = createClient();
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     setLoading(false);
     if (signInError) {
       setError(signInError.message);
-      return;
-    }
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("user_id", data.user.id)
-      .single();
-    if (profile?.role !== "admin" && profile?.role !== "super_admin") {
-      await supabase.auth.signOut();
-      setError("Accès réservé aux administrateurs.");
       return;
     }
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
