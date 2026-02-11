@@ -44,15 +44,15 @@ export default async function SettingsPage() {
         month: "long",
         day: "numeric",
       })
-    : "\u2014";
+    : "—";
 
   return (
     <div className="space-y-6 max-w-3xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Param\u00e8tres</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Paramètres</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          G\u00e9rez votre profil, s\u00e9curit\u00e9 et pr\u00e9f\u00e9rences.
+          Gérez votre profil, sécurité et préférences.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default async function SettingsPage() {
             <div className="flex items-center gap-3 rounded-xl bg-muted/40 px-4 py-3">
               <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="min-w-0">
-                <p className="text-[11px] text-muted-foreground font-medium">R\u00f4le</p>
+                <p className="text-[11px] text-muted-foreground font-medium">Rôle</p>
                 <p className="text-sm font-medium capitalize">{profile?.role ?? "user"}</p>
               </div>
             </div>

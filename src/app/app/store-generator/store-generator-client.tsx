@@ -540,7 +540,7 @@ export function StoreGeneratorClient({
               Collez un lien produit <span className="font-medium text-foreground">AliExpress</span>,{" "}
               <span className="font-medium text-foreground">Shopify</span> ou{" "}
               <span className="font-medium text-foreground">Amazon</span>{" "}
-              et g\u00e9n\u00e9rez une boutique optimis\u00e9e en un clic.
+              et générez une boutique optimisée en un clic.
             </p>
           </div>
 
@@ -561,10 +561,10 @@ export function StoreGeneratorClient({
               onChange={(e) => setLanguage(e.target.value)}
               className="h-12 px-3 rounded-xl border border-border/60 bg-background text-sm"
             >
-              <option value="fr">\ud83c\uddeb\ud83c\uddf7 Fran\u00e7ais</option>
-              <option value="en">\ud83c\uddec\ud83c\udde7 English</option>
-              <option value="es">\ud83c\uddea\ud83c\uddf8 Espa\u00f1ol</option>
-              <option value="de">\ud83c\udde9\ud83c\uddea Deutsch</option>
+              <option value="fr">🇫🇷 Français</option>
+              <option value="en">🇬🇧 English</option>
+              <option value="es">🇪🇸 Español</option>
+              <option value="de">🇩🇪 Deutsch</option>
             </select>
             <Button
               onClick={handleImport}
@@ -572,7 +572,7 @@ export function StoreGeneratorClient({
               className="h-12 px-6 rounded-xl"
             >
               <Sparkles className="h-4 w-4 mr-2" />
-              G\u00e9n\u00e9rer
+              Générer
             </Button>
           </div>
 

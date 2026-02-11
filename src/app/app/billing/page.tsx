@@ -48,7 +48,7 @@ const PLANS = [
     popular: true,
     features: [
       "10 scans / jour",
-      "Chatbot illimit\u00e9",
+      "Chatbot illimité",
       "Tableau de bord complet",
     ],
   },
@@ -64,9 +64,9 @@ const PLANS = [
     bg: "bg-amber-500/10",
     border: "border-amber-500/20",
     features: [
-      "Scans illimit\u00e9s",
-      "Chatbot illimit\u00e9",
-      "Acc\u00e8s nouveaut\u00e9s en avant-premi\u00e8re",
+      "Scans illimités",
+      "Chatbot illimité",
+      "Accès nouveautés en avant-première",
     ],
   },
 ];
@@ -103,8 +103,8 @@ export default async function BillingPage() {
         <h1 className="text-2xl font-bold tracking-tight">Facturation</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {entitlements.isLifetime
-            ? "Acc\u00e8s \u00e0 vie \u2014 aucune facturation."
-            : "G\u00e9rez votre abonnement et choisissez le plan adapt\u00e9 \u00e0 vos besoins."}
+            ? "Accès à vie — aucune facturation."
+            : "Gérez votre abonnement et choisissez le plan adapté à vos besoins."}
         </p>
       </div>
 
@@ -117,10 +117,10 @@ export default async function BillingPage() {
             </div>
             <div>
               <p className="font-semibold text-emerald-700 dark:text-emerald-400">
-                Acc\u00e8s \u00e0 vie
+                Accès à vie
               </p>
               <p className="text-sm text-muted-foreground">
-                Scans et chatbot illimit\u00e9s, acc\u00e8s \u00e0 toutes les fonctionnalit\u00e9s.
+                Scans et chatbot illimités, accès à toutes les fonctionnalités.
               </p>
             </div>
           </CardContent>
@@ -155,10 +155,10 @@ export default async function BillingPage() {
               </div>
               <p className="text-sm text-muted-foreground">
                 {entitlements.isPro
-                  ? `Abonn\u00e9 \u2014 prochaine facturation le ${periodEnd ? formatDate(periodEnd) : "N/A"}`
+                  ? `Abonné — prochaine facturation le ${periodEnd ? formatDate(periodEnd) : "N/A"}`
                   : entitlements.isTrialActive && trialEnd
-                    ? `Essai actif \u2014 ${Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000))} jours restants`
-                    : "Essai termin\u00e9 \u2014 passez \u00e0 un abonnement pour tout d\u00e9bloquer."}
+                    ? `Essai actif — ${Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000))} jours restants`
+                    : "Essai terminé — passez à un abonnement pour tout débloquer."}
               </p>
             </div>
             {subscription?.stripe_customer_id && (
@@ -289,7 +289,7 @@ export default async function BillingPage() {
                   Lifetime &mdash; 699 &euro;
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  Acc\u00e8s illimit\u00e9 \u00e0 vie. Contactez le support pour activer cette offre.
+                  Accès illimité à vie. Contactez le support pour activer cette offre.
                 </p>
               </div>
             </CardContent>

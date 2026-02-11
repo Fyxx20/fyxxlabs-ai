@@ -27,7 +27,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
   const suggestedPrompts = [
     "Pourquoi mon taux de conversion est faible ?",
     "Donne-moi 5 quick wins pour ma page produit",
-    "Qu\u2019est-ce qui bloque mon checkout ?",
+    "Qu’est-ce qui bloque mon checkout ?",
     "Quels KPI dois-je suivre cette semaine ?",
   ];
 
@@ -144,9 +144,9 @@ export function CoachChat({ storeId }: { storeId: string }) {
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 mb-4">
               <Sparkles className="h-7 w-7 text-primary" />
             </div>
-            <p className="font-semibold mb-1">D\u00e9marrez la conversation</p>
+            <p className="font-semibold mb-1">Démarrez la conversation</p>
             <p className="text-sm text-muted-foreground max-w-sm">
-              Ex. &laquo; Que dois-je corriger en priorit\u00e9 ? &raquo; ou
+              Ex. &laquo; Que dois-je corriger en priorité ? &raquo; ou
               &laquo; Donne-moi un plan d&apos;action sur 7 jours &raquo;
             </p>
           </div>
@@ -187,7 +187,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
             <div className="rounded-2xl border border-border/60 bg-muted/30 px-4 py-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                <span>R\u00e9flexion...</span>
+                <span>Réflexion...</span>
               </div>
             </div>
           </div>
@@ -202,7 +202,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="\u00c9crivez votre question..."
+              placeholder="Écrivez votre question..."
               disabled={loading}
               className="flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0 h-9"
             />
@@ -230,7 +230,7 @@ export function CoachChat({ storeId }: { storeId: string }) {
           <Zap className="mr-1.5 h-3.5 w-3.5" />
           {rescanLoading
             ? "Relance en cours..."
-            : "J\u2019ai modifi\u00e9 mon site \u2014 relancer un scan"}
+            : "J’ai modifié mon site — relancer un scan"}
         </Button>
       </div>
     </Card>

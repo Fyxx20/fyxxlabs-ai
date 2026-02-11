@@ -121,8 +121,8 @@ export default async function CoachPage() {
             </p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
               {scanRunning
-                ? "L\u2019assistant sera disponible d\u00e8s la fin de l\u2019analyse."
-                : "Lancez une analyse pour que le coach puisse r\u00e9pondre \u00e0 partir de vos donn\u00e9es."}
+                ? "L’assistant sera disponible dès la fin de l’analyse."
+                : "Lancez une analyse pour que le coach puisse répondre à partir de vos données."}
             </p>
             <Link href="/app/scans">
               <Button variant={scanRunning ? "outline" : "default"}>
