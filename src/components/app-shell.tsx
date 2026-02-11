@@ -32,6 +32,16 @@ import {
   Shield,
   Package,
   User,
+  Megaphone,
+  ScrollText,
+  Star,
+  Mail,
+  Eye,
+  Calculator,
+  ImageIcon,
+  Share2,
+  Flame,
+  BarChart3,
 } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useState } from "react";
@@ -50,6 +60,7 @@ const navGroups = [
       { href: "/app/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
       { href: "/app/scans", label: "Scans", icon: ScanSearch },
       { href: "/app/issues", label: "Problèmes", icon: AlertCircle },
+      { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
   {
@@ -59,6 +70,20 @@ const navGroups = [
       { href: "/app/import-product", label: "Importer produit", icon: Package },
       { href: "/app/store-generator", label: "Créer boutique", icon: Rocket },
       { href: "/app/coach", label: "Coach IA", icon: MessageSquare },
+      { href: "/app/ad-copy", label: "Générateur Pubs", icon: Megaphone },
+      { href: "/app/email-templates", label: "Email Marketing", icon: Mail },
+      { href: "/app/image-enhancer", label: "Optimiseur Image", icon: ImageIcon },
+    ],
+  },
+  {
+    label: "Marketing",
+    items: [
+      { href: "/app/social-media", label: "Réseaux Sociaux", icon: Share2 },
+      { href: "/app/winning-products", label: "Produits Gagnants", icon: Flame },
+      { href: "/app/competitor-spy", label: "Espion Concurrent", icon: Eye },
+      { href: "/app/review-generator", label: "Générateur Avis", icon: Star },
+      { href: "/app/legal-generator", label: "Pages Légales", icon: ScrollText },
+      { href: "/app/profit-calculator", label: "Calculateur Profit", icon: Calculator },
     ],
   },
   {
