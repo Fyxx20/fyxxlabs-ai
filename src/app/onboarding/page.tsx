@@ -251,16 +251,16 @@ export default function OnboardingPage() {
       return;
     }
 
-    setScanStatus("queued");
     const scanRes = await fetch("/api/scan/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ store_id: storeId }),
     });
     if (scanRes.ok) {
-      setScanStatus("running");
       const scanData = await scanRes.json();
-      if (scanData.status === "succeeded") setScanStatus("done");
+      if (scanData.status === "succeeded") {
+        // no-op: dashboard refresh will surface latest scan result
+      }
     }
 
     setLoading(false);
