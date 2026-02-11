@@ -130,207 +130,328 @@ function AiLogLine({ text, delay, done }: { text: string; delay: number; done: b
   );
 }
 
-/* ─── Fake Generated Storefront ─── */
+/* ─── Fake Generated Storefront (Real Shopify look) ─── */
 
 function FakeStorefront() {
   const [visibleSections, setVisibleSections] = useState(0);
+  const [selectedThumb, setSelectedThumb] = useState(0);
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setVisibleSections(1), 200),
-      setTimeout(() => setVisibleSections(2), 600),
-      setTimeout(() => setVisibleSections(3), 1000),
-      setTimeout(() => setVisibleSections(4), 1400),
-      setTimeout(() => setVisibleSections(5), 1800),
+      setTimeout(() => setVisibleSections(1), 100),
+      setTimeout(() => setVisibleSections(2), 400),
+      setTimeout(() => setVisibleSections(3), 700),
+      setTimeout(() => setVisibleSections(4), 1000),
+      setTimeout(() => setVisibleSections(5), 1300),
+      setTimeout(() => setVisibleSections(6), 1600),
+      setTimeout(() => setVisibleSections(7), 1900),
+      setTimeout(() => setVisibleSections(8), 2200),
     ];
     return () => timers.forEach(clearTimeout);
   }, []);
 
+  const PRODUCT_THUMBS = ["🧥", "👤", "🖤", "🍂", "💼"];
+  const FEATURES = [
+    "Design oversize ultra tendance",
+    "Double poches fonctionnelles",
+    "Fermeture éclair robuste",
+    "Tissu doux et confortable",
+    "Style street wear authentique",
+  ];
+  const TIMELINE = [
+    { period: "Jour 1", desc: "Recevez votre hoodie et découvrez sa douceur exceptionnelle" },
+    { period: "Première semaine", desc: "Adoptez le confort oversize et le style urbain unique" },
+    { period: "Après 2 semaines", desc: "Votre hoodie devient votre pièce préférée au quotidien", bold: true },
+    { period: "Après 1 mois", desc: "Qualité préservée, confort intact malgré les lavages" },
+    { period: "Toute la saison", desc: "Style affirmé et confiance renouvelée chaque jour" },
+  ];
+  const COMPARISON = [
+    { feature: "Coupe oversize tendance", us: true, them: false },
+    { feature: "Double poches spacieuses", us: true, them: false },
+    { feature: "Tissu premium résistant", us: true, them: false },
+    { feature: "Style street authentique", us: true, them: true },
+    { feature: "Rapport qualité-prix", us: true, them: false },
+  ];
+
   return (
-    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0a14]">
-      {/* Fake store navbar */}
+    <div className="max-h-[420px] overflow-y-auto overflow-x-hidden bg-white sm:max-h-[480px]" style={{ scrollbarWidth: "thin", scrollbarColor: "#d1d5db transparent" }}>
+      {/* ─── Announcement bar ─── */}
       {visibleSections >= 1 && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-gradient-to-r from-rose-500 to-pink-500 px-3 py-1.5 text-center text-[9px] font-medium text-white sm:text-[10px]"
         >
-          <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-cyan-400 text-[8px] font-bold text-white">
-              LP
-            </div>
-            <span className="font-display text-xs font-bold text-white">LumiPulse</span>
-          </div>
-          <div className="hidden items-center gap-4 sm:flex">
-            {["Accueil", "Produit", "FAQ", "Contact"].map((link) => (
-              <span key={link} className="text-[10px] text-slate-500">{link}</span>
-            ))}
-          </div>
-          <div className="rounded-md bg-violet-600 px-2.5 py-1 text-[9px] font-semibold text-white">
-            Commander
-          </div>
+          Livraison gratuite dès 50€ d&apos;achat | Livraison rapide dans le monde entier
         </motion.div>
       )}
 
-      {/* Fake store hero */}
+      {/* ─── Store navbar ─── */}
+      {visibleSections >= 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: -5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5"
+        >
+          <div className="text-sm text-gray-800">☰</div>
+          <span className="font-display text-sm font-bold tracking-wider text-gray-900 sm:text-base">YOUR BRAND</span>
+          <div className="text-sm text-gray-800">🛒</div>
+        </motion.div>
+      )}
+
+      {/* ─── Product Hero ─── */}
       {visibleSections >= 2 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="relative overflow-hidden px-4 py-5"
+          transition={{ duration: 0.4 }}
+          className="px-4 pb-3 pt-4"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/[0.08] to-cyan-500/[0.05]" />
-          <div className="relative grid grid-cols-2 items-center gap-4">
-            <div>
-              <div className="mb-1 inline-flex rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[8px] text-violet-300">
-                ✨ Nouveau
-              </div>
-              <h3 className="font-display text-sm font-bold leading-tight text-white sm:text-base">
-                Thérapie LED<br />
-                <span className="gradient-text">Dernière Génération</span>
-              </h3>
-              <p className="mt-1 text-[9px] leading-relaxed text-slate-400 sm:text-[10px]">
-                Soulagement professionnel. Résultats visibles en 2 semaines.
-              </p>
-              <div className="mt-2 flex gap-2">
-                <div className="rounded-md bg-violet-600 px-2.5 py-1 text-[9px] font-semibold text-white">
-                  Acheter — 49,90€
-                </div>
-                <div className="rounded-md border border-white/[0.1] px-2.5 py-1 text-[9px] text-slate-400">
-                  En savoir plus
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-center">
-              <div className="relative h-24 w-24 sm:h-28 sm:w-28">
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/30 to-cyan-500/20" />
-                <div className="absolute inset-2 flex items-center justify-center rounded-xl bg-slate-800/80">
-                  <Sparkles className="h-8 w-8 text-violet-400/70 sm:h-10 sm:w-10" />
-                </div>
-                <div className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-bold text-white">
-                  -30%
-                </div>
-              </div>
-            </div>
+          {/* Main product image */}
+          <div className="relative mx-auto flex h-36 w-full max-w-[240px] items-center justify-center rounded-lg border border-gray-100 bg-gray-50 sm:h-44">
+            <div className="text-5xl sm:text-6xl">🧥</div>
+            <button className="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white text-[10px] text-gray-400 shadow">
+              ›
+            </button>
+          </div>
+
+          {/* Thumbnails */}
+          <div className="mt-2 flex justify-center gap-1.5">
+            {PRODUCT_THUMBS.map((thumb, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedThumb(i)}
+                className={`flex h-8 w-8 items-center justify-center rounded border text-xs transition-all sm:h-9 sm:w-9 ${
+                  selectedThumb === i ? "border-gray-900 shadow-sm" : "border-gray-200"
+                }`}
+              >
+                {thumb}
+              </button>
+            ))}
           </div>
         </motion.div>
       )}
 
-      {/* Trust badges */}
+      {/* ─── Reviews + Title + Price ─── */}
       {visibleSections >= 3 && (
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="grid grid-cols-4 gap-1 border-y border-white/[0.04] px-4 py-2.5"
+          transition={{ duration: 0.35 }}
+          className="px-4 pb-3"
         >
-          {[
-            { icon: "🚚", label: "Livraison offerte" },
-            { icon: "🔒", label: "Paiement sécurisé" },
-            { icon: "↩️", label: "Retour 30j" },
-            { icon: "⭐", label: "4.9/5 (1,2k avis)" },
-          ].map((b) => (
-            <div key={b.label} className="flex flex-col items-center gap-0.5 text-center">
-              <span className="text-xs">{b.icon}</span>
-              <span className="text-[8px] leading-tight text-slate-500">{b.label}</span>
+          {/* Stars */}
+          <div className="flex items-center gap-1.5">
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <span key={i} className="text-[10px] text-gray-900">★</span>
+              ))}
             </div>
-          ))}
-        </motion.div>
-      )}
+            <span className="text-[9px] text-gray-500">Excellent | Noté 4.8 (21,883 clients satisfaits)</span>
+          </div>
 
-      {/* Product section with details */}
-      {visibleSections >= 4 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="px-4 py-4"
-        >
-          <div className="grid grid-cols-3 gap-2">
-            {/* Product card 1 */}
-            <div className="overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
-              <div className="flex h-14 items-center justify-center bg-gradient-to-br from-violet-500/20 to-blue-500/10 sm:h-16">
-                <Package className="h-5 w-5 text-violet-400/60" />
-              </div>
-              <div className="p-2">
-                <p className="text-[9px] font-semibold text-white">Masque LED Pro</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="font-mono text-[10px] font-bold text-violet-400">49,90€</span>
-                  <span className="font-mono text-[8px] text-slate-600 line-through">79,90€</span>
-                </div>
-                <div className="mt-0.5 flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-2 w-2 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-              </div>
-            </div>
+          {/* Title */}
+          <h2 className="mt-2 font-display text-lg font-extrabold leading-tight text-gray-900 sm:text-xl">
+            Veste Hoodie Oversize Femme Automne
+          </h2>
 
-            {/* Product card 2 */}
-            <div className="overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
-              <div className="flex h-14 items-center justify-center bg-gradient-to-br from-cyan-500/20 to-blue-500/10 sm:h-16">
-                <Zap className="h-5 w-5 text-cyan-400/60" />
-              </div>
-              <div className="p-2">
-                <p className="text-[9px] font-semibold text-white">Kit Thérapie+</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="font-mono text-[10px] font-bold text-cyan-400">89,90€</span>
-                  <span className="font-mono text-[8px] text-slate-600 line-through">129€</span>
-                </div>
-                <div className="mt-0.5 flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-2 w-2 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-              </div>
-            </div>
+          {/* Description */}
+          <p className="mt-1.5 text-[10px] italic leading-relaxed text-gray-500 sm:text-[11px]">
+            Alliez style street et confort absolu avec notre veste oversize
+          </p>
 
-            {/* Product card 3 */}
-            <div className="overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
-              <div className="flex h-14 items-center justify-center bg-gradient-to-br from-emerald-500/20 to-teal-500/10 sm:h-16">
-                <ShoppingBag className="h-5 w-5 text-emerald-400/60" />
-              </div>
-              <div className="p-2">
-                <p className="text-[9px] font-semibold text-white">Gel Conducteur</p>
-                <div className="flex items-baseline gap-1">
-                  <span className="font-mono text-[10px] font-bold text-emerald-400">19,90€</span>
-                </div>
-                <div className="mt-0.5 flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="h-2 w-2 fill-amber-400 text-amber-400" />
-                  ))}
-                </div>
-              </div>
-            </div>
+          {/* Features checkboxes */}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {FEATURES.map((f) => (
+              <span key={f} className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[9px] font-medium text-gray-700">
+                <span className="flex h-3.5 w-3.5 items-center justify-center rounded border border-gray-300 bg-white text-[7px]">✓</span>
+                {f}
+              </span>
+            ))}
+          </div>
+
+          {/* Price */}
+          <div className="mt-3 flex items-center gap-2">
+            <span className="font-display text-xl font-extrabold text-gray-900 sm:text-2xl">$229.90</span>
+            <span className="text-sm text-gray-400 line-through">$569.90</span>
+            <span className="rounded-full bg-gray-900 px-2.5 py-0.5 text-[8px] font-bold text-white">
+              ÉCONOMISEZ 60%
+            </span>
+          </div>
+
+          {/* CTA */}
+          <button className="mt-3 w-full rounded-full bg-gray-900 py-2.5 text-[11px] font-bold uppercase tracking-widest text-white sm:text-xs">
+            AJOUTER AU PANIER
+          </button>
+
+          {/* Trust */}
+          <div className="mt-2 flex justify-center gap-4 text-[8px] text-gray-400">
+            <span>Qualité garantie</span>
+            <span>Retours 30 jours</span>
+            <span>Livraison suivie</span>
           </div>
         </motion.div>
       )}
 
-      {/* Footer / social proof */}
+      {/* ─── Timeline section ─── */}
+      {visibleSections >= 4 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="border-t border-gray-100 px-4 py-4"
+        >
+          <div className="relative ml-3 space-y-3 border-l-2 border-gray-200 pl-4">
+            {TIMELINE.map((t, i) => (
+              <div key={t.period} className="relative">
+                <div className={`absolute -left-[21px] top-0.5 h-2.5 w-2.5 rounded-full border-2 ${
+                  i <= 2 ? "border-gray-900 bg-gray-900" : "border-gray-300 bg-gray-300"
+                }`} />
+                <p className={`text-[10px] leading-tight sm:text-[11px] ${t.bold ? "font-bold text-gray-900" : "font-semibold text-gray-700"}`}>
+                  {t.period}
+                </p>
+                <p className="text-[9px] leading-relaxed text-gray-500 sm:text-[10px]">{t.desc}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── Comparison table ─── */}
       {visibleSections >= 5 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="border-t border-gray-100 px-4 py-4"
+        >
+          <h3 className="text-center font-display text-sm font-extrabold text-gray-900 sm:text-base">
+            Pourquoi notre hoodie surpasse la{" "}
+            <span className="italic">concurrence</span>
+          </h3>
+          <p className="mt-1 text-center text-[9px] text-gray-500">
+            Comparez et découvrez la différence de qualité
+          </p>
+
+          <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
+            {/* Header */}
+            <div className="grid grid-cols-3 border-b border-gray-100 bg-gray-50 text-center">
+              <div className="px-2 py-1.5 text-[9px] font-medium text-gray-500" />
+              <div className="border-x border-gray-100 px-2 py-1.5">
+                <p className="text-[9px] font-bold text-gray-900">Notre Hoodie</p>
+                <p className="text-[7px] text-gray-400">✓ Original</p>
+              </div>
+              <div className="px-2 py-1.5 text-[9px] font-semibold text-gray-500">Autres Marques</div>
+            </div>
+
+            {/* Rows */}
+            {COMPARISON.map((row) => (
+              <div key={row.feature} className="grid grid-cols-3 border-b border-gray-50 last:border-b-0">
+                <div className="px-2 py-1.5 text-[8px] font-medium text-gray-700 sm:text-[9px]">{row.feature}</div>
+                <div className="flex items-center justify-center border-x border-gray-100">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-900 text-[8px] text-white">✓</span>
+                </div>
+                <div className="flex items-center justify-center">
+                  {row.them ? (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-900 text-[8px] text-white">✓</span>
+                  ) : (
+                    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-[8px] text-gray-500">✗</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA under comparison */}
+          <button className="mt-3 w-full rounded-full bg-gray-900 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+            AJOUTER AU PANIER
+          </button>
+        </motion.div>
+      )}
+
+      {/* ─── Before / After ─── */}
+      {visibleSections >= 6 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="border-t border-gray-100 px-4 py-4"
+        >
+          <h3 className="text-center font-display text-sm font-extrabold text-gray-900 sm:text-base">
+            Transformez votre style avec notre hoodie <span className="italic">oversize</span>
+          </h3>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div className="text-center">
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-gray-500">BEFORE</p>
+              <div className="flex h-28 items-center justify-center rounded-lg bg-gray-100 sm:h-32">
+                <span className="text-3xl">👤</span>
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="mb-1 text-[9px] font-bold uppercase tracking-wider text-gray-500">AFTER</p>
+              <div className="flex h-28 items-center justify-center rounded-lg bg-gray-100 sm:h-32">
+                <span className="text-3xl">🧥</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-baseline gap-1.5">
+            <span className="font-mono text-2xl font-bold text-gray-900">95%</span>
+            <span className="text-[10px] text-gray-500">Clientes satisfaites du confort</span>
+          </div>
+
+          <button className="mt-2 w-full rounded-full bg-gray-900 py-2 text-[10px] font-bold uppercase tracking-widest text-white">
+            AJOUTER AU PANIER
+          </button>
+        </motion.div>
+      )}
+
+      {/* ─── FAQ ─── */}
+      {visibleSections >= 7 && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+          className="border-t border-gray-100 px-4 py-4"
+        >
+          <h3 className="text-center font-display text-sm font-extrabold text-gray-900">Questions fréquentes</h3>
+          <div className="mt-2.5 space-y-1.5">
+            {[
+              "Comment choisir la bonne taille ?",
+              "De quoi est fait le tissu ?",
+              "Quels sont les délais de livraison ?",
+              "Puis-je retourner le produit ?",
+            ].map((q) => (
+              <div key={q} className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <span className="text-[9px] font-medium text-gray-700 sm:text-[10px]">{q}</span>
+                <span className="text-[10px] text-gray-400">+</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ─── Store footer ─── */}
+      {visibleSections >= 8 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="border-t border-white/[0.04] px-4 py-2.5"
+          transition={{ duration: 0.3 }}
+          className="border-t border-gray-100 bg-gray-50 px-4 py-3"
         >
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <div className="flex -space-x-1">
-                {["bg-violet-500", "bg-cyan-500", "bg-emerald-500", "bg-amber-500"].map((c, i) => (
-                  <div key={i} className={`h-4 w-4 rounded-full ${c} border border-[#0a0a14]`} />
-                ))}
-              </div>
-              <span className="text-[8px] text-slate-500">+1 247 clients satisfaits</span>
-            </div>
-            <div className="flex items-center gap-3">
-              {["FAQ", "CGV", "Contact"].map((l) => (
-                <span key={l} className="text-[8px] text-slate-600">{l}</span>
+            <span className="font-display text-[10px] font-bold tracking-wider text-gray-800">YOUR BRAND</span>
+            <div className="flex gap-3 text-[8px] text-gray-400">
+              {["CGV", "Politique de confidentialité", "Contact"].map((l) => (
+                <span key={l}>{l}</span>
               ))}
             </div>
           </div>
+          <p className="mt-1 text-center text-[7px] text-gray-400">
+            © 2026 Your Brand. Tous droits réservés. Paiement sécurisé.
+          </p>
         </motion.div>
       )}
     </div>
@@ -522,7 +643,7 @@ function HeroDemo() {
                 </div>
                 <div className="ml-3 flex flex-1 items-center gap-2 rounded-lg bg-white/[0.06] px-3 py-1.5">
                   <Shield className="h-3 w-3 text-emerald-500/70" />
-                  <span className="font-mono text-xs text-slate-400">lumipulse-store.myshopify.com</span>
+                  <span className="font-mono text-xs text-slate-400">your-brand.myshopify.com</span>
                 </div>
                 <div className="flex items-center gap-1.5 rounded-md border border-violet-500/20 bg-violet-500/10 px-2 py-1">
                   <Sparkles className="h-3 w-3 text-violet-400" />
