@@ -85,9 +85,9 @@ export default async function IssuesPage() {
     <div className="space-y-6 max-w-4xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Probl&egrave;mes</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Problèmes</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Probl&egrave;mes d&eacute;tect&eacute;s sur votre boutique avec correctifs et exemples.
+          Problèmes détectés sur votre boutique avec correctifs et exemples.
         </p>
       </div>
 
@@ -98,9 +98,9 @@ export default async function IssuesPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
               <ScanSearch className="h-8 w-8 text-primary" />
             </div>
-            <p className="text-lg font-semibold mb-1">Aucun scan r&eacute;ussi</p>
+            <p className="text-lg font-semibold mb-1">Aucun scan réussi</p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Lancez un scan pour d&eacute;tecter les probl&egrave;mes de votre boutique.
+              Lancez un scan pour détecter les problèmes de votre boutique.
             </p>
             <Link href="/app/scans">
               <Button>
@@ -146,8 +146,8 @@ export default async function IssuesPage() {
               <div className="flex items-center gap-3">
                 <Lock className="h-4 w-4 text-amber-600" />
                 <p className="text-sm text-muted-foreground">
-                  {allIssues.length - 1} probl&egrave;me(s) suppl&eacute;mentaire(s) masqu&eacute;(s).
-                  Passez &agrave; Pro pour tout voir.
+                  {allIssues.length - 1} problème(s) supplémentaire(s) masqué(s).
+                  Passez à Pro pour tout voir.
                 </p>
               </div>
               <Link href="/app/billing">
@@ -237,7 +237,7 @@ export default async function IssuesPage() {
                     {issue.expected_impact && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                         <AlertTriangle className="h-3.5 w-3.5" />
-                        Impact estim&eacute; : {issue.expected_impact}
+                        Impact estimé : {issue.expected_impact}
                       </p>
                     )}
                   </CardContent>

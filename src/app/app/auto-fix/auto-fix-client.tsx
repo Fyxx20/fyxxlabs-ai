@@ -119,9 +119,9 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
   /* ── step indicator ── */
   const stepConfig = [
     { key: "idle", label: "Charger", icon: Search },
-    { key: "products-loaded", label: "S\u00e9lection", icon: Eye },
-    { key: "preview", label: "Aper\u00e7u", icon: Wand2 },
-    { key: "done", label: "Termin\u00e9", icon: Check },
+    { key: "products-loaded", label: "Sélection", icon: Eye },
+    { key: "preview", label: "Aperçu", icon: Wand2 },
+    { key: "done", label: "Terminé", icon: Check },
   ];
   const currentIdx = (() => {
     if (["idle", "loading-products"].includes(step)) return 0;
@@ -201,7 +201,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
             <div className="space-y-2 max-w-lg">
               <h2 className="text-2xl font-bold">Optimisation automatique par IA</h2>
               <p className="text-muted-foreground">
-                FyxxLabs analyse vos produits Shopify et propose des am\u00e9liorations instantan\u00e9es pour booster vos ventes.
+                FyxxLabs analyse vos produits Shopify et propose des améliorations instantanées pour booster vos ventes.
               </p>
             </div>
 
@@ -212,10 +212,10 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
             {/* feature cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full pt-4">
               {[
-                { icon: Type, title: "Titres SEO", desc: "Titres accrocheurs et optimis\u00e9s pour le r\u00e9f\u00e9rencement" },
-                { icon: FileText, title: "Descriptions", desc: "Textes persuasifs avec b\u00e9n\u00e9fices mis en avant" },
-                { icon: Search, title: "Meta SEO", desc: "Meta title & description optimis\u00e9s" },
-                { icon: Tag, title: "Tags", desc: "Cat\u00e9gorisation et tags am\u00e9lior\u00e9s" },
+                { icon: Type, title: "Titres SEO", desc: "Titres accrocheurs et optimisés pour le référencement" },
+                { icon: FileText, title: "Descriptions", desc: "Textes persuasifs avec bénéfices mis en avant" },
+                { icon: Search, title: "Meta SEO", desc: "Meta title & description optimisés" },
+                { icon: Tag, title: "Tags", desc: "Catégorisation et tags améliorés" },
               ].map((f) => (
                 <div key={f.title} className="rounded-xl border bg-background/80 backdrop-blur p-4 text-left space-y-2">
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -236,7 +236,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div className="text-center">
               <p className="font-medium">Chargement de vos produits Shopify&hellip;</p>
-              <p className="text-sm text-muted-foreground mt-1">Connexion \u00e0 votre boutique en cours</p>
+              <p className="text-sm text-muted-foreground mt-1">Connexion à votre boutique en cours</p>
             </div>
           </div>
         </div>
@@ -248,10 +248,10 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center justify-between">
-                <span>{products.length} produit(s) trouv\u00e9(s)</span>
-                <Badge variant="secondary">{selectedIds.size} s\u00e9lectionn\u00e9(s)</Badge>
+                <span>{products.length} produit(s) trouvé(s)</span>
+                <Badge variant="secondary">{selectedIds.size} sélectionné(s)</Badge>
               </CardTitle>
-              <CardDescription>S\u00e9lectionnez les produits \u00e0 optimiser (max 10)</CardDescription>
+              <CardDescription>Sélectionnez les produits à optimiser (max 10)</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -275,7 +275,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{p.title}</p>
                       <p className="text-xs text-muted-foreground">
-                        {p.price ? `${p.price} \u20ac` : "Prix N/A"} \u00b7 {p.images_count} image(s)
+                        {p.price ? `${p.price} €` : "Prix N/A"} · {p.images_count} image(s)
                       </p>
                     </div>
                   </label>
@@ -289,7 +289,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
             size="lg"
             className="w-full gap-2"
           >
-            <Zap className="h-4 w-4" /> G\u00e9n\u00e9rer les optimisations IA ({selectedIds.size} produit{selectedIds.size > 1 ? "s" : ""})
+            <Zap className="h-4 w-4" /> Générer les optimisations IA ({selectedIds.size} produit{selectedIds.size > 1 ? "s" : ""})
           </Button>
         </>
       )}
@@ -300,7 +300,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div className="text-center">
               <p className="font-medium">L&apos;IA analyse vos produits&hellip;</p>
-              <p className="text-sm text-muted-foreground mt-1">G\u00e9n\u00e9ration des titres, descriptions et SEO optimis\u00e9s</p>
+              <p className="text-sm text-muted-foreground mt-1">Génération des titres, descriptions et SEO optimisés</p>
             </div>
           </div>
         </div>
@@ -312,9 +312,9 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
-                <Eye className="h-5 w-5 text-primary" /> Aper\u00e7u des modifications
+                <Eye className="h-5 w-5 text-primary" /> Aperçu des modifications
               </CardTitle>
-              <CardDescription>V\u00e9rifiez les changements avant de les appliquer \u00e0 votre boutique Shopify</CardDescription>
+              <CardDescription>Vérifiez les changements avant de les appliquer à votre boutique Shopify</CardDescription>
             </CardHeader>
           </Card>
 
@@ -372,7 +372,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
 
           <div className="flex gap-3">
             <Button variant="outline" onClick={() => setStep("products-loaded")} className="flex-1">
-              Modifier la s\u00e9lection
+              Modifier la sélection
             </Button>
             <Button onClick={applyFixes} className="flex-1 gap-2">
               <Zap className="h-4 w-4" /> Appliquer {fixes.length} modification(s) sur Shopify
@@ -401,7 +401,7 @@ export function AutoFixClient({ storeId }: { storeId: string }) {
               <div className="h-8 w-8 rounded-full bg-green-100 dark:bg-green-950/50 flex items-center justify-center">
                 <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
               </div>
-              Modifications appliqu\u00e9es
+              Modifications appliquées
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">

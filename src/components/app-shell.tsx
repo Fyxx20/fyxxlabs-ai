@@ -38,7 +38,6 @@ import {
   Mail,
   Eye,
   Calculator,
-  ImageIcon,
   Share2,
   Flame,
   BarChart3,
@@ -72,7 +71,6 @@ const navGroups = [
       { href: "/app/coach", label: "Coach IA", icon: MessageSquare },
       { href: "/app/ad-copy", label: "Générateur Pubs", icon: Megaphone },
       { href: "/app/email-templates", label: "Email Marketing", icon: Mail },
-      { href: "/app/image-enhancer", label: "Optimiseur Image", icon: ImageIcon },
     ],
   },
   {

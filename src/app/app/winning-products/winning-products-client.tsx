@@ -43,7 +43,7 @@ interface ProductIdea {
 const compLevelConfig = {
   low: { label: "Faible", color: "text-green-600 dark:text-green-400", bg: "bg-green-50 dark:bg-green-950/30" },
   medium: { label: "Moyenne", color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/30" },
-  high: { label: "\u00c9lev\u00e9e", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30" },
+  high: { label: "Élevée", color: "text-red-600 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/30" },
 };
 
 export function WinningProductsClient() {
@@ -118,7 +118,7 @@ export function WinningProductsClient() {
               </div>
               <h2 className="text-2xl font-bold">Trouvez votre prochain best-seller</h2>
               <p className="text-muted-foreground max-w-lg">
-                L&apos;IA analyse les tendances du march\u00e9 et vous sugg\u00e8re des produits \u00e0 fort potentiel
+                L&apos;IA analyse les tendances du marché et vous suggère des produits à fort potentiel
               </p>
             </div>
 
@@ -142,11 +142,11 @@ export function WinningProductsClient() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">Budget de d\u00e9part</label>
-                  <Input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="Ex: 500\u20ac" className="bg-background" />
+                  <label className="text-sm font-medium mb-1.5 block">Budget de départ</label>
+                  <Input value={budget} onChange={(e) => setBudget(e.target.value)} placeholder="Ex: 500€" className="bg-background" />
                 </div>
                 <div>
-                  <label className="text-sm font-medium mb-1.5 block">March\u00e9 cible</label>
+                  <label className="text-sm font-medium mb-1.5 block">Marché cible</label>
                   <Input value={targetMarket} onChange={(e) => setTargetMarket(e.target.value)} placeholder="France / Europe" className="bg-background" />
                 </div>
               </div>
@@ -182,7 +182,7 @@ export function WinningProductsClient() {
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <div className="text-center">
               <p className="font-medium">Recherche en cours&hellip;</p>
-              <p className="text-sm text-muted-foreground mt-1">Analyse des tendances et des opportunit\u00e9s du march\u00e9</p>
+              <p className="text-sm text-muted-foreground mt-1">Analyse des tendances et des opportunités du marché</p>
             </div>
           </div>
         </div>
@@ -250,23 +250,23 @@ export function WinningProductsClient() {
                       </div>
 
                       <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
-                        <p className="text-xs font-medium text-green-800 dark:text-green-400 mb-1">\u2728 Pourquoi c&apos;est un winning product</p>
+                        <p className="text-xs font-medium text-green-800 dark:text-green-400 mb-1">✨ Pourquoi c&apos;est un winning product</p>
                         <p className="text-xs text-green-700 dark:text-green-300">{p.why_winning}</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="rounded-lg border p-3">
-                          <p className="text-xs font-medium mb-1">\ud83c\udfaf Angle marketing</p>
+                          <p className="text-xs font-medium mb-1">🎯 Angle marketing</p>
                           <p className="text-xs text-muted-foreground">{p.marketing_angle}</p>
                         </div>
                         <div className="rounded-lg border p-3">
-                          <p className="text-xs font-medium mb-1">\ud83d\udce6 Sourcing</p>
+                          <p className="text-xs font-medium mb-1">📦 Sourcing</p>
                           <p className="text-xs text-muted-foreground">{p.sourcing_tips}</p>
                         </div>
                       </div>
 
                       <div className="bg-primary/5 border border-primary/10 rounded-lg p-3">
-                        <p className="text-xs font-medium mb-1">\ud83c\udfa3 Hook publicitaire</p>
+                        <p className="text-xs font-medium mb-1">🎣 Hook publicitaire</p>
                         <p className="text-sm font-medium italic">&quot;{p.ad_hook}&quot;</p>
                       </div>
                     </CardContent>
@@ -282,14 +282,14 @@ export function WinningProductsClient() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Lightbulb className="h-4 w-4 text-amber-500" /> Insights march\u00e9
+                    <Lightbulb className="h-4 w-4 text-amber-500" /> Insights marché
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-1.5">
                     {insights.map((ins, i) => (
                       <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                        <span className="text-amber-500 mt-0.5">\u2192</span> {ins}
+                        <span className="text-amber-500 mt-0.5">→</span> {ins}
                       </li>
                     ))}
                   </ul>
@@ -300,14 +300,14 @@ export function WinningProductsClient() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2 text-red-600 dark:text-red-400">
-                    <ShieldAlert className="h-4 w-4" /> Produits \u00e0 \u00e9viter
+                    <ShieldAlert className="h-4 w-4" /> Produits à éviter
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-1.5">
                     {avoidProducts.map((a, i) => (
                       <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                        <span className="text-red-500 mt-0.5">\u2717</span> {a}
+                        <span className="text-red-500 mt-0.5">✗</span> {a}
                       </li>
                     ))}
                   </ul>

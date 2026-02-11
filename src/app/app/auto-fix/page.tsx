@@ -49,7 +49,7 @@ export default async function AutoFixPage() {
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 mb-4">
               <Plug className="h-8 w-8 text-amber-600" />
             </div>
-            <p className="text-lg font-semibold mb-1">Shopify non connect&eacute;</p>
+            <p className="text-lg font-semibold mb-1">Shopify non connecté</p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
               Connectez votre boutique Shopify pour utiliser l&apos;Auto-Fix IA.
             </p>

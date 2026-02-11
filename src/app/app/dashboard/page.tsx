@@ -108,9 +108,9 @@ export default async function DashboardPage() {
               <Lock className="h-5 w-5 text-amber-600" />
             </div>
             <div>
-              <p className="text-sm font-semibold">Analyse limit&eacute;e</p>
+              <p className="text-sm font-semibold">Analyse limitée</p>
               <p className="text-xs text-muted-foreground">
-                Passe &agrave; un abonnement pour tout d&eacute;bloquer.
+                Passe à un abonnement pour tout débloquer.
               </p>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default async function DashboardPage() {
             <div>
               <p className="font-semibold">Analyse en cours...</p>
               <p className="text-sm text-muted-foreground">
-                Cela peut prendre 1 &agrave; 3 minutes.
+                Cela peut prendre 1 à 3 minutes.
               </p>
             </div>
           </CardContent>
@@ -295,7 +295,7 @@ export default async function DashboardPage() {
             <p className="text-lg font-semibold mb-1">Lancez votre premier scan</p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
               Analysez votre boutique en un clic pour obtenir un score de performance et
-              des recommandations personnalis&eacute;es.
+              des recommandations personnalisées.
             </p>
             <Link href="/app/scans">
               <Button>

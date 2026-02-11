@@ -95,8 +95,8 @@ export default async function ScansPage() {
             </div>
             <p className="text-lg font-semibold mb-1">Aucune analyse</p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Lancez votre premi&egrave;re analyse pour obtenir un score et des
-              recommandations personnalis&eacute;es.
+              Lancez votre première analyse pour obtenir un score et des
+              recommandations personnalisées.
             </p>
             {entitlements.canScan && (
               <StartScanButton storeId={storeId} storeName={currentStore?.name} />
@@ -122,7 +122,7 @@ export default async function ScansPage() {
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     <CardTitle className="text-base">
-                      &Eacute;volution du score
+                      Évolution du score
                     </CardTitle>
                   </div>
                 </CardHeader>
@@ -217,11 +217,11 @@ export default async function ScansPage() {
                             className="text-xs"
                           >
                             {scan.status === "succeeded"
-                              ? "Termin\u00e9"
+                              ? "Terminé"
                               : scan.status === "running"
                                 ? "En cours"
                                 : scan.status === "failed"
-                                  ? "\u00c9chec"
+                                  ? "Échec"
                                   : "En file"}
                           </Badge>
                         </TableCell>
@@ -233,7 +233,7 @@ export default async function ScansPage() {
                                 size="sm"
                                 className="text-xs h-8"
                               >
-                                D&eacute;tails
+                                Détails
                                 <ArrowRight className="ml-1 h-3 w-3" />
                               </Button>
                             </Link>

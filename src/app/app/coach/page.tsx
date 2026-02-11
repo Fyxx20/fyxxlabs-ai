@@ -68,7 +68,7 @@ export default async function CoachPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Recommandations personnalis&eacute;es bas&eacute;es sur vos donn&eacute;es.
+            Recommandations personnalisées basées sur vos données.
           </p>
         </div>
         <Card className="border-dashed border-2 border-border/60">
@@ -77,11 +77,11 @@ export default async function CoachPage() {
               <Lock className="h-8 w-8 text-amber-600" />
             </div>
             <p className="text-lg font-semibold mb-1">
-              R&eacute;serv&eacute; aux abonn&eacute;s
+              Réservé aux abonnés
             </p>
             <p className="text-sm text-muted-foreground text-center max-w-md mb-6">
-              Passez &agrave; Starter, Pro ou Elite pour activer le coach IA et obtenir
-              des recommandations personnalis&eacute;es.
+              Passez à Starter, Pro ou Elite pour activer le coach IA et obtenir
+              des recommandations personnalisées.
             </p>
             <Link href="/app/billing">
               <Button>
@@ -102,7 +102,7 @@ export default async function CoachPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Recommandations personnalis&eacute;es bas&eacute;es sur vos donn&eacute;es.
+            Recommandations personnalisées basées sur vos données.
           </p>
         </div>
         <Card className="border-dashed border-2 border-border/60">
@@ -151,7 +151,7 @@ export default async function CoachPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Coach IA</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Posez vos questions et obtenez des actions concr&egrave;tes bas&eacute;es sur
+          Posez vos questions et obtenez des actions concrètes basées sur
           votre dernier scan.
         </p>
       </div>
