@@ -558,67 +558,128 @@ export function StoreGeneratorClient({
 
       {/* ════════════ STEP 1: IMPORT ════════════ */}
       {step === "import" && !loading && (
-        <div className="max-w-3xl mx-auto space-y-8">
-          <div className="text-center space-y-3 pt-8">
-            <h2 className="text-2xl sm:text-3xl font-bold">
-              Créez votre boutique en quelques secondes
-            </h2>
-            <p className="text-muted-foreground text-sm max-w-lg mx-auto">
-              Collez un lien produit <span className="font-medium text-foreground">AliExpress</span>,{" "}
-              <span className="font-medium text-foreground">Shopify</span> ou{" "}
-              <span className="font-medium text-foreground">Amazon</span>{" "}
-              et générez une boutique optimisée en un clic.
-            </p>
-          </div>
+        <div className="max-w-4xl mx-auto space-y-8 pt-4">
 
-          {/* URL Input */}
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex-1">
-              <Input
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="Collez l'URL de votre produit..."
-                className="h-12 text-sm pl-4 pr-4 rounded-xl border-border/60 focus:border-primary"
-                onKeyDown={(e) => e.key === "Enter" && handleImport()}
-              />
+          {/* ── Hero Card ── */}
+          <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/[0.04] via-background to-primary/[0.02] p-8 sm:p-10">
+            {/* Decorative blobs */}
+            <div className="absolute -top-20 -right-20 w-60 h-60 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative text-center space-y-3 mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+                Créez votre boutique en quelques secondes
+              </h2>
+              <p className="text-muted-foreground text-sm max-w-lg mx-auto">
+                Collez un lien produit et laissez l&apos;IA générer une boutique
+                complète, optimisée pour la conversion.
+              </p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="h-12 px-4 rounded-xl border border-border/60 bg-background text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors min-w-[150px]">
-                  <span className="text-lg leading-none">{LANGUAGES.find(l => l.code === language)?.flag}</span>
-                  <span className="font-medium">{LANGUAGES.find(l => l.code === language)?.label}</span>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[180px]">
-                {LANGUAGES.map((lang) => (
-                  <DropdownMenuItem
-                    key={lang.code}
-                    onClick={() => setLanguage(lang.code)}
-                    className={`flex items-center gap-3 py-2.5 px-3 cursor-pointer ${language === lang.code ? "bg-accent font-semibold" : ""}`}
-                  >
-                    <span className="text-lg leading-none">{lang.flag}</span>
-                    <span>{lang.label}</span>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              onClick={handleImport}
-              disabled={!url.trim()}
-              className="h-12 px-6 rounded-xl"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Générer
-            </Button>
+
+            {/* URL Input row */}
+            <div className="relative flex flex-col sm:flex-row gap-2 max-w-2xl mx-auto">
+              <div className="flex-1 relative">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">
+                  <LinkIcon className="h-4 w-4" />
+                </div>
+                <Input
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="Entrez l'URL de votre produit AliExpress..."
+                  className="h-12 text-sm pl-10 pr-4 rounded-xl border-border/60 bg-background focus:border-primary shadow-sm"
+                  onKeyDown={(e) => e.key === "Enter" && handleImport()}
+                />
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="h-12 px-4 rounded-xl border border-border/60 bg-background text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors min-w-[150px] shadow-sm">
+                    <span className="text-lg leading-none">{LANGUAGES.find(l => l.code === language)?.flag}</span>
+                    <span className="font-medium">{LANGUAGES.find(l => l.code === language)?.label}</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground ml-auto" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-[180px]">
+                  {LANGUAGES.map((lang) => (
+                    <DropdownMenuItem
+                      key={lang.code}
+                      onClick={() => setLanguage(lang.code)}
+                      className={`flex items-center gap-3 py-2.5 px-3 cursor-pointer ${language === lang.code ? "bg-accent font-semibold" : ""}`}
+                    >
+                      <span className="text-lg leading-none">{lang.flag}</span>
+                      <span>{lang.label}</span>
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                onClick={handleImport}
+                disabled={!url.trim()}
+                className="h-12 px-6 rounded-xl shadow-sm"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Générer
+              </Button>
+            </div>
+
+            {/* Tip banner */}
+            <div className="mt-5 flex items-center justify-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40 rounded-lg px-4 py-2 max-w-lg mx-auto">
+              <span className="text-base">💡</span>
+              <span>1 produit par boutique pour le moment. Multi-produits bientôt disponible.</span>
+            </div>
+
+            {/* Supported platforms */}
+            <div className="mt-6 flex items-center justify-center gap-6 text-xs text-muted-foreground">
+              <span className="font-medium">Sources supportées :</span>
+              <div className="flex items-center gap-4">
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">🧡</span> AliExpress
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">🟢</span> Shopify
+                </span>
+                <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/60">
+                  <span className="text-base">📦</span> Amazon
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Tip */}
-          <div className="text-center">
-            <p className="text-xs text-muted-foreground">
-              1 produit par boutique pour le moment.
-            </p>
+          {/* ── Feature cards ── */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                </div>
+                <h4 className="text-sm font-semibold">IA avancée</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Copywriting, SEO et design générés automatiquement pour maximiser vos conversions.
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                  <ShoppingBag className="h-4 w-4 text-emerald-600" />
+                </div>
+                <h4 className="text-sm font-semibold">Import Shopify</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Produit créé directement sur votre boutique Shopify en un clic.
+              </p>
+            </div>
+            <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                  <BarChart3 className="h-4 w-4 text-violet-600" />
+                </div>
+                <h4 className="text-sm font-semibold">Personnalisable</h4>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Modifiez chaque section avant publication : textes, prix, images, FAQ.
+              </p>
+            </div>
           </div>
 
           {/* ─── HISTORY ─── */}
