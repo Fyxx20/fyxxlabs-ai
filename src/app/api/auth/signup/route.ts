@@ -54,16 +54,39 @@ export async function POST(req: NextRequest) {
         .from("profiles")
         .upsert(
           {
-            id: data.user.id,
+            user_id: data.user.id,
             email: data.user.email,
             role: "user",
-            plan: "free",
+            plan: "trial",
+            trial_started_at: new Date().toISOString(),
+            trial_ends_at: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            scans_used: 0,
           },
-          { onConflict: "id" }
+          { onConflict: "user_id" }
         );
 
       if (profileError) {
         console.error("[signup] Profile upsert error:", profileError.message);
+      }
+
+      // Safety net: normalize subscription trial values if DB defaults are stale.
+      const { error: subError } = await sb
+        .from("subscriptions")
+        .upsert(
+          {
+            user_id: data.user.id,
+            status: "trialing",
+            trial_start: new Date().toISOString(),
+            trial_end: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            plan: "free",
+            source: "manual",
+            advice_consumed: false,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+      if (subError) {
+        console.error("[signup] Subscription upsert error:", subError.message);
       }
     }
 

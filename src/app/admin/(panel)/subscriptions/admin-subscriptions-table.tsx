@@ -13,6 +13,7 @@ type Row = {
   user_id: string;
   email: string | null;
   plan: string;
+  display_plan?: string;
   status: string;
   trial_end: string | null;
   advice_consumed: boolean;
@@ -105,8 +106,8 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                       </Link>
                     </td>
                     <td className="py-3">
-                      <Badge variant={r.plan === "lifetime" ? "default" : "secondary"}>
-                        {r.plan}
+                      <Badge variant={(r.display_plan ?? r.plan) === "lifetime" ? "default" : "secondary"}>
+                        {r.display_plan ?? r.plan}
                       </Badge>
                     </td>
                     <td className="py-3">{r.status}</td>
@@ -118,7 +119,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                     <td className="py-3 text-slate-300">{formatDate(r.updated_at)}</td>
                     <td className="py-3 text-right">
                       <div className="flex flex-wrap gap-1 justify-end">
-                        {r.plan !== "lifetime" && (
+                        {(r.display_plan ?? r.plan) !== "lifetime" && (
                           <Button
                             size="sm"
                             variant="outline"
@@ -129,7 +130,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                             {loading === r.user_id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Lifetime"}
                           </Button>
                         )}
-                        {r.plan !== "pro" && (
+                        {(r.display_plan ?? r.plan) !== "pro" && (
                           <Button
                             size="sm"
                             variant="outline"

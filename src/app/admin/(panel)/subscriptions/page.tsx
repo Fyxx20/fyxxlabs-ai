@@ -28,6 +28,12 @@ export default async function AdminSubscriptionsPage() {
 
   const rows = (subscriptions ?? []).map((s) => ({
     ...s,
+    display_plan:
+      s.status === "trialing"
+        ? "trial"
+        : s.status === "canceled"
+          ? "free"
+          : s.plan,
     email: emailByUser.get(s.user_id) ?? null,
   }));
 
