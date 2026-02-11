@@ -35,14 +35,14 @@ const products = [
     name: "Pro",
     description: "FyxxLabs Pro — Analyse avancée, scans quotidiens, chatbot illimité",
     prices: [
-      { envKey: "STRIPE_PRICE_PRO_MONTHLY", unit_amount: 1999, currency: "eur", interval: "month" },
+      { envKey: "STRIPE_PRICE_PRO_MONTHLY", unit_amount: 3900, currency: "eur", interval: "month" },
     ],
   },
   {
     name: "Agence",
     description: "FyxxLabs Agence — Pour les agences, multi-boutiques, fonctionnalités premium",
     prices: [
-      { envKey: "STRIPE_PRICE_AGENCE_MONTHLY", unit_amount: 9900, currency: "eur", interval: "month" },
+      { envKey: "STRIPE_PRICE_AGENCE_MONTHLY", unit_amount: 7900, currency: "eur", interval: "month" },
     ],
   },
 ];
