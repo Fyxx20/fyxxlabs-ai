@@ -106,147 +106,461 @@ function Particles() {
   );
 }
 
+/* ─── AI Analysis Log Line ─── */
+
+function AiLogLine({ text, delay, done }: { text: string; delay: number; done: boolean }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay, duration: 0.3 }}
+      className="flex items-center gap-2 font-mono text-xs"
+    >
+      {done ? (
+        <Check className="h-3 w-3 text-emerald-400" />
+      ) : (
+        <motion.div
+          className="h-3 w-3 rounded-full border-2 border-violet-500 border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+        />
+      )}
+      <span className={done ? "text-emerald-400/80" : "text-violet-400/80"}>{text}</span>
+    </motion.div>
+  );
+}
+
+/* ─── Fake Generated Storefront ─── */
+
+function FakeStorefront() {
+  const [visibleSections, setVisibleSections] = useState(0);
+
+  useEffect(() => {
+    const timers = [
+      setTimeout(() => setVisibleSections(1), 200),
+      setTimeout(() => setVisibleSections(2), 600),
+      setTimeout(() => setVisibleSections(3), 1000),
+      setTimeout(() => setVisibleSections(4), 1400),
+      setTimeout(() => setVisibleSections(5), 1800),
+    ];
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-white/[0.06] bg-[#0a0a14]">
+      {/* Fake store navbar */}
+      {visibleSections >= 1 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="flex items-center justify-between border-b border-white/[0.06] px-4 py-2.5"
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-violet-500 to-cyan-400 text-[8px] font-bold text-white">
+              LP
+            </div>
+            <span className="font-display text-xs font-bold text-white">LumiPulse</span>
+          </div>
+          <div className="hidden items-center gap-4 sm:flex">
+            {["Accueil", "Produit", "FAQ", "Contact"].map((link) => (
+              <span key={link} className="text-[10px] text-slate-500">{link}</span>
+            ))}
+          </div>
+          <div className="rounded-md bg-violet-600 px-2.5 py-1 text-[9px] font-semibold text-white">
+            Commander
+          </div>
+        </motion.div>
+      )}
+
+      {/* Fake store hero */}
+      {visibleSections >= 2 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="relative overflow-hidden px-4 py-5"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/[0.08] to-cyan-500/[0.05]" />
+          <div className="relative grid grid-cols-2 items-center gap-4">
+            <div>
+              <div className="mb-1 inline-flex rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[8px] text-violet-300">
+                ✨ Nouveau
+              </div>
+              <h3 className="font-display text-sm font-bold leading-tight text-white sm:text-base">
+                Thérapie LED<br />
+                <span className="gradient-text">Dernière Génération</span>
+              </h3>
+              <p className="mt-1 text-[9px] leading-relaxed text-slate-400 sm:text-[10px]">
+                Soulagement professionnel. Résultats visibles en 2 semaines.
+              </p>
+              <div className="mt-2 flex gap-2">
+                <div className="rounded-md bg-violet-600 px-2.5 py-1 text-[9px] font-semibold text-white">
+                  Acheter — 49,90€
+                </div>
+                <div className="rounded-md border border-white/[0.1] px-2.5 py-1 text-[9px] text-slate-400">
+                  En savoir plus
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-center">
+              <div className="relative h-24 w-24 sm:h-28 sm:w-28">
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-violet-500/30 to-cyan-500/20" />
+                <div className="absolute inset-2 flex items-center justify-center rounded-xl bg-slate-800/80">
+                  <Sparkles className="h-8 w-8 text-violet-400/70 sm:h-10 sm:w-10" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 px-1.5 py-0.5 text-[8px] font-bold text-white">
+                  -30%
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Trust badges */}
+      {visibleSections >= 3 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="grid grid-cols-4 gap-1 border-y border-white/[0.04] px-4 py-2.5"
+        >
+          {[
+            { icon: "🚚", label: "Livraison offerte" },
+            { icon: "🔒", label: "Paiement sécurisé" },
+            { icon: "↩️", label: "Retour 30j" },
+            { icon: "⭐", label: "4.9/5 (1,2k avis)" },
+          ].map((b) => (
+            <div key={b.label} className="flex flex-col items-center gap-0.5 text-center">
+              <span className="text-xs">{b.icon}</span>
+              <span className="text-[8px] leading-tight text-slate-500">{b.label}</span>
+            </div>
+          ))}
+        </motion.div>
+      )}
+
+      {/* Product section with details */}
+      {visibleSections >= 4 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="px-4 py-4"
+        >
+          <div className="grid grid-cols-3 gap-2">
+            {/* Product card 1 */}
+            <div className="overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
+              <div className="flex h-14 items-center justify-center bg-gradient-to-br from-violet-500/20 to-blue-500/10 sm:h-16">
+                <Package className="h-5 w-5 text-violet-400/60" />
+              </div>
+              <div className="p-2">
+                <p className="text-[9px] font-semibold text-white">Masque LED Pro</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-mono text-[10px] font-bold text-violet-400">49,90€</span>
+                  <span className="font-mono text-[8px] text-slate-600 line-through">79,90€</span>
+                </div>
+                <div className="mt-0.5 flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-2 w-2 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Product card 2 */}
+            <div className="overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
+              <div className="flex h-14 items-center justify-center bg-gradient-to-br from-cyan-500/20 to-blue-500/10 sm:h-16">
+                <Zap className="h-5 w-5 text-cyan-400/60" />
+              </div>
+              <div className="p-2">
+                <p className="text-[9px] font-semibold text-white">Kit Thérapie+</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-mono text-[10px] font-bold text-cyan-400">89,90€</span>
+                  <span className="font-mono text-[8px] text-slate-600 line-through">129€</span>
+                </div>
+                <div className="mt-0.5 flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-2 w-2 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Product card 3 */}
+            <div className="overflow-hidden rounded-lg border border-white/[0.06] bg-white/[0.02]">
+              <div className="flex h-14 items-center justify-center bg-gradient-to-br from-emerald-500/20 to-teal-500/10 sm:h-16">
+                <ShoppingBag className="h-5 w-5 text-emerald-400/60" />
+              </div>
+              <div className="p-2">
+                <p className="text-[9px] font-semibold text-white">Gel Conducteur</p>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-mono text-[10px] font-bold text-emerald-400">19,90€</span>
+                </div>
+                <div className="mt-0.5 flex gap-0.5">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-2 w-2 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Footer / social proof */}
+      {visibleSections >= 5 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="border-t border-white/[0.04] px-4 py-2.5"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <div className="flex -space-x-1">
+                {["bg-violet-500", "bg-cyan-500", "bg-emerald-500", "bg-amber-500"].map((c, i) => (
+                  <div key={i} className={`h-4 w-4 rounded-full ${c} border border-[#0a0a14]`} />
+                ))}
+              </div>
+              <span className="text-[8px] text-slate-500">+1 247 clients satisfaits</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {["FAQ", "CGV", "Contact"].map((l) => (
+                <span key={l} className="text-[8px] text-slate-600">{l}</span>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 /* ─── Hero Demo Animation ─── */
 
 function HeroDemo() {
   const [step, setStep] = useState(0);
+  const [aiLogsDone, setAiLogsDone] = useState<number[]>([]);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setStep(1), 800);
-    const t2 = setTimeout(() => setStep(2), 3000);
-    const t3 = setTimeout(() => setStep(3), 5200);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
+    const timers = [
+      // Step 1: URL pasted
+      setTimeout(() => setStep(1), 800),
+      // Step 2: AI thinking + logs
+      setTimeout(() => setStep(2), 2200),
+      setTimeout(() => setAiLogsDone([0]), 3200),
+      setTimeout(() => setAiLogsDone([0, 1]), 4200),
+      setTimeout(() => setAiLogsDone([0, 1, 2]), 5000),
+      setTimeout(() => setAiLogsDone([0, 1, 2, 3]), 5800),
+      setTimeout(() => setAiLogsDone([0, 1, 2, 3, 4]), 6400),
+      // Step 3: Storefront appears
+      setTimeout(() => setStep(3), 7000),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, []);
 
-  return (
-    <motion.div variants={fadeInUp} custom={0.6} className="mx-auto mt-16 max-w-3xl">
-      <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl">
-        {/* Browser chrome */}
-        <div className="flex items-center gap-2 bg-white/[0.04] px-4 py-3">
-          <div className="flex gap-1.5">
-            <div className="h-3 w-3 rounded-full bg-red-500/60" />
-            <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
-            <div className="h-3 w-3 rounded-full bg-green-500/60" />
-          </div>
-          <div className="ml-3 flex-1 rounded-lg bg-white/[0.06] px-3 py-1.5 font-mono text-xs text-slate-500">
-            fyxxlabs.com/generate
-          </div>
-        </div>
+  const AI_LOGS = [
+    "Extraction des données produit…",
+    "Analyse du marché et de la niche…",
+    "Génération du branding & identité…",
+    "Rédaction des textes & fiches produit…",
+    "Construction de la boutique complète…",
+  ];
 
-        {/* Content */}
-        <div className="p-6">
-          {/* Input */}
-          <div className="flex gap-3">
-            <div className="relative flex-1 overflow-hidden rounded-xl border border-white/[0.1] bg-slate-800/80 px-4 py-3">
-              <AnimatePresence mode="wait">
-                {step === 0 && (
-                  <motion.span
-                    key="placeholder"
-                    exit={{ opacity: 0 }}
-                    className="font-mono text-sm text-slate-500"
+  return (
+    <motion.div variants={fadeInUp} custom={0.6} className="mx-auto mt-16 max-w-4xl">
+      {/* ─── Step 1 & 2: Input + AI analysis ─── */}
+      <AnimatePresence mode="wait">
+        {step < 3 && (
+          <motion.div
+            key="input-phase"
+            exit={{ opacity: 0, y: -30, scale: 0.95 }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] backdrop-blur-xl"
+          >
+            {/* Browser chrome */}
+            <div className="flex items-center gap-2 bg-white/[0.04] px-4 py-3">
+              <div className="flex gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-red-500/60" />
+                <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
+                <div className="h-3 w-3 rounded-full bg-green-500/60" />
+              </div>
+              <div className="ml-3 flex-1 rounded-lg bg-white/[0.06] px-3 py-1.5 font-mono text-xs text-slate-500">
+                fyxxlabs.com/generate
+              </div>
+            </div>
+
+            <div className="p-6">
+              {/* Input */}
+              <div className="flex gap-3">
+                <div className="relative flex-1 overflow-hidden rounded-xl border border-white/[0.1] bg-slate-800/80 px-4 py-3">
+                  <AnimatePresence mode="wait">
+                    {step === 0 && (
+                      <motion.span
+                        key="placeholder"
+                        exit={{ opacity: 0 }}
+                        className="font-mono text-sm text-slate-500"
+                      >
+                        Collez un lien AliExpress…
+                      </motion.span>
+                    )}
+                    {step >= 1 && (
+                      <motion.span
+                        key="url"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="font-mono text-sm text-cyan-400"
+                      >
+                        https://aliexpress.com/item/1005006…
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <motion.button
+                  animate={step === 1 ? { scale: [1, 1.05, 1] } : {}}
+                  transition={{ duration: 0.3 }}
+                  className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/25"
+                >
+                  Générer
+                </motion.button>
+              </div>
+
+              {/* AI analysis logs */}
+              <AnimatePresence>
+                {step === 2 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-5 overflow-hidden"
                   >
-                    Collez un lien AliExpress…
-                  </motion.span>
-                )}
-                {step >= 1 && (
-                  <motion.span
-                    key="url"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="font-mono text-sm text-cyan-400"
-                  >
-                    https://aliexpress.com/item/1005006…
-                  </motion.span>
+                    {/* Thinking header */}
+                    <div className="mb-3 flex items-center gap-3">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map((i) => (
+                          <motion.div
+                            key={i}
+                            className="h-2 w-2 rounded-full bg-violet-500"
+                            animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium text-violet-400">
+                        Fyxx AI — Génération en cours
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="mb-4 overflow-hidden rounded-full bg-white/[0.06]">
+                      <motion.div
+                        className="h-1 rounded-full bg-gradient-to-r from-violet-600 to-cyan-500"
+                        initial={{ width: "0%" }}
+                        animate={{ width: `${Math.min((aiLogsDone.length / AI_LOGS.length) * 100, 100)}%` }}
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                      />
+                    </div>
+
+                    {/* Log lines */}
+                    <div className="space-y-2 rounded-xl border border-white/[0.06] bg-slate-900/80 p-4">
+                      {AI_LOGS.map((log, i) => (
+                        <AiLogLine
+                          key={log}
+                          text={log}
+                          delay={i * 0.15}
+                          done={aiLogsDone.includes(i)}
+                        />
+                      ))}
+                    </div>
+                  </motion.div>
                 )}
               </AnimatePresence>
             </div>
-            <motion.button
-              animate={step === 1 ? { scale: [1, 1.05, 1] } : {}}
-              transition={{ duration: 0.3 }}
-              className="rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition-colors hover:bg-violet-500"
+          </motion.div>
+        )}
+
+        {/* ─── Step 3: Generated storefront ─── */}
+        {step === 3 && (
+          <motion.div
+            key="storefront-phase"
+            initial={{ opacity: 0, y: 40, scale: 0.92 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {/* Success banner */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.3 }}
+              className="mb-4 flex items-center justify-between rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06] px-5 py-3"
             >
-              Générer
-            </motion.button>
-          </div>
-
-          {/* Thinking */}
-          <AnimatePresence>
-            {step === 2 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="mt-5 flex items-center gap-3 overflow-hidden"
-              >
-                <div className="flex gap-1">
-                  {[0, 1, 2].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="h-2 w-2 rounded-full bg-violet-500"
-                      animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
-                    />
-                  ))}
+              <div className="flex items-center gap-2">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20">
+                  <Check className="h-4 w-4 text-emerald-400" />
                 </div>
-                <span className="text-sm text-violet-400">
-                  Fyxx AI thinking… Analyse du produit en cours
+                <span className="text-sm font-medium text-emerald-400">
+                  Boutique générée avec succès
                 </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </div>
+              <div className="flex items-center gap-3">
+                {["Homepage", "Produit", "FAQ", "CGV", "Emails", "Ads"].map((p) => (
+                  <span key={p} className="hidden text-[10px] text-emerald-400/60 sm:inline">
+                    {p} ✓
+                  </span>
+                ))}
+              </div>
+            </motion.div>
 
-          {/* Generated preview */}
-          <AnimatePresence>
-            {step === 3 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-5"
-              >
-                <div className="flex items-center gap-2 text-xs text-emerald-400">
-                  <Check className="h-4 w-4" />
-                  <span>Boutique générée avec succès</span>
+            {/* Fake Browser with full storefront */}
+            <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] shadow-2xl shadow-violet-600/5 backdrop-blur-xl">
+              {/* Browser chrome */}
+              <div className="flex items-center gap-2 bg-white/[0.04] px-4 py-3">
+                <div className="flex gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-red-500/60" />
+                  <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
+                  <div className="h-3 w-3 rounded-full bg-green-500/60" />
                 </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-xl border border-white/[0.08] bg-white/[0.04] p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-gradient-to-br from-violet-500/40 to-cyan-500/30">
-                        <Package className="h-7 w-7 text-violet-300" />
-                      </div>
-                      <div>
-                        <p className="font-display font-semibold text-white">LED Therapy Pro</p>
-                        <p className="font-mono text-lg font-bold text-violet-400">49,90€</p>
-                        <div className="flex gap-0.5">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className="h-3 w-3 fill-amber-400 text-amber-400" />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap content-start gap-2">
-                    {["Homepage", "Fiche produit", "FAQ", "CGV", "Emails", "Ads"].map(
-                      (page) => (
-                        <span
-                          key={page}
-                          className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-400"
-                        >
-                          {page} ✓
-                        </span>
-                      ),
-                    )}
-                  </div>
+                <div className="ml-3 flex flex-1 items-center gap-2 rounded-lg bg-white/[0.06] px-3 py-1.5">
+                  <Shield className="h-3 w-3 text-emerald-500/70" />
+                  <span className="font-mono text-xs text-slate-400">lumipulse-store.myshopify.com</span>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
+                <div className="flex items-center gap-1.5 rounded-md border border-violet-500/20 bg-violet-500/10 px-2 py-1">
+                  <Sparkles className="h-3 w-3 text-violet-400" />
+                  <span className="text-[10px] font-medium text-violet-400">Généré par FyxxLabs</span>
+                </div>
+              </div>
+
+              {/* Storefront content */}
+              <FakeStorefront />
+            </div>
+
+            {/* Generated assets row */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 2.2, duration: 0.4 }}
+              className="mt-4 grid grid-cols-3 gap-2 sm:grid-cols-6"
+            >
+              {[
+                { label: "Homepage", icon: Globe, color: "text-violet-400 border-violet-500/20 bg-violet-500/[0.06]" },
+                { label: "Fiche produit", icon: FileText, color: "text-blue-400 border-blue-500/20 bg-blue-500/[0.06]" },
+                { label: "FAQ", icon: MessageSquare, color: "text-cyan-400 border-cyan-500/20 bg-cyan-500/[0.06]" },
+                { label: "Pages légales", icon: Scale, color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/[0.06]" },
+                { label: "Emails", icon: Mail, color: "text-amber-400 border-amber-500/20 bg-amber-500/[0.06]" },
+                { label: "Ads copy", icon: Megaphone, color: "text-rose-400 border-rose-500/20 bg-rose-500/[0.06]" },
+              ].map(({ label, icon: Icon, color }) => (
+                <div
+                  key={label}
+                  className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-2 ${color}`}
+                >
+                  <Icon className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate text-[10px] font-medium">{label}</span>
+                </div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
