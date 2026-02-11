@@ -90,19 +90,20 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="relative max-w-6xl space-y-6 overflow-hidden text-white">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.16),transparent_55%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.12),transparent_45%)]" />
       {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Tableau de bord</h1>
-        <p className="text-sm text-muted-foreground mt-1">
+      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-xl">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Tableau de bord</h1>
+        <p className="mt-1 text-sm text-slate-300">
           Vue d&apos;ensemble de{" "}
-          <span className="font-medium text-foreground">{currentStore.name}</span>
+          <span className="font-semibold text-white">{currentStore.name}</span>
         </p>
       </div>
 
       {/* Paywall banner */}
       {!entitlements.canScan && (
-        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/30 bg-amber-500/10 px-5 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
               <Lock className="h-5 w-5 text-amber-600" />
@@ -126,7 +127,7 @@ export default async function DashboardPage() {
       {/* Metrics row */}
       {connectedIntegration && (totalRevenue > 0 || totalOrders > 0) && (
         <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="border-border/60">
+          <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">
             <CardContent className="flex items-center gap-4 p-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10">
                 <TrendingUp className="h-6 w-6 text-emerald-600" />
@@ -141,7 +142,7 @@ export default async function DashboardPage() {
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/60">
+          <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">
             <CardContent className="flex items-center gap-4 p-5">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10">
                 <ShoppingCart className="h-6 w-6 text-blue-600" />
@@ -157,7 +158,7 @@ export default async function DashboardPage() {
 
       {/* Scan running */}
       {lastScan?.status === "running" && (
-        <Card className="border-primary/20 bg-primary/5">
+        <Card className="border-violet-400/30 bg-violet-500/10 backdrop-blur-xl">
           <CardContent className="flex items-center gap-4 py-8 justify-center">
             <div className="h-10 w-10 animate-spin rounded-full border-[3px] border-primary/20 border-t-primary" />
             <div>
@@ -175,7 +176,7 @@ export default async function DashboardPage() {
         <>
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Score card */}
-            <Card className="border-border/60 flex flex-col items-center justify-center p-8">
+            <Card className="flex flex-col items-center justify-center border-white/10 bg-white/[0.04] p-8 backdrop-blur-xl">
               <ScoreRing score={displayScore} label="Score global" />
               <Link href={`/app/scans/${lastScan.id}`} className="mt-4">
                 <Button variant="outline" size="sm" className="text-xs">
@@ -186,11 +187,11 @@ export default async function DashboardPage() {
             </Card>
 
             {/* Pillars */}
-            <Card className="lg:col-span-2 border-border/60">
+            <Card className="lg:col-span-2 border-white/10 bg-white/[0.04] backdrop-blur-xl">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                  <CardTitle className="text-base">Piliers de performance</CardTitle>
+                  <CardTitle className="text-base text-white">Piliers de performance</CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
@@ -222,7 +223,7 @@ export default async function DashboardPage() {
 
           {/* Next best action */}
           {(nextBestAction?.title || lastScan.trial_single_advice) && (
-            <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
+            <Card className="border-violet-400/25 bg-gradient-to-r from-violet-500/10 to-transparent backdrop-blur-xl">
               <CardContent className="flex items-start gap-4 p-5">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                   <Zap className="h-5 w-5 text-primary" />
@@ -259,7 +260,7 @@ export default async function DashboardPage() {
           )}
 
           {/* Last scan info */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-5 py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-xl">
             <div className="flex items-center gap-3">
               <ScanSearch className="h-4 w-4 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">
@@ -287,7 +288,7 @@ export default async function DashboardPage() {
 
       {/* Empty state - only if no scan at all */}
       {!lastScan && entitlements.canScan && (
-        <Card className="border-dashed border-2 border-border/60">
+        <Card className="border-2 border-dashed border-white/20 bg-white/[0.03] backdrop-blur-xl">
           <CardContent className="flex flex-col items-center justify-center py-16">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
               <ScanSearch className="h-8 w-8 text-primary" />

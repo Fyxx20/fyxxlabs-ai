@@ -59,14 +59,26 @@ const PLANS = [
 
 export default function BillingPage() {
   return (
-    <div className="container mx-auto py-10">
+    <div className="relative space-y-8 overflow-hidden py-4 text-white">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-[radial-gradient(circle_at_top_left,rgba(124,58,237,0.18),transparent_50%),radial-gradient(circle_at_top_right,rgba(6,182,212,0.14),transparent_45%)]" />
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-6 backdrop-blur-xl">
+        <p className="text-xs uppercase tracking-widest text-violet-200">Pricing FyxxLabs</p>
+        <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+          Choisis ton plan de croissance
+        </h1>
+        <p className="mt-2 max-w-2xl text-sm text-slate-300">
+          Trois offres claires: Create pour lancer, Pro pour scaler, Agence pour opérer plusieurs projets clients.
+        </p>
+      </section>
+
       <div className="grid gap-4 lg:grid-cols-3">
         {PLANS.map((plan) => {
           const Icon = plan.icon;
           return (
-            <Card key={plan.title} className={`relative overflow-hidden border-border/60 ${plan.popular ? "ring-2 ring-primary/30 border-primary/30" : ""}`}>
+            <Card key={plan.title} className={`relative overflow-hidden border-white/10 bg-white/[0.04] backdrop-blur-xl ${plan.popular ? "ring-2 ring-violet-400/40 border-violet-400/40" : ""}`}>
               {plan.popular && (
-                <div className="absolute right-0 top-0 rounded-bl-lg bg-primary px-3 py-1 text-[10px] font-bold text-primary-foreground">
+                <div className="absolute right-0 top-0 rounded-bl-lg bg-violet-500 px-3 py-1 text-[10px] font-bold text-white">
                   POPULAIRE
                 </div>
               )}
@@ -75,17 +87,17 @@ export default function BillingPage() {
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${plan.bg}`}>
                     <Icon className={`h-5 w-5 ${plan.color}`} />
                   </div>
-                  <CardTitle className="text-lg">{plan.title}</CardTitle>
+                  <CardTitle className="text-lg text-white">{plan.title}</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-3xl font-bold tabular-nums">
                   {plan.oneTimePrice ?? plan.monthlyPrice} &euro;
-                  <span className="ml-1 text-sm font-normal text-muted-foreground">{plan.priceLabel}</span>
+                  <span className="ml-1 text-sm font-normal text-slate-300">{plan.priceLabel}</span>
                 </p>
                 <ul className="space-y-2">
                   {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <li key={feature} className="flex items-center gap-2 text-sm text-slate-200">
                       <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
                       {feature}
                     </li>
@@ -93,13 +105,20 @@ export default function BillingPage() {
                 </ul>
                 <form action="/api/billing/checkout" method="post">
                   <input type="hidden" name="price_key" value={plan.priceKey} />
-                  <Button className="w-full">{`Choisir ${plan.title}`}</Button>
+                  <Button className={`w-full ${plan.popular ? "bg-violet-600 hover:bg-violet-500" : ""}`}>{`Choisir ${plan.title}`}</Button>
                 </form>
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-300 backdrop-blur-xl">
+        <p className="font-semibold text-white">Résumé rapide</p>
+        <p className="mt-2">
+          Pro: 5 créations/jour (20/mois). Agence: 10 créations/jour (60/mois), support prioritaire et export avancé.
+        </p>
+      </section>
     </div>
   );
 }

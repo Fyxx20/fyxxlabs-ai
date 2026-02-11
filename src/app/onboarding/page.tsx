@@ -24,7 +24,7 @@ import {
 import { createStoreSchema, type CreateStoreInput } from "@/lib/validations/store";
 import { StoreGoal } from "@/lib/supabase/database.types";
 import { PLATFORM_UI_LIST, isConnectable } from "@/lib/connectors/registry";
-import { HelpCircle, Loader2 } from "lucide-react";
+import { HelpCircle, Loader2, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const GOAL_OPTIONS: { value: StoreGoal; label: string }[] = [
@@ -196,12 +196,22 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center bg-muted/30 px-4 py-8">
-      <div className="w-full max-w-xl">
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 px-4 py-8 text-white">
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
+        <div className="absolute -left-24 -top-16 h-80 w-80 rounded-full bg-violet-600/[0.22] blur-3xl" />
+        <div className="absolute -right-20 top-20 h-72 w-72 rounded-full bg-cyan-500/[0.2] blur-3xl" />
+      </div>
+      <div className="relative z-10 mx-auto w-full max-w-3xl">
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold text-foreground">Configurer votre boutique</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Fournir le contexte pour lancer l&apos;analyse FyxxLabs
+          <div className="inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/10 px-3 py-1 text-xs text-violet-100">
+            <Sparkles className="h-3.5 w-3.5" />
+            Setup premium FyxxLabs
+          </div>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">
+            Configure ta boutique
+          </h1>
+          <p className="mt-2 text-sm text-slate-300">
+            On prépare ton espace pour lancer une analyse ultra pertinente.
           </p>
           {isAddMode && (
             <div className="mt-3">
@@ -209,6 +219,7 @@ export default function OnboardingPage() {
                 type="button"
                 variant="outline"
                 size="sm"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10"
                 onClick={() => router.push("/app/dashboard")}
               >
                 Quitter et revenir au dashboard
@@ -222,26 +233,28 @@ export default function OnboardingPage() {
           {[1, 2, 3].map((s) => (
             <div
               key={s}
-              className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium ${
-                step >= s ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm font-medium ${
+                step >= s
+                  ? "border-violet-400/50 bg-violet-500/90 text-white"
+                  : "border-white/15 bg-white/5 text-slate-300"
               }`}
             >
               {s}
             </div>
           ))}
-          <span className="ml-2 text-sm text-muted-foreground">
+          <span className="ml-2 text-sm text-slate-300">
             {step} / 3
           </span>
         </div>
 
-        <Card className="shadow-lg">
+        <Card className="border-white/10 bg-white/[0.05] shadow-2xl backdrop-blur-xl">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-white">
               {step === 1 && "Nom de ta boutique"}
               {step === 2 && "URL + Plateforme"}
               {step === 3 && "Récapitulatif de l'analyse"}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-slate-300">
               {step === 1 && "Un nom pour reconnaître cette boutique dans ton dashboard."}
               {step === 2 && "L’adresse de ta boutique et ta plateforme e‑commerce."}
               {step === 3 && "Ces informations permettent à FyxxLabs d'adapter l'analyse."}
@@ -282,6 +295,7 @@ export default function OnboardingPage() {
                     placeholder="Ex: Boutique Bijoux Paris"
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
                   />
                   <p className="text-xs text-muted-foreground">
                     Tu pourras modifier plus tard.
@@ -289,7 +303,7 @@ export default function OnboardingPage() {
                 </div>
                 <Button
                   type="button"
-                  className="w-full"
+                  className="w-full rounded-xl bg-violet-600 hover:bg-violet-500"
                   onClick={() => setStep(2)}
                   disabled={!canNextStep1}
                 >
@@ -310,6 +324,7 @@ export default function OnboardingPage() {
                     onChange={(e) =>
                       setForm((f) => ({ ...f, website_url: e.target.value }))
                     }
+                    className="border-white/15 bg-slate-900/50 text-white placeholder:text-slate-500"
                   />
                   {form.website_url && !canNextStep2 && (
                     <p className="text-xs text-destructive">
@@ -334,7 +349,7 @@ export default function OnboardingPage() {
                     value={form.platform}
                     onValueChange={(v) => setForm((f) => ({ ...f, platform: v as CreateStoreInput["platform"] }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="border-white/15 bg-slate-900/50 text-white">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -369,14 +384,14 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 border-white/20 bg-white/5 text-white hover:bg-white/10"
                     onClick={() => setStep(1)}
                   >
                     Retour
                   </Button>
                   <Button
                     type="button"
-                    className="flex-1"
+                    className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-500"
                     onClick={() => setStep(3)}
                     disabled={!canNextStep2}
                   >
@@ -407,7 +422,7 @@ export default function OnboardingPage() {
                     ))}
                   </div>
                 </div>
-                <p className="text-sm font-medium text-muted-foreground">Contexte (30 secondes)</p>
+                <p className="text-sm font-medium text-slate-300">Contexte (30 secondes)</p>
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1.5">
                     Étape actuelle
@@ -477,7 +492,7 @@ export default function OnboardingPage() {
                       value={form.aov_bucket}
                       onValueChange={(v) => setForm((f) => ({ ...f, aov_bucket: v as CreateStoreInput["aov_bucket"] }))}
                     >
-                      <SelectTrigger>
+                    <SelectTrigger className="border-white/15 bg-slate-900/50 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -495,7 +510,7 @@ export default function OnboardingPage() {
                       value={form.country}
                       onValueChange={(v) => setForm((f) => ({ ...f, country: v as CreateStoreInput["country"] }))}
                     >
-                      <SelectTrigger>
+                    <SelectTrigger className="border-white/15 bg-slate-900/50 text-white">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -510,17 +525,17 @@ export default function OnboardingPage() {
                 </div>
 
                 {/* Résumé */}
-                <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
-                  <p className="mb-2 font-medium text-muted-foreground">Résumé</p>
+                <div className="rounded-lg border border-white/15 bg-slate-900/40 p-3 text-sm">
+                  <p className="mb-2 font-medium text-slate-300">Résumé</p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{summary.name}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border truncate max-w-[180px]" title={summary.url}>{summary.url}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{summary.platform}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{summary.goal}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{STAGE_OPTIONS.find((o) => o.value === form.stage)?.label ?? "—"}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{TRAFFIC_OPTIONS.find((o) => o.value === form.traffic_source)?.label ?? "—"}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{AOV_OPTIONS.find((o) => o.value === form.aov_bucket)?.label ?? "—"}</span>
-                    <span className="rounded-md bg-background px-2 py-1 text-xs border border-border">{COUNTRY_OPTIONS.find((o) => o.value === form.country)?.label ?? form.country}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{summary.name}</span>
+                    <span className="max-w-[180px] truncate rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs" title={summary.url}>{summary.url}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{summary.platform}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{summary.goal}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{STAGE_OPTIONS.find((o) => o.value === form.stage)?.label ?? "—"}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{TRAFFIC_OPTIONS.find((o) => o.value === form.traffic_source)?.label ?? "—"}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{AOV_OPTIONS.find((o) => o.value === form.aov_bucket)?.label ?? "—"}</span>
+                    <span className="rounded-md border border-white/15 bg-white/[0.04] px-2 py-1 text-xs">{COUNTRY_OPTIONS.find((o) => o.value === form.country)?.label ?? form.country}</span>
                   </div>
                 </div>
 
@@ -528,14 +543,14 @@ export default function OnboardingPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1"
+                    className="flex-1 border-white/20 bg-white/5 text-white hover:bg-white/10"
                     onClick={() => setStep(2)}
                   >
                     Retour
                   </Button>
                   <Button
                     type="button"
-                    className="flex-1"
+                    className="flex-1 rounded-xl bg-violet-600 hover:bg-violet-500"
                     onClick={handleFinish}
                     disabled={loading || !canNextStep3}
                   >
