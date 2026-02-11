@@ -23,6 +23,10 @@ type Row = {
 export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
+  const actionOutlineClass =
+    "border-white/20 bg-slate-800 text-slate-100 hover:bg-slate-700 hover:text-white disabled:opacity-100 disabled:border-slate-700 disabled:bg-slate-800/60 disabled:text-slate-500";
+  const actionGhostClass =
+    "text-slate-100 hover:bg-slate-800 hover:text-white disabled:opacity-100 disabled:text-slate-500";
 
   async function setPlan(userId: string, plan: "free" | "pro" | "lifetime") {
     setLoading(userId);
@@ -118,6 +122,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                           <Button
                             size="sm"
                             variant="outline"
+                            className={actionOutlineClass}
                             disabled={loading === r.user_id}
                             onClick={() => setPlan(r.user_id, "lifetime")}
                           >
@@ -128,6 +133,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                           <Button
                             size="sm"
                             variant="outline"
+                            className={actionOutlineClass}
                             disabled={loading === r.user_id}
                             onClick={() => setPlan(r.user_id, "pro")}
                           >
@@ -137,6 +143,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                         <Button
                           size="sm"
                           variant="outline"
+                          className={actionOutlineClass}
                           disabled={loading === r.user_id}
                           onClick={() => resetTrial(r.user_id)}
                         >
@@ -145,6 +152,7 @@ export function AdminSubscriptionsTable({ rows }: { rows: Row[] }) {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className={actionGhostClass}
                           disabled={loading === r.user_id}
                           onClick={() => toggleAdvice(r.user_id, !r.advice_consumed)}
                         >
