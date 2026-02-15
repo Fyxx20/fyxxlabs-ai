@@ -9,6 +9,7 @@ import {
 } from "./analyzers/extractSignals";
 import { isOpenAIAvailable, callOpenAIJson, OPENAI_ERROR_CODES } from "@/lib/ai/openaiClient";
 import { buildScanUserMessage } from "@/lib/ai/prompts/scan.user";
+import { auditImageQuality } from "@/lib/image-optimizer";
 const SCAN_SYSTEM_PROMPT = `Tu es un consultant e-commerce senior ultra-exigeant spécialisé CRO, UX, SEO et copywriting de conversion.
 
 MISSION: Analyser EN PROFONDEUR chaque page, chaque produit, chaque élément du site e-commerce fourni.
@@ -99,6 +100,17 @@ export interface RunScanResult {
       own_max_price: number | null;
       product_pages: string[];
       competitor_average_price: number | null;
+    };
+    image_audit?: {
+      analyzed_count: number;
+      weak_count: number;
+      average_score: number;
+      items: Array<{
+        url: string;
+        score: number;
+        weakSignals: string[];
+        shouldImprove: boolean;
+      }>;
     };
   };
 }
@@ -1121,6 +1133,25 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
 
   const fetchMs = Date.now() - start;
   await emitProgress(input.onProgress, 70, "SCORE", "Calcul du score CRO & confiance…");
+
+  const sourceImageUrls = Array.from(
+    new Set(
+      (input.shopifyProducts ?? [])
+        .flatMap((p) => p.images ?? [])
+        .map((img) => img.src)
+        .filter((u): u is string => typeof u === "string" && u.length > 0)
+    )
+  ).slice(0, 60);
+  const imageAuditItems = sourceImageUrls.map((url) => auditImageQuality(url));
+  const imageAuditAverage = imageAuditItems.length
+    ? Number(
+        (
+          imageAuditItems.reduce((sum, item) => sum + item.score, 0) / imageAuditItems.length
+        ).toFixed(2)
+      )
+    : 0;
+  const imageAuditWeakCount = imageAuditItems.filter((i) => i.shouldImprove).length;
+
   let baseline = computeBaseline(allSignals);
   let result: RunScanResult = {
     score: baseline.score,
@@ -1143,6 +1174,17 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
         own_max_price: null,
         product_pages: Array.from(new Set(productPages)),
         competitor_average_price: null,
+      },
+      image_audit: {
+        analyzed_count: imageAuditItems.length,
+        weak_count: imageAuditWeakCount,
+        average_score: imageAuditAverage,
+        items: imageAuditItems.slice(0, 20).map((i) => ({
+          url: i.url,
+          score: i.score,
+          weakSignals: i.weakSignals,
+          shouldImprove: i.shouldImprove,
+        })),
       },
     },
   };

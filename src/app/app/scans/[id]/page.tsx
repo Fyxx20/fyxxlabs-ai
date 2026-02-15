@@ -255,6 +255,7 @@ export default async function ScanDetailPage({
             <ScanDetailDataSections
               scanDataJson={scan.scan_data_json}
               storeName={store?.name}
+              scanId={id}
             />
           </div>
 

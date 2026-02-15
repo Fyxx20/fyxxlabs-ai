@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 import {
   Package,
   TrendingUp,
@@ -61,10 +63,14 @@ interface ScanDataJson {
 export function ScanDetailDataSections({
   scanDataJson,
   storeName,
+  scanId,
 }: {
   scanDataJson: unknown;
   storeName?: string | null;
+  scanId: string;
 }) {
+  const [optimizing, setOptimizing] = useState(false);
+  const [improveMessage, setImproveMessage] = useState<string | null>(null);
   const data = scanDataJson as ScanDataJson | null | undefined;
   const homepage = data?.homepage;
   const pages = data?.pages ?? [];
@@ -132,8 +138,35 @@ export function ScanDetailDataSections({
   });
   const displayedCompetitorAvg = competitorAvg ?? (benchmark != null ? Number(benchmark.toFixed(2)) : null);
 
+  async function handleImproveImages() {
+    setOptimizing(true);
+    setImproveMessage(null);
+    try {
+      const res = await fetch(`/api/scan/${scanId}/improve-images`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Impossible d'optimiser les images");
+      setImproveMessage(
+        data.total > 0
+          ? `${data.total} image(s) optimisée(s) avec IA.`
+          : data.message ?? "Aucune image à optimiser."
+      );
+    } catch (err) {
+      setImproveMessage(err instanceof Error ? err.message : "Erreur optimisation image");
+    } finally {
+      setOptimizing(false);
+    }
+  }
+
   return (
     <Tabs defaultValue="overview" className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-3">
+        <Button size="sm" variant="outline" disabled={optimizing} onClick={handleImproveImages}>
+          {optimizing ? "Optimisation IA en cours..." : "Améliorer les images avec IA"}
+        </Button>
+        {improveMessage && (
+          <p className="text-xs text-muted-foreground">{improveMessage}</p>
+        )}
+      </div>
       <div className="rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
         Onglets d'analyse : <span className="font-medium text-foreground">Vue générale</span> et{" "}
         <span className="font-medium text-foreground">Analyse de produits</span>.
