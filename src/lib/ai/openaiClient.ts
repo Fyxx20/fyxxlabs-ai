@@ -1,5 +1,6 @@
 import "server-only";
 import OpenAI from "openai";
+import type { z } from "zod";
 
 export const OPENAI_ERROR_CODES = {
   OPENAI_KEY_INVALID: "OPENAI_KEY_INVALID",
@@ -30,6 +31,11 @@ export interface CallOpenAIJsonParams {
   schemaHint?: string;
   maxTokens?: number;
   temperature?: number;
+}
+
+export interface CallOpenAIJsonWithSchemaParams<T> extends CallOpenAIJsonParams {
+  schema: z.ZodType<T>;
+  retries?: number;
 }
 
 /**
@@ -100,6 +106,43 @@ export async function callOpenAIJson<T = unknown>(params: CallOpenAIJsonParams):
   } catch {
     throw new Error(OPENAI_ERROR_CODES.AI_BAD_JSON);
   }
+}
+
+export async function callOpenAIJsonWithSchema<T>(
+  params: CallOpenAIJsonWithSchemaParams<T>
+): Promise<T> {
+  const { schema, retries = 2, ...rest } = params;
+  let attempt = 0;
+  let userPrompt = rest.user;
+  let lastError: unknown = null;
+
+  while (attempt <= retries) {
+    try {
+      const parsed = await callOpenAIJson<unknown>({
+        ...rest,
+        user: userPrompt,
+      });
+      const validated = schema.safeParse(parsed);
+      if (validated.success) return validated.data;
+
+      lastError = new Error(OPENAI_ERROR_CODES.AI_BAD_JSON);
+      const detail = validated.error.issues
+        .slice(0, 5)
+        .map((i) => `${i.path.join(".") || "root"}: ${i.message}`)
+        .join(" | ");
+      userPrompt = `${rest.user}\n\nTon JSON précédent est invalide. Corrige exactement ces erreurs: ${detail}. Réponds uniquement avec un JSON valide conforme au schéma.`;
+    } catch (err) {
+      lastError = err;
+      if (!(err instanceof Error) || err.message !== OPENAI_ERROR_CODES.AI_BAD_JSON) {
+        throw err;
+      }
+      userPrompt = `${rest.user}\n\nLe JSON précédent était invalide ou vide. Réponds uniquement avec un JSON strict valide, sans markdown.`;
+    }
+    attempt += 1;
+  }
+
+  if (lastError instanceof Error) throw lastError;
+  throw new Error(OPENAI_ERROR_CODES.AI_BAD_JSON);
 }
 
 export interface CallOpenAIChatParams {

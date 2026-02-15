@@ -7,9 +7,10 @@ import {
   type PageSignals,
   type BaselineResult,
 } from "./analyzers/extractSignals";
-import { isOpenAIAvailable, callOpenAIJson, OPENAI_ERROR_CODES } from "@/lib/ai/openaiClient";
+import { isOpenAIAvailable, callOpenAIJsonWithSchema, OPENAI_ERROR_CODES } from "@/lib/ai/openaiClient";
 import { buildScanUserMessage } from "@/lib/ai/prompts/scan.user";
 import { auditImageQuality } from "@/lib/image-optimizer";
+import { z } from "zod";
 const SCAN_SYSTEM_PROMPT = `Tu es un consultant e-commerce senior ultra-exigeant spécialisé CRO, UX, SEO et copywriting de conversion.
 
 MISSION: Analyser EN PROFONDEUR chaque page, chaque produit, chaque élément du site e-commerce fourni.
@@ -33,6 +34,42 @@ const MAX_SITEMAP_PRODUCTS = Number(process.env.SCAN_MAX_SITEMAP_PRODUCTS ?? 200
 /** Regex matching common product URL patterns across e-commerce platforms */
 const PRODUCT_URL_REGEX = /\/product|\/products|\/produit|\/item|\/p\/|\/shop\/|\/boutique\/|\/catalogue\//i;
 const COLLECTION_URL_REGEX = /\/collection|\/collections|\/categor|\/shop$|\/boutique$|\/catalogue|\/catalog/i;
+
+const ScanAiSchema = z.object({
+  score: z.number().min(0).max(100).optional(),
+  breakdown: z
+    .object({
+      clarity: z.number().min(0).max(100).optional(),
+      trust: z.number().min(0).max(100).optional(),
+      ux: z.number().min(0).max(100).optional(),
+      offer: z.number().min(0).max(100).optional(),
+      speed: z.number().min(0).max(100).optional(),
+      funnel: z.number().min(0).max(100).optional(),
+    })
+    .optional(),
+  priority_action: z
+    .object({
+      title: z.string().optional(),
+      steps: z.array(z.string()).optional(),
+      time_minutes: z.number().optional(),
+      expected_impact: z.string().optional(),
+    })
+    .optional(),
+  issues: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        title: z.string().optional(),
+        why: z.string().optional(),
+        fix_steps: z.array(z.string()).optional(),
+        impact: z.string().optional(),
+        confidence: z.string().optional(),
+      })
+    )
+    .optional(),
+  checklist: z.array(z.object({ label: z.string().optional(), done: z.boolean().optional() })).optional(),
+  notes: z.object({ confidence: z.string().optional(), limitations: z.array(z.string()).optional() }).optional(),
+});
 
 export interface RunScanInput {
   storeId: string;
@@ -1277,14 +1314,12 @@ export async function runScan(input: RunScanInput): Promise<RunScanResult> {
 
   const aiStart = Date.now();
   try {
-    const aiJson = await callOpenAIJson<{
-      score?: number;
-      breakdown?: Record<string, number>;
-      priority_action?: { title?: string; steps?: string[]; time_minutes?: number; expected_impact?: string };
-      issues?: Array<{ id?: string; title?: string; why?: string; fix_steps?: string[]; impact?: string; confidence?: string }>;
-      checklist?: Array<{ label?: string; done?: boolean }>;
-      notes?: { confidence?: string; limitations?: string[] };
-    }>({ system: SCAN_SYSTEM_PROMPT, user: userMessage });
+    const aiJson = await callOpenAIJsonWithSchema({
+      schema: ScanAiSchema,
+      system: SCAN_SYSTEM_PROMPT,
+      user: userMessage,
+      retries: 2,
+    });
 
     const aiMs = Date.now() - aiStart;
     result.raw.timings.ai_ms = aiMs;

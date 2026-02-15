@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { callOpenAIJson } from "@/lib/ai/openaiClient";
+import { callOpenAIJsonWithSchema } from "@/lib/ai/openaiClient";
 import { createShopifyProduct } from "@/lib/connectors/shopify";
 import { analyzeDigitalMarket } from "@/lib/market-analysis";
 import { computeDigitalPricing } from "@/lib/pricing-engine";
 import { createDeliveryLink, uploadDigitalAsset } from "@/lib/delivery-system";
 import { generateDigitalVisualPack } from "@/lib/image-optimizer";
+import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
+import { z } from "zod";
 
 export const maxDuration = 60;
 
@@ -43,6 +45,18 @@ interface DigitalPagePayload {
     mockupUrls: string[];
   };
 }
+
+const DigitalPageSchema = z.object({
+  brandName: z.string().min(2),
+  title: z.string().min(4),
+  subtitle: z.string().min(6),
+  hero: z.string().min(6),
+  offer: z.array(z.string().min(2)).min(2),
+  objections: z.array(z.string().min(2)).min(2),
+  faq: z.array(z.object({ question: z.string().min(3), answer: z.string().min(3) })).min(2),
+  guarantee: z.string().min(8),
+  legal: z.array(z.string().min(2)).min(2),
+});
 
 function buildDigitalProductHtml(page: DigitalPagePayload): string {
   const faqHtml = page.faq
@@ -139,9 +153,9 @@ export async function POST(req: NextRequest) {
         tone: brief.tone,
       });
 
-      const generated = await callOpenAIJson<DigitalPagePayload>({
-        system:
-          "Tu es un copywriter e-commerce senior pour produits digitaux. Réponds en JSON strict uniquement. Interdiction absolue d'inventer des statistiques.",
+      const generated = await callOpenAIJsonWithSchema({
+        schema: DigitalPageSchema,
+        system: `${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.pricing}\n\n${DOMAIN_PROMPTS.branding}\n\n${DOMAIN_PROMPTS.legal}`,
         user: `Genere une landing digitale persuasive en ${brief.language} pour:
 - Type: ${brief.productType}
 - Audience: ${brief.audience}
@@ -159,10 +173,10 @@ Pricing recommande (obligatoire):
 Retourne du JSON avec:
 brandName, title, subtitle, hero, offer[], objections[], faq[{question,answer}], guarantee, legal[].
 N'inclus aucune statistique inventee.`,
-        schemaHint:
-          "{brandName:string,title:string,subtitle:string,hero:string,offer:string[],objections:string[],faq:[{question:string,answer:string}],guarantee:string,legal:string[]}",
+        schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],faq[{question,answer}],guarantee,legal[]}",
         temperature: 0.6,
         maxTokens: 2600,
+        retries: 2,
       });
 
       const page: DigitalPagePayload = {

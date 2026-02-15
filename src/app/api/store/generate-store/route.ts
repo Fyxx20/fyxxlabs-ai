@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createShopifyProduct } from "@/lib/connectors/shopify";
-import { callOpenAIJson } from "@/lib/ai/openaiClient";
+import { callOpenAIJsonWithSchema } from "@/lib/ai/openaiClient";
 import { optimizeBatch } from "@/lib/image-optimizer";
 import { analyzePhysicalMarket } from "@/lib/market-analysis";
 import { computePhysicalPricing } from "@/lib/pricing-engine";
+import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
 import * as cheerio from "cheerio";
+import { z } from "zod";
 
 export const maxDuration = 60;
 
@@ -34,6 +36,42 @@ interface ScrapedProduct {
   category: string | null;
   url: string;
 }
+
+const PageSchema = z.object({
+  brand_name: z.string().min(2),
+  brand_color: z.string().min(3),
+  banner_text: z.string().min(2),
+  product: z.object({
+    title: z.string().min(3),
+    price: z.number().positive(),
+    compare_at_price: z.number().nonnegative(),
+    short_description: z.string().min(8),
+    features: z.array(z.string().min(2)).min(1),
+    tags: z.string().min(1),
+    product_type: z.string().min(1),
+  }),
+  review: z.object({
+    rating: z.number().min(0).max(5),
+    count: z.number().nonnegative(),
+    label: z.string().min(1),
+  }),
+  hero: z.object({
+    headline: z.string().min(3),
+    bold_word: z.string().min(1),
+    subtext: z.string().min(3),
+  }),
+  timeline: z.array(z.object({ period: z.string(), text: z.string() })).min(1),
+  advantages: z.object({ title: z.string(), items: z.array(z.string()).min(1) }),
+  comparison: z.object({
+    our_name: z.string(),
+    our_subtitle: z.string(),
+    other_name: z.string(),
+    rows: z.array(z.object({ feature: z.string(), us: z.boolean(), them: z.boolean() })).min(1),
+  }),
+  statistics: z.array(z.object({ value: z.string(), label: z.string() })).min(1),
+  faq: z.array(z.object({ question: z.string(), answer: z.string() })).min(1),
+  trust_badges: z.array(z.string()).min(1),
+});
 
 async function fetchPage(url: string): Promise<string> {
   const controller = new AbortController();
@@ -827,11 +865,13 @@ INSTRUCTIONS:
 Génère le JSON complet avec TOUTES les sections: brand_name, brand_color, banner_text, product, review, hero, timeline, advantages, comparison, statistics, faq, trust_badges.`;
 
       try {
-        const result = await callOpenAIJson({
-          system: PAGE_SYSTEM_PROMPT,
+        const result = await callOpenAIJsonWithSchema({
+          schema: PageSchema,
+          system: `${PAGE_SYSTEM_PROMPT}\n\n${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.pricing}\n\n${DOMAIN_PROMPTS.branding}\n\n${DOMAIN_PROMPTS.legal}`,
           user: userPrompt,
           temperature: 0.8,
           maxTokens: 4000,
+          retries: 2,
         });
 
         // Override brand_name if user specified one
@@ -1042,11 +1082,18 @@ ${productDescriptions}
 Génère le JSON avec: store_concept, products, extra_products, et collection.`;
 
       try {
-        const result = await callOpenAIJson({
-          system: PAGE_SYSTEM_PROMPT,
+        const result = await callOpenAIJsonWithSchema({
+          schema: z.object({
+            store_concept: z.unknown(),
+            products: z.array(z.unknown()).optional(),
+            extra_products: z.array(z.unknown()).optional(),
+            collection: z.unknown().optional(),
+          }),
+          system: `${PAGE_SYSTEM_PROMPT}\n\n${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.branding}`,
           user: userPrompt,
           temperature: 0.6,
           maxTokens: 4000,
+          retries: 2,
         });
         return NextResponse.json({
           store: result,
