@@ -178,6 +178,7 @@ export function StoreGeneratorClient({
   const [brandName, setBrandName] = useState("YOUR BRAND");
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
   const [optimizedImages, setOptimizedImages] = useState<string[] | null>(null);
+  const [optimizingImages, setOptimizingImages] = useState(false);
 
   // Step 3: Customize
   const [pageData, setPageData] = useState<StorePageData>(emptyPageData());
@@ -472,6 +473,45 @@ export function StoreGeneratorClient({
       return next;
     });
   };
+
+  const handleOptimizeImages = useCallback(async () => {
+    if (!scraped) return;
+    const selectedIdx = Array.from(selectedImages);
+    if (selectedIdx.length === 0) {
+      setError("Sélectionne au moins une image avant optimisation IA.");
+      return;
+    }
+    setOptimizingImages(true);
+    setError(null);
+    try {
+      const sourceImages = selectedIdx
+        .map((idx) => scraped.images[idx])
+        .filter((img): img is string => Boolean(img));
+
+      const res = await fetch("/api/store/generate-store", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "optimize-images",
+          sourceImages,
+          storeId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Erreur optimisation IA");
+
+      const optimized = Array.isArray(data.optimizedImages) ? data.optimizedImages : [];
+      const merged = [...(optimizedImages ?? scraped.images)];
+      selectedIdx.forEach((idx, i) => {
+        if (optimized[i]) merged[idx] = optimized[i];
+      });
+      setOptimizedImages(merged);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur optimisation IA");
+    } finally {
+      setOptimizingImages(false);
+    }
+  }, [scraped, selectedImages, storeId, optimizedImages]);
 
   const reset = () => {
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -869,11 +909,18 @@ export function StoreGeneratorClient({
 
           {/* AI image generation placeholder */}
           <div className="bg-muted/30 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-center">
-            <Button variant="outline" className="gap-2" disabled>
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={handleOptimizeImages}
+              disabled={optimizingImages || loading || selectedImages.size === 0}
+            >
               <Sparkles className="h-4 w-4" />
-              Générer des images avec l&apos;IA
+              {optimizingImages ? "Optimisation IA en cours..." : "Générer des images avec l'IA"}
             </Button>
-            <p className="text-xs text-muted-foreground mt-2">Bientôt disponible</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              {optimizedImages ? "Images optimisées prêtes." : "Optimise les images sélectionnées avant génération."}
+            </p>
           </div>
 
           {/* Image selection */}
@@ -886,7 +933,7 @@ export function StoreGeneratorClient({
             </div>
 
             <div className="grid grid-cols-5 gap-3">
-              {scraped.images.map((img, i) => {
+              {(optimizedImages ?? scraped.images).map((img, i) => {
                 const isSelected = selectedImages.has(i);
                 return (
                   <button

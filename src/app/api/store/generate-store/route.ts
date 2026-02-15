@@ -793,6 +793,33 @@ export async function POST(req: NextRequest) {
     }
 
     /* ══════════ ACTION: Generate rich page data ══════════ */
+    if (action === "optimize-images") {
+      const { sourceImages, storeId } = body as { sourceImages?: string[]; storeId?: string };
+      if (!Array.isArray(sourceImages) || sourceImages.length === 0) {
+        return NextResponse.json({ error: "Aucune image à optimiser" }, { status: 400 });
+      }
+
+      const flags = await getRuntimeFeatureFlags();
+      if (!flags.enable_ai_image_optimizer) {
+        return NextResponse.json(
+          { error: "Optimisation image IA désactivée par feature flag." },
+          { status: 503 }
+        );
+      }
+
+      const optimized = await optimizeBatch({
+        userId: user.id,
+        imageUrls: sourceImages.slice(0, 12),
+        context: "physical_builder",
+        storeId: storeId ?? null,
+      });
+
+      return NextResponse.json({
+        optimizedImages: optimized.map((o) => o.outputImageUrl),
+      });
+    }
+
+    /* ══════════ ACTION: Generate rich page data ══════════ */
     if (action === "generate-page") {
       const { scrapedProduct, brandName, language } = body as {
         scrapedProduct: ScrapedProduct;
