@@ -6,6 +6,8 @@ import { optimizeBatch } from "@/lib/image-optimizer";
 import { analyzePhysicalMarket } from "@/lib/market-analysis";
 import { computePhysicalPricing } from "@/lib/pricing-engine";
 import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
+import { getEntitlements } from "@/lib/auth/entitlements";
+import { createGenerationJobLog, enforceGenerationQuota, finishGenerationJobLog } from "@/lib/generation-guards";
 import * as cheerio from "cheerio";
 import { z } from "zod";
 
@@ -796,6 +798,46 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan, trial_started_at, trial_ends_at, scans_used")
+        .eq("user_id", user.id)
+        .single();
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const entitlements = getEntitlements(profile ?? null, subscription ?? null);
+      try {
+        await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.startsWith("PLAN_DAILY_LIMIT:")) {
+          const limit = msg.split(":")[1];
+          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par jour pour ton plan.` }, { status: 429 });
+        }
+        if (msg.startsWith("PLAN_MONTHLY_LIMIT:")) {
+          const limit = msg.split(":")[1];
+          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par mois pour ton plan.` }, { status: 429 });
+        }
+        return NextResponse.json({ error: "Ton plan actuel ne permet pas de lancer une génération." }, { status: 403 });
+      }
+
+      const jobId = await createGenerationJobLog({
+        userId: user.id,
+        jobKind: "physical_create",
+        source: "builder",
+        step: "generate-page",
+        inputPayload: {
+          source_url: scrapedProduct.url,
+          source_title: scrapedProduct.title,
+          selected_images_count: Array.isArray((body as { selectedImages?: string[] }).selectedImages)
+            ? (body as { selectedImages?: string[] }).selectedImages?.length ?? 0
+            : 0,
+        },
+      });
+
       const langLabel =
         {
           fr: "français",
@@ -891,12 +933,26 @@ Génère le JSON complet avec TOUTES les sections: brand_name, brand_color, bann
         asRecord.optimized_images = optimizedImages;
         asRecord.pricing_recommendation = pricing;
 
-        return NextResponse.json({
+        const response = {
           page: asRecord,
           optimizedImages,
           pricing,
+        };
+        await finishGenerationJobLog({
+          jobId,
+          success: true,
+          outputPayload: {
+            optimized_images_count: optimizedImages.length,
+            pricing_optimal: pricing.optimal,
+          },
         });
+        return NextResponse.json(response);
       } catch (err) {
+        await finishGenerationJobLog({
+          jobId,
+          success: false,
+          errorMessage: err instanceof Error ? err.message : "AI_GENERATION_FAILED",
+        });
         return NextResponse.json(
           {
             error: `Erreur IA : ${err instanceof Error ? err.message : "Inconnue"}`,

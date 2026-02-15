@@ -7,6 +7,8 @@ import { computeDigitalPricing } from "@/lib/pricing-engine";
 import { createDeliveryLink, uploadDigitalAsset } from "@/lib/delivery-system";
 import { generateDigitalVisualPack } from "@/lib/image-optimizer";
 import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
+import { getEntitlements } from "@/lib/auth/entitlements";
+import { createGenerationJobLog, enforceGenerationQuota, finishGenerationJobLog } from "@/lib/generation-guards";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -139,24 +141,63 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Brief incomplet" }, { status: 400 });
       }
 
-      const market = await analyzeDigitalMarket({
-        productType: brief.productType,
-        complexity: brief.level === "advanced" ? "high" : brief.level === "intermediate" ? "mid" : "low",
-        audienceMaturity: brief.audience.toLowerCase().includes("expert") ? "expert" : brief.audience.toLowerCase().includes("warm") ? "warm" : "cold",
-        promiseStrength: brief.promise.length > 80 ? "high" : brief.promise.length > 35 ? "mid" : "low",
-        country: brief.country,
-      });
-      const pricing = computeDigitalPricing({ market });
-      const visuals = await generateDigitalVisualPack({
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan, trial_started_at, trial_ends_at, scans_used")
+        .eq("user_id", user.id)
+        .single();
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const entitlements = getEntitlements(profile ?? null, subscription ?? null);
+      try {
+        await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.startsWith("PLAN_DAILY_LIMIT:")) {
+          const limit = msg.split(":")[1];
+          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par jour pour ton plan.` }, { status: 429 });
+        }
+        if (msg.startsWith("PLAN_MONTHLY_LIMIT:")) {
+          const limit = msg.split(":")[1];
+          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par mois pour ton plan.` }, { status: 429 });
+        }
+        return NextResponse.json({ error: "Ton plan actuel ne permet pas de lancer une génération." }, { status: 403 });
+      }
+
+      const jobId = await createGenerationJobLog({
         userId: user.id,
-        title: `${brief.productType} ${brief.promise}`,
-        tone: brief.tone,
+        jobKind: "digital_create",
+        source: "builder",
+        step: "generate-page",
+        inputPayload: {
+          product_type: brief.productType,
+          language: brief.language,
+          country: brief.country,
+        },
       });
 
-      const generated = await callOpenAIJsonWithSchema({
-        schema: DigitalPageSchema,
-        system: `${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.pricing}\n\n${DOMAIN_PROMPTS.branding}\n\n${DOMAIN_PROMPTS.legal}`,
-        user: `Genere une landing digitale persuasive en ${brief.language} pour:
+      try {
+        const market = await analyzeDigitalMarket({
+          productType: brief.productType,
+          complexity: brief.level === "advanced" ? "high" : brief.level === "intermediate" ? "mid" : "low",
+          audienceMaturity: brief.audience.toLowerCase().includes("expert") ? "expert" : brief.audience.toLowerCase().includes("warm") ? "warm" : "cold",
+          promiseStrength: brief.promise.length > 80 ? "high" : brief.promise.length > 35 ? "mid" : "low",
+          country: brief.country,
+        });
+        const pricing = computeDigitalPricing({ market });
+        const visuals = await generateDigitalVisualPack({
+          userId: user.id,
+          title: `${brief.productType} ${brief.promise}`,
+          tone: brief.tone,
+        });
+
+        const generated = await callOpenAIJsonWithSchema({
+          schema: DigitalPageSchema,
+          system: `${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.pricing}\n\n${DOMAIN_PROMPTS.branding}\n\n${DOMAIN_PROMPTS.legal}`,
+          user: `Genere une landing digitale persuasive en ${brief.language} pour:
 - Type: ${brief.productType}
 - Audience: ${brief.audience}
 - Promesse: ${brief.promise}
@@ -173,30 +214,46 @@ Pricing recommande (obligatoire):
 Retourne du JSON avec:
 brandName, title, subtitle, hero, offer[], objections[], faq[{question,answer}], guarantee, legal[].
 N'inclus aucune statistique inventee.`,
-        schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],faq[{question,answer}],guarantee,legal[]}",
-        temperature: 0.6,
-        maxTokens: 2600,
-        retries: 2,
-      });
+          schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],faq[{question,answer}],guarantee,legal[]}",
+          temperature: 0.6,
+          maxTokens: 2600,
+          retries: 2,
+        });
 
-      const page: DigitalPagePayload = {
-        ...generated,
-        pricing: {
-          currency: pricing.currency,
-          safe: pricing.safe,
-          optimal: pricing.optimal,
-          aggressive: pricing.aggressive,
-          positioning: pricing.positioning,
-          why: pricing.explanation.why,
-        },
-        visuals: {
-          coverUrl: visuals.coverUrl,
-          heroUrl: visuals.heroUrl,
-          mockupUrls: visuals.mockupUrls,
-        },
-      };
+        const page: DigitalPagePayload = {
+          ...generated,
+          pricing: {
+            currency: pricing.currency,
+            safe: pricing.safe,
+            optimal: pricing.optimal,
+            aggressive: pricing.aggressive,
+            positioning: pricing.positioning,
+            why: pricing.explanation.why,
+          },
+          visuals: {
+            coverUrl: visuals.coverUrl,
+            heroUrl: visuals.heroUrl,
+            mockupUrls: visuals.mockupUrls,
+          },
+        };
 
-      return NextResponse.json({ page, pricing, visuals });
+        await finishGenerationJobLog({
+          jobId,
+          success: true,
+          outputPayload: {
+            pricing_optimal: pricing.optimal,
+            visuals_count: visuals.mockupUrls.length + 2,
+          },
+        });
+        return NextResponse.json({ page, pricing, visuals });
+      } catch (err) {
+        await finishGenerationJobLog({
+          jobId,
+          success: false,
+          errorMessage: err instanceof Error ? err.message : "DIGITAL_GENERATION_FAILED",
+        });
+        throw err;
+      }
     }
 
     if (action === "publish-shopify") {
