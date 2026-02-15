@@ -23,6 +23,37 @@ function getIntervalFromPriceKey(priceKey: PriceKey): "month" | "year" | "one_ti
   return priceKey.endsWith("_yearly") ? "year" : "month";
 }
 
+async function resolvePriceIdWithFallback(priceKey: PriceKey): Promise<string> {
+  const configured = PRICE_IDS[priceKey];
+  if (configured) return configured;
+
+  const fallbackPlan =
+    priceKey === "create_one_time"
+      ? "create"
+      : priceKey.startsWith("agence_") || priceKey.startsWith("elite_")
+        ? "agence"
+        : "pro";
+  const fallbackInterval = getIntervalFromPriceKey(priceKey);
+
+  // Fallback: recover price from Stripe metadata when env vars are missing in deployment.
+  const prices = await stripe.prices.list({
+    active: true,
+    limit: 100,
+  });
+  const matches = prices.data
+    .filter((p) => {
+      const plan = String(p.metadata?.plan ?? "").toLowerCase();
+      const interval = String(p.metadata?.interval ?? "").toLowerCase();
+      if (fallbackPlan === "agence") {
+        return (plan === "agence" || plan === "elite") && interval === fallbackInterval;
+      }
+      return plan === fallbackPlan && interval === fallbackInterval;
+    })
+    .sort((a, b) => b.created - a.created);
+
+  return matches[0]?.id ?? "";
+}
+
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
   const {
@@ -42,10 +73,12 @@ export async function POST(request: Request) {
   }
   const priceKey: PriceKey = rawPriceKey;
 
-  const priceId = PRICE_IDS[priceKey];
+  const priceId = await resolvePriceIdWithFallback(priceKey);
   if (!priceId) {
     return NextResponse.json(
-      { error: `Tarif indisponible: ${priceKey}. Vérifie la configuration Stripe.` },
+      {
+        error: `Tarif indisponible: ${priceKey}. Configure STRIPE_PRICE_CREATE_ONE_TIME / STRIPE_PRICE_PRO_MONTHLY / STRIPE_PRICE_AGENCE_MONTHLY dans Vercel, ou vérifie les metadata Stripe plan/interval.`,
+      },
       { status: 400 }
     );
   }
