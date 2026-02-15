@@ -41,6 +41,8 @@ import {
   Share2,
   Flame,
   BarChart3,
+  ImageIcon,
+  FolderKanban,
 } from "lucide-react";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useState } from "react";
@@ -57,18 +59,19 @@ const navGroups = [
     label: "Principal",
     items: [
       { href: "/app/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-      { href: "/app/scans", label: "Scans", icon: ScanSearch },
-      { href: "/app/issues", label: "Problèmes", icon: AlertCircle },
-      { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/app/store-generator", label: "Create Physical", icon: Rocket },
+      { href: "/app/create-digital", label: "Create Digital", icon: Sparkles },
+      { href: "/app/scans", label: "Scan", icon: ScanSearch },
+      { href: "/app/image-optimizer", label: "Image Optimizer", icon: ImageIcon },
+      { href: "/app/projects", label: "Projects", icon: FolderKanban },
+      { href: "/app/settings", label: "Settings", icon: Settings },
     ],
   },
   {
-    label: "Outils IA",
+    label: "AI Studio",
     items: [
       { href: "/app/auto-fix", label: "Auto-Fix IA", icon: Wand2 },
       { href: "/app/import-product", label: "Importer produit", icon: Package },
-      { href: "/app/store-generator", label: "Créer boutique", icon: Rocket },
-      { href: "/create/digital", label: "Boutique digitale", icon: Sparkles },
       { href: "/app/coach", label: "Coach IA", icon: MessageSquare },
       { href: "/app/ad-copy", label: "Générateur Pubs", icon: Megaphone },
       { href: "/app/email-templates", label: "Email Marketing", icon: Mail },
@@ -90,7 +93,8 @@ const navGroups = [
     items: [
       { href: "/app/integrations", label: "Ma boutique", icon: Store },
       { href: "/app/billing", label: "Facturation", icon: CreditCard },
-      { href: "/app/settings", label: "Paramètres", icon: Settings },
+      { href: "/app/issues", label: "Problèmes", icon: AlertCircle },
+      { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
 ];

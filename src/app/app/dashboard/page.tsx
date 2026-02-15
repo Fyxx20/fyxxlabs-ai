@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { computeDisplayScore } from "@/lib/score";
-import { ArrowRight, Lock, Zap, TrendingUp, ShoppingCart, ScanSearch, BarChart3 } from "lucide-react";
+import { ArrowRight, Lock, Zap, TrendingUp, ShoppingCart, ScanSearch, BarChart3, Sparkles, Rocket, Wand2, FolderKanban } from "lucide-react";
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabaseClient();
@@ -45,6 +45,21 @@ export default async function DashboardPage() {
     .single();
 
   const entitlements = getEntitlements(profile ?? null, subscription ?? null);
+  const monthlyCreationLimit =
+    entitlements.plan === "elite" || entitlements.plan === "lifetime"
+      ? 60
+      : entitlements.plan === "pro"
+        ? 20
+        : entitlements.plan === "starter"
+          ? 8
+          : 3;
+  const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1, 0, 0, 0));
+  const { count: creationsThisMonth } = await supabase
+    .from("generation_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .in("job_kind", ["physical_create", "digital_create"])
+    .gte("created_at", monthStart.toISOString());
 
   const { data: integrations } = await supabase
     .from("store_integrations")
@@ -64,6 +79,7 @@ export default async function DashboardPage() {
     : { data: [] };
   const totalRevenue = (metricsRows ?? []).reduce((s, r) => s + Number(r.revenue ?? 0), 0);
   const totalOrders = (metricsRows ?? []).reduce((s, r) => s + (r.orders_count ?? 0), 0);
+  const totalStores = (stores ?? []).length;
 
   const { data: lastScan } = await supabase
     .from("scans")
@@ -80,6 +96,7 @@ export default async function DashboardPage() {
   );
   const issuesPayload = lastScan?.issues_json as { next_best_action?: { title?: string; steps?: string[] } } | null;
   const nextBestAction = issuesPayload?.next_best_action;
+  const revenuePotential = Math.max(0, Math.min(100, Math.round(displayScore * 1.05)));
 
   const pillarData = [
     { key: "conversion", label: "Conversion", color: "bg-blue-500" },
@@ -125,6 +142,96 @@ export default async function DashboardPage() {
       )}
 
       {/* Metrics row */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-wide text-slate-300">Total stores created</p>
+            <p className="mt-2 text-3xl font-bold">{totalStores}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-wide text-slate-300">AI quality score</p>
+            <p className="mt-2 text-3xl font-bold">{displayScore}</p>
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-wide text-slate-300">Revenue potential</p>
+            <p className="mt-2 text-3xl font-bold">{revenuePotential}%</p>
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">
+          <CardContent className="p-5">
+            <p className="text-xs uppercase tracking-wide text-slate-300">Creation counter</p>
+            <p className="mt-2 text-3xl font-bold">
+              {creationsThisMonth ?? 0}/{monthlyCreationLimit}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl lg:col-span-2">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-white">Quick actions</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2">
+            <Link href="/app/store-generator" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
+              <div className="flex items-center gap-2">
+                <Rocket className="h-4 w-4 text-cyan-300" />
+                <p className="font-semibold">Create Physical</p>
+              </div>
+              <p className="mt-1 text-xs text-slate-300">Build a premium physical-product store.</p>
+            </Link>
+            <Link href="/app/create-digital" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-violet-300" />
+                <p className="font-semibold">Create Digital</p>
+              </div>
+              <p className="mt-1 text-xs text-slate-300">Generate a full digital business in 3 steps.</p>
+            </Link>
+            <Link href="/app/scans" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
+              <div className="flex items-center gap-2">
+                <ScanSearch className="h-4 w-4 text-emerald-300" />
+                <p className="font-semibold">Run Scan</p>
+              </div>
+              <p className="mt-1 text-xs text-slate-300">Audit conversion, pricing and image quality.</p>
+            </Link>
+            <Link href="/app/image-optimizer" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
+              <div className="flex items-center gap-2">
+                <Wand2 className="h-4 w-4 text-amber-300" />
+                <p className="font-semibold">Image Optimizer</p>
+              </div>
+              <p className="mt-1 text-xs text-slate-300">Enhance product visuals with AI.</p>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card className="border-violet-400/25 bg-gradient-to-b from-violet-500/10 to-transparent backdrop-blur-xl">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-white">Upgrade suggestion</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-slate-300">
+              Débloque plus de créations, un support prioritaire et des capacités IA avancées.
+            </p>
+            <Link href="/app/billing">
+              <Button className="w-full">
+                Voir les plans
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+            <Link href="/app/projects" className="block">
+              <Button variant="outline" className="w-full">
+                <FolderKanban className="mr-2 h-4 w-4" />
+                Open Projects
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+
       {connectedIntegration && (totalRevenue > 0 || totalOrders > 0) && (
         <div className="grid gap-4 sm:grid-cols-2">
           <Card className="border-white/10 bg-white/[0.04] backdrop-blur-xl">

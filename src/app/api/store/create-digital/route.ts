@@ -18,9 +18,9 @@ interface DigitalBrief {
   productName: string;
   productType: string;
   audience: string;
-  audiencePain: string;
+  audiencePain?: string;
   promise: string;
-  transformation: string;
+  transformation?: string;
   level: string;
   tone: string;
   language: string;
@@ -187,6 +187,30 @@ export async function POST(req: NextRequest) {
     const { action } = body as { action: string };
     const flags = await getRuntimeFeatureFlags();
 
+    if (action === "usage-stats") {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan, trial_started_at, trial_ends_at, scans_used")
+        .eq("user_id", user.id)
+        .single();
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const entitlements = getEntitlements(profile ?? null, subscription ?? null);
+      const now = new Date();
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0)).toISOString();
+      const { count } = await supabase
+        .from("generation_jobs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .in("job_kind", ["physical_create", "digital_create"])
+        .gte("created_at", monthStart);
+      const limit = entitlements.plan === "elite" || entitlements.plan === "lifetime" ? 60 : entitlements.plan === "pro" ? 20 : 3;
+      return NextResponse.json({ used: count ?? 0, limit });
+    }
+
     if (action === "generate-page") {
       if (!flags.enable_digital_builder) {
         return NextResponse.json({ error: "Digital builder temporairement désactivé." }, { status: 503 });
@@ -196,9 +220,11 @@ export async function POST(req: NextRequest) {
         !brief?.productName ||
         !brief?.productType ||
         !brief?.audience ||
-        !brief?.audiencePain ||
         !brief?.promise ||
-        !brief?.transformation
+        !brief?.level ||
+        !brief?.tone ||
+        !brief?.language ||
+        !brief?.country
       ) {
         return NextResponse.json({ error: "Brief incomplet" }, { status: 400 });
       }
@@ -291,17 +317,17 @@ export async function POST(req: NextRequest) {
 - Nom produit: ${brief.productName}
 - Type: ${brief.productType}
 - Audience: ${brief.audience}
-- Douleur audience: ${brief.audiencePain}
+- Douleur audience: ${brief.audiencePain ?? "A inférer intelligemment"}
 - Promesse: ${brief.promise}
-- Transformation attendue: ${brief.transformation}
+- Transformation attendue: ${brief.transformation ?? "A inférer intelligemment"}
 - Niveau: ${brief.level}
 - Ton: ${brief.tone}
 - Pays cible: ${brief.country}
-- Contenu inclus: ${brief.offerIncludes ?? "A definir"}
-- Bonus/upsell souhaités: ${brief.bonus ?? "A definir"}
-- Garantie: ${brief.guaranteeType ?? "14 jours satisfait ou rembourse"}
-- Email support: ${brief.supportEmail ?? "support@votre-domaine.com"}
-- Style CTA: ${brief.ctaStyle ?? "direct et premium"}
+- Contenu inclus: ${brief.offerIncludes ?? "A inférer"}
+- Bonus/upsell souhaités: ${brief.bonus ?? "A inférer"}
+- Garantie: ${brief.guaranteeType ?? "7 jours satisfait ou rembourse (digital)"}
+- Email support: ${brief.supportEmail ?? "support@fyxxlabs.com"}
+- Style CTA: ${brief.ctaStyle ?? "premium"}
 
 Pricing recommande (obligatoire):
 - Safe: ${pricing.safe}
@@ -311,6 +337,7 @@ Pricing recommande (obligatoire):
 
 Retourne du JSON avec:
 brandName, title, subtitle, hero, offer[], objections[], upsell[], crossSell[], launchChecklist[], faq[{question,answer}], guarantee, legal[], legalPages{cgu,privacy,refund}, transactionalEmails{delivery_subject,delivery_body,support_subject,support_body}.
+Tu dois inférer automatiquement pain points, objections, FAQ et structure de vente à partir du peu d'inputs utilisateur.
 N'inclus aucune statistique inventee.`,
           schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],upsell[],crossSell[],launchChecklist[],faq[{question,answer}],guarantee,legal[],legalPages{cgu,privacy,refund},transactionalEmails{delivery_subject,delivery_body,support_subject,support_body}}",
           temperature: 0.6,
