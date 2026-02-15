@@ -15,13 +15,21 @@ import { z } from "zod";
 export const maxDuration = 60;
 
 interface DigitalBrief {
+  productName: string;
   productType: string;
   audience: string;
+  audiencePain: string;
   promise: string;
+  transformation: string;
   level: string;
   tone: string;
   language: string;
   country: string;
+  offerIncludes?: string;
+  bonus?: string;
+  guaranteeType?: string;
+  supportEmail?: string;
+  ctaStyle?: string;
 }
 
 interface DigitalPagePayload {
@@ -37,6 +45,17 @@ interface DigitalPagePayload {
   faq: Array<{ question: string; answer: string }>;
   guarantee: string;
   legal: string[];
+  legalPages?: {
+    cgu: string;
+    privacy: string;
+    refund: string;
+  };
+  transactionalEmails?: {
+    delivery_subject: string;
+    delivery_body: string;
+    support_subject: string;
+    support_body: string;
+  };
   pricing: {
     currency: string;
     safe: number;
@@ -65,6 +84,21 @@ const DigitalPageSchema = z.object({
   faq: z.array(z.object({ question: z.string().min(3), answer: z.string().min(3) })).min(2),
   guarantee: z.string().min(8),
   legal: z.array(z.string().min(2)).min(2),
+  legalPages: z
+    .object({
+      cgu: z.string().min(30),
+      privacy: z.string().min(30),
+      refund: z.string().min(30),
+    })
+    .optional(),
+  transactionalEmails: z
+    .object({
+      delivery_subject: z.string().min(5),
+      delivery_body: z.string().min(20),
+      support_subject: z.string().min(5),
+      support_body: z.string().min(20),
+    })
+    .optional(),
 });
 
 function buildDigitalProductHtml(page: DigitalPagePayload): string {
@@ -158,7 +192,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Digital builder temporairement désactivé." }, { status: 503 });
       }
       const { brief } = body as { brief: DigitalBrief };
-      if (!brief?.productType || !brief?.promise) {
+      if (
+        !brief?.productName ||
+        !brief?.productType ||
+        !brief?.audience ||
+        !brief?.audiencePain ||
+        !brief?.promise ||
+        !brief?.transformation
+      ) {
         return NextResponse.json({ error: "Brief incomplet" }, { status: 400 });
       }
 
@@ -196,6 +237,7 @@ export async function POST(req: NextRequest) {
         source: "builder",
         step: "generate-page",
         inputPayload: {
+          product_name: brief.productName,
           product_type: brief.productType,
           language: brief.language,
           country: brief.country,
@@ -246,12 +288,20 @@ export async function POST(req: NextRequest) {
           schema: DigitalPageSchema,
           system: `${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.pricing}\n\n${DOMAIN_PROMPTS.branding}\n\n${DOMAIN_PROMPTS.legal}`,
           user: `Genere une landing digitale persuasive en ${brief.language} pour:
+- Nom produit: ${brief.productName}
 - Type: ${brief.productType}
 - Audience: ${brief.audience}
+- Douleur audience: ${brief.audiencePain}
 - Promesse: ${brief.promise}
+- Transformation attendue: ${brief.transformation}
 - Niveau: ${brief.level}
 - Ton: ${brief.tone}
 - Pays cible: ${brief.country}
+- Contenu inclus: ${brief.offerIncludes ?? "A definir"}
+- Bonus/upsell souhaités: ${brief.bonus ?? "A definir"}
+- Garantie: ${brief.guaranteeType ?? "14 jours satisfait ou rembourse"}
+- Email support: ${brief.supportEmail ?? "support@votre-domaine.com"}
+- Style CTA: ${brief.ctaStyle ?? "direct et premium"}
 
 Pricing recommande (obligatoire):
 - Safe: ${pricing.safe}
@@ -260,9 +310,9 @@ Pricing recommande (obligatoire):
 - Positioning: ${pricing.positioning}
 
 Retourne du JSON avec:
-brandName, title, subtitle, hero, offer[], objections[], upsell[], crossSell[], launchChecklist[], faq[{question,answer}], guarantee, legal[].
+brandName, title, subtitle, hero, offer[], objections[], upsell[], crossSell[], launchChecklist[], faq[{question,answer}], guarantee, legal[], legalPages{cgu,privacy,refund}, transactionalEmails{delivery_subject,delivery_body,support_subject,support_body}.
 N'inclus aucune statistique inventee.`,
-          schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],upsell[],crossSell[],launchChecklist[],faq[{question,answer}],guarantee,legal[]}",
+          schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],upsell[],crossSell[],launchChecklist[],faq[{question,answer}],guarantee,legal[],legalPages{cgu,privacy,refund},transactionalEmails{delivery_subject,delivery_body,support_subject,support_body}}",
           temperature: 0.6,
           maxTokens: 2600,
           retries: 2,

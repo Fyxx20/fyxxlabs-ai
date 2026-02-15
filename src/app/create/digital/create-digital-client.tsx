@@ -21,6 +21,17 @@ interface DigitalPagePayload {
   faq: Array<{ question: string; answer: string }>;
   guarantee: string;
   legal: string[];
+  legalPages?: {
+    cgu: string;
+    privacy: string;
+    refund: string;
+  };
+  transactionalEmails?: {
+    delivery_subject: string;
+    delivery_body: string;
+    support_subject: string;
+    support_body: string;
+  };
   pricing: {
     currency: string;
     safe: number;
@@ -53,17 +64,32 @@ export function CreateDigitalClient({
   const [page, setPage] = useState<DigitalPagePayload | null>(null);
 
   const [brief, setBrief] = useState({
+    productName: "",
     productType: "ebook",
     audience: "",
+    audiencePain: "",
     promise: "",
+    transformation: "",
     level: "beginner",
     tone: "professionnel",
     language: "fr",
     country: "FR",
+    offerIncludes: "",
+    bonus: "",
+    guaranteeType: "14 jours satisfait ou rembourse",
+    supportEmail: "",
+    ctaStyle: "direct et premium",
   });
 
   const canGenerate = useMemo(
-    () => brief.productType && brief.audience && brief.promise && assetId,
+    () =>
+      brief.productName &&
+      brief.productType &&
+      brief.audience &&
+      brief.audiencePain &&
+      brief.promise &&
+      brief.transformation &&
+      assetId,
     [brief, assetId]
   );
 
@@ -158,9 +184,13 @@ export function CreateDigitalClient({
 
       <Card>
         <CardHeader>
-          <CardTitle>Etape 1 - Brief produit digital</CardTitle>
+          <CardTitle>Etape 1 - Questionnaire A a Z</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Nom du produit</Label>
+            <Input value={brief.productName} onChange={(e) => setBrief((b) => ({ ...b, productName: e.target.value }))} />
+          </div>
           <div className="space-y-2">
             <Label>Type</Label>
             <Input value={brief.productType} onChange={(e) => setBrief((b) => ({ ...b, productType: e.target.value }))} />
@@ -170,11 +200,27 @@ export function CreateDigitalClient({
             <Input value={brief.audience} onChange={(e) => setBrief((b) => ({ ...b, audience: e.target.value }))} />
           </div>
           <div className="space-y-2 md:col-span-2">
+            <Label>Douleur principale de l'audience</Label>
+            <textarea
+              value={brief.audiencePain}
+              onChange={(e) => setBrief((b) => ({ ...b, audiencePain: e.target.value }))}
+              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
             <Label>Promesse</Label>
             <textarea
               value={brief.promise}
               onChange={(e) => setBrief((b) => ({ ...b, promise: e.target.value }))}
               className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Transformation attendue (avant / apres)</Label>
+            <textarea
+              value={brief.transformation}
+              onChange={(e) => setBrief((b) => ({ ...b, transformation: e.target.value }))}
+              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             />
           </div>
           <div className="space-y-2">
@@ -193,8 +239,47 @@ export function CreateDigitalClient({
             <Label>Pays cible</Label>
             <Input value={brief.country} onChange={(e) => setBrief((b) => ({ ...b, country: e.target.value }))} />
           </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Contenu inclus dans l'offre</Label>
+            <textarea
+              value={brief.offerIncludes}
+              onChange={(e) => setBrief((b) => ({ ...b, offerIncludes: e.target.value }))}
+              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Bonus / upsell souhaite</Label>
+            <textarea
+              value={brief.bonus}
+              onChange={(e) => setBrief((b) => ({ ...b, bonus: e.target.value }))}
+              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Type de garantie</Label>
+            <Input value={brief.guaranteeType} onChange={(e) => setBrief((b) => ({ ...b, guaranteeType: e.target.value }))} />
+          </div>
+          <div className="space-y-2">
+            <Label>Email support</Label>
+            <Input value={brief.supportEmail} onChange={(e) => setBrief((b) => ({ ...b, supportEmail: e.target.value }))} />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label>Style CTA</Label>
+            <Input value={brief.ctaStyle} onChange={(e) => setBrief((b) => ({ ...b, ctaStyle: e.target.value }))} />
+          </div>
           <div className="md:col-span-2">
-            <Button onClick={() => setStep(2)} disabled={loading}>
+            <Button
+              onClick={() => setStep(2)}
+              disabled={
+                loading ||
+                !brief.productName ||
+                !brief.productType ||
+                !brief.audience ||
+                !brief.audiencePain ||
+                !brief.promise ||
+                !brief.transformation
+              }
+            >
               Continuer vers upload
             </Button>
           </div>
@@ -246,6 +331,16 @@ export function CreateDigitalClient({
                 <p className="text-xs text-muted-foreground">
                   Conversion booster: {page.upsell.length} upsell, {page.crossSell.length} cross-sell, {page.launchChecklist.length} points checklist
                 </p>
+                {page.transactionalEmails && (
+                  <p className="text-xs text-muted-foreground">
+                    Emails transactionnels générés: livraison + support.
+                  </p>
+                )}
+                {page.legalPages && (
+                  <p className="text-xs text-muted-foreground">
+                    Pages légales générées: CGU digitales, confidentialité, remboursement.
+                  </p>
+                )}
               </div>
             )}
           </CardContent>
