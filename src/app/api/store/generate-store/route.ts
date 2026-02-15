@@ -74,6 +74,15 @@ const PageSchema = z.object({
   statistics: z.array(z.object({ value: z.string(), label: z.string() })).min(1),
   faq: z.array(z.object({ question: z.string(), answer: z.string() })).min(1),
   trust_badges: z.array(z.string()).min(1),
+  conversion_booster: z
+    .object({
+      offers: z.array(z.string()).optional(),
+      objections: z.array(z.string()).optional(),
+      upsell: z.array(z.string()).optional(),
+      cross_sell: z.array(z.string()).optional(),
+      launch_checklist: z.array(z.string()).optional(),
+    })
+    .optional(),
 });
 
 async function fetchPage(url: string): Promise<string> {
@@ -925,7 +934,8 @@ INSTRUCTIONS:
 4. Chaque section doit vendre le produit — AUCUN texte générique ou fade
 5. Le copywriting doit créer du DÉSIR, de l'URGENCE et de la CONFIANCE
 
-Génère le JSON complet avec TOUTES les sections: brand_name, brand_color, banner_text, product, review, hero, timeline, advantages, comparison, statistics, faq, trust_badges.`;
+Génère le JSON complet avec TOUTES les sections: brand_name, brand_color, banner_text, product, review, hero, timeline, advantages, comparison, statistics, faq, trust_badges, conversion_booster.
+Dans conversion_booster, donne: offers, objections, upsell, cross_sell, launch_checklist (pragmatiques, actionnables, orientés conversion).`;
 
       try {
         const result = await callOpenAIJsonWithSchema({
@@ -1225,6 +1235,13 @@ function buildProductHtml(data: {
   statistics: Array<{ value: string; label: string }>;
   faq: Array<{ question: string; answer: string }>;
   trust_badges: string[];
+  conversion_booster?: {
+    offers?: string[];
+    objections?: string[];
+    upsell?: string[];
+    cross_sell?: string[];
+    launch_checklist?: string[];
+  };
 }): string {
   const color = data.brand_color || "#000000";
 
@@ -1299,6 +1316,21 @@ function buildProductHtml(data: {
         <p style="margin-top:8px;font-size:13px;color:#6b7280;line-height:1.6;">${f.answer}</p>
       </details>`
     )
+    .join("");
+  const offersHtml = (data.conversion_booster?.offers ?? [])
+    .map((item) => `<li style="margin:6px 0;">🎯 ${item}</li>`)
+    .join("");
+  const objectionsHtml = (data.conversion_booster?.objections ?? [])
+    .map((item) => `<li style="margin:6px 0;">• ${item}</li>`)
+    .join("");
+  const upsellHtml = (data.conversion_booster?.upsell ?? [])
+    .map((item) => `<li style="margin:6px 0;">⬆️ ${item}</li>`)
+    .join("");
+  const crossSellHtml = (data.conversion_booster?.cross_sell ?? [])
+    .map((item) => `<li style="margin:6px 0;">🔁 ${item}</li>`)
+    .join("");
+  const launchChecklistHtml = (data.conversion_booster?.launch_checklist ?? [])
+    .map((item) => `<li style="margin:6px 0;">✅ ${item}</li>`)
     .join("");
 
   // Hero headline with bold word
@@ -1378,6 +1410,43 @@ function buildProductHtml(data: {
   <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">Questions fréquentes</h3>
   ${faqHtml}
 </div>
+
+${
+  offersHtml
+    ? `<div style="padding:16px 0;">
+  <h3 style="font-size:16px;font-weight:700;margin-bottom:10px;">Offres recommandées</h3>
+  <ul style="padding-left:18px;">${offersHtml}</ul>
+</div>`
+    : ""
+}
+
+${
+  objectionsHtml
+    ? `<div style="padding:16px 0;">
+  <h3 style="font-size:16px;font-weight:700;margin-bottom:10px;">Objections traitées</h3>
+  <ul style="padding-left:18px;">${objectionsHtml}</ul>
+</div>`
+    : ""
+}
+
+${
+  upsellHtml || crossSellHtml
+    ? `<div style="padding:16px 0;background:#f9fafb;border-radius:12px;">
+  <h3 style="font-size:16px;font-weight:700;margin-bottom:10px;">Upsell & Cross-sell</h3>
+  ${upsellHtml ? `<p style="font-weight:600;margin:6px 0;">Upsell</p><ul style="padding-left:18px;">${upsellHtml}</ul>` : ""}
+  ${crossSellHtml ? `<p style="font-weight:600;margin:12px 0 6px;">Cross-sell</p><ul style="padding-left:18px;">${crossSellHtml}</ul>` : ""}
+</div>`
+    : ""
+}
+
+${
+  launchChecklistHtml
+    ? `<div style="padding:16px 0;">
+  <h3 style="font-size:16px;font-weight:700;margin-bottom:10px;">Checklist lancement</h3>
+  <ul style="padding-left:18px;">${launchChecklistHtml}</ul>
+</div>`
+    : ""
+}
 
 ${
   discount > 0

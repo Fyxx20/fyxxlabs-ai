@@ -31,6 +31,9 @@ interface DigitalPagePayload {
   hero: string;
   offer: string[];
   objections: string[];
+  upsell: string[];
+  crossSell: string[];
+  launchChecklist: string[];
   faq: Array<{ question: string; answer: string }>;
   guarantee: string;
   legal: string[];
@@ -56,6 +59,9 @@ const DigitalPageSchema = z.object({
   hero: z.string().min(6),
   offer: z.array(z.string().min(2)).min(2),
   objections: z.array(z.string().min(2)).min(2),
+  upsell: z.array(z.string().min(2)).min(1),
+  crossSell: z.array(z.string().min(2)).min(1),
+  launchChecklist: z.array(z.string().min(2)).min(2),
   faq: z.array(z.object({ question: z.string().min(3), answer: z.string().min(3) })).min(2),
   guarantee: z.string().min(8),
   legal: z.array(z.string().min(2)).min(2),
@@ -70,6 +76,9 @@ function buildDigitalProductHtml(page: DigitalPagePayload): string {
     .join("");
   const offerHtml = page.offer.map((o) => `<li style="margin:6px 0">✅ ${o}</li>`).join("");
   const objectionsHtml = page.objections.map((o) => `<li style="margin:6px 0">• ${o}</li>`).join("");
+  const upsellHtml = page.upsell.map((o) => `<li style="margin:6px 0">⬆️ ${o}</li>`).join("");
+  const crossSellHtml = page.crossSell.map((o) => `<li style="margin:6px 0">🔁 ${o}</li>`).join("");
+  const checklistHtml = page.launchChecklist.map((o) => `<li style="margin:6px 0">✅ ${o}</li>`).join("");
   const legalHtml = page.legal.map((l) => `<li style="margin:6px 0">${l}</li>`).join("");
 
   return `
@@ -82,6 +91,13 @@ function buildDigitalProductHtml(page: DigitalPagePayload): string {
   <ul>${offerHtml}</ul>
   <h2 style="font-size:22px;margin-top:16px">Objections traitées</h2>
   <ul>${objectionsHtml}</ul>
+  <h2 style="font-size:22px;margin-top:16px">Upsell & Cross-sell</h2>
+  <p style="font-weight:700;margin-bottom:4px">Upsell</p>
+  <ul>${upsellHtml}</ul>
+  <p style="font-weight:700;margin-bottom:4px;margin-top:8px">Cross-sell</p>
+  <ul>${crossSellHtml}</ul>
+  <h2 style="font-size:22px;margin-top:16px">Checklist lancement</h2>
+  <ul>${checklistHtml}</ul>
   <h2 style="font-size:22px;margin-top:16px">Garantie</h2>
   <p>${page.guarantee}</p>
   <h2 style="font-size:22px;margin-top:16px">FAQ</h2>
@@ -244,9 +260,9 @@ Pricing recommande (obligatoire):
 - Positioning: ${pricing.positioning}
 
 Retourne du JSON avec:
-brandName, title, subtitle, hero, offer[], objections[], faq[{question,answer}], guarantee, legal[].
+brandName, title, subtitle, hero, offer[], objections[], upsell[], crossSell[], launchChecklist[], faq[{question,answer}], guarantee, legal[].
 N'inclus aucune statistique inventee.`,
-          schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],faq[{question,answer}],guarantee,legal[]}",
+          schemaHint: "{brandName,title,subtitle,hero,offer[],objections[],upsell[],crossSell[],launchChecklist[],faq[{question,answer}],guarantee,legal[]}",
           temperature: 0.6,
           maxTokens: 2600,
           retries: 2,

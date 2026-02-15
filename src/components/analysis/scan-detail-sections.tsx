@@ -57,6 +57,11 @@ interface ScanDataJson {
     issues?: string[];
     recommendations?: string[];
   }>;
+  image_audit?: {
+    analyzed_count?: number;
+    weak_count?: number;
+    average_score?: number;
+  };
   analyzedAt?: string;
 }
 
@@ -78,6 +83,7 @@ export function ScanDetailDataSections({
   const priceInsights = data?.price_insights;
   const businessMetrics = data?.business_metrics;
   const productAnalysis = data?.product_analysis ?? [];
+  const imageAudit = data?.image_audit;
   const hasAnyData = Boolean(homepage || pages.length > 0 || pagesScanned.length > 0 || productAnalysis.length > 0);
 
   const productPages = pages.filter((p) => p.url?.toLowerCase().includes("/product") || p.title);
@@ -259,6 +265,16 @@ export function ScanDetailDataSections({
                     <span>Clients: <span className="font-medium text-foreground">{businessMetrics.customers ?? "—"}</span></span>
                     <span>CA: <span className="font-medium text-foreground">{businessMetrics.revenue != null ? `${Number(businessMetrics.revenue).toFixed(2)} €` : "—"}</span></span>
                     <span>Panier moyen: <span className="font-medium text-foreground">{businessMetrics.aov != null ? `${Number(businessMetrics.aov).toFixed(2)} €` : "—"}</span></span>
+                  </div>
+                </div>
+              )}
+              {imageAudit && (
+                <div className="mt-3 rounded-md border border-border bg-muted/20 p-3 text-sm">
+                  <p className="font-medium text-foreground">Qualité images</p>
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-muted-foreground">
+                    <span>Images auditées: <span className="font-medium text-foreground">{imageAudit.analyzed_count ?? 0}</span></span>
+                    <span>Images faibles: <span className="font-medium text-foreground">{imageAudit.weak_count ?? 0}</span></span>
+                    <span>Score moyen: <span className="font-medium text-foreground">{Number(imageAudit.average_score ?? 0).toFixed(1)}/100</span></span>
                   </div>
                 </div>
               )}

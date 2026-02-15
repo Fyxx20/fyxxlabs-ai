@@ -15,6 +15,9 @@ interface DigitalPagePayload {
   hero: string;
   offer: string[];
   objections: string[];
+  upsell: string[];
+  crossSell: string[];
+  launchChecklist: string[];
   faq: Array<{ question: string; answer: string }>;
   guarantee: string;
   legal: string[];
@@ -239,6 +242,9 @@ export function CreateDigitalClient({
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Pricing: Safe {page.pricing.safe} / Optimal {page.pricing.optimal} / Aggressive {page.pricing.aggressive} {page.pricing.currency}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Conversion booster: {page.upsell.length} upsell, {page.crossSell.length} cross-sell, {page.launchChecklist.length} points checklist
                 </p>
               </div>
             )}
