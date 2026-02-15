@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   const { data: sub } = await supabase
     .from("subscriptions")
-    .select("stripe_customer_id")
+    .select("stripe_customer_id, stripe_subscription_id, plan, status")
     .eq("user_id", user.id)
     .single();
 
@@ -73,6 +73,8 @@ export async function POST(request: Request) {
   }
 
   const oneTime = isOneTime(priceKey);
+  const hasAnyPaidHistory = Boolean(sub?.stripe_subscription_id) || ["starter", "pro", "elite", "create", "lifetime"].includes((sub?.plan ?? "").toLowerCase());
+  const shouldApplyFirstOffer = !oneTime && !hasAnyPaidHistory && Boolean(process.env.STRIPE_COUPON_FIRST_TRIAL_50);
 
   const session = await stripe.checkout.sessions.create({
     customer: customerId,
@@ -82,9 +84,15 @@ export async function POST(request: Request) {
     success_url: `${process.env.NEXT_PUBLIC_APP_URL ?? request.headers.get("origin")}/app/billing?success=1`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL ?? request.headers.get("origin")}/app/billing`,
     metadata: { user_id: user.id, plan_key: plan, billing_interval: interval },
+    ...(shouldApplyFirstOffer
+      ? {
+          discounts: [{ coupon: process.env.STRIPE_COUPON_FIRST_TRIAL_50! }],
+        }
+      : {}),
     ...(oneTime
       ? {}
       : {
+          allow_promotion_codes: true,
           subscription_data: {
             metadata: { user_id: user.id, plan_key: plan, billing_interval: interval },
             trial_period_days: undefined,

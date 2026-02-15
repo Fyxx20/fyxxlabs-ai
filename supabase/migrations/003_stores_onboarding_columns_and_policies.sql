@@ -19,6 +19,10 @@ ALTER TABLE public.subscriptions
 
 -- 4) RLS stores: policy avec WITH CHECK pour INSERT/UPDATE (explicite)
 DROP POLICY IF EXISTS "Users can CRUD own stores" ON public.stores;
+DROP POLICY IF EXISTS "stores_select_own" ON public.stores;
+DROP POLICY IF EXISTS "stores_insert_own" ON public.stores;
+DROP POLICY IF EXISTS "stores_update_own" ON public.stores;
+DROP POLICY IF EXISTS "stores_delete_own" ON public.stores;
 CREATE POLICY "stores_select_own"
   ON public.stores FOR SELECT
   USING (auth.uid() = user_id OR public.is_admin(auth.uid()));

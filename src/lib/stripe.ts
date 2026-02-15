@@ -21,11 +21,12 @@ export const stripe = new Proxy({} as Stripe, {
 
 export const PRICE_IDS = {
   create_one_time: process.env.STRIPE_PRICE_CREATE_ONE_TIME || process.env.STRIPE_PRICE_CREATE || "",
+  starter_monthly: process.env.STRIPE_PRICE_STARTER_MONTHLY || "",
+  starter_yearly: process.env.STRIPE_PRICE_STARTER_YEARLY || "",
   pro_monthly: process.env.STRIPE_PRICE_PRO_MONTHLY || "",
   pro_yearly: process.env.STRIPE_PRICE_PRO_YEARLY || "",
-  elite_monthly: process.env.STRIPE_PRICE_ELITE_MONTHLY || process.env.STRIPE_PRICE_AGENCE_MONTHLY || "",
-  elite_yearly: process.env.STRIPE_PRICE_ELITE_YEARLY || process.env.STRIPE_PRICE_AGENCE_YEARLY || "",
-  // Alias explicite "Agence" pour rester coherent avec l'UI.
+  elite_monthly: process.env.STRIPE_PRICE_AGENCE_MONTHLY || process.env.STRIPE_PRICE_ELITE_MONTHLY || "",
+  elite_yearly: process.env.STRIPE_PRICE_AGENCE_YEARLY || process.env.STRIPE_PRICE_ELITE_YEARLY || "",
   agence_monthly: process.env.STRIPE_PRICE_AGENCE_MONTHLY || process.env.STRIPE_PRICE_ELITE_MONTHLY || "",
   agence_yearly: process.env.STRIPE_PRICE_AGENCE_YEARLY || process.env.STRIPE_PRICE_ELITE_YEARLY || "",
 } as const;

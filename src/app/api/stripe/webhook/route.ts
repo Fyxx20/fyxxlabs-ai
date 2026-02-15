@@ -8,7 +8,7 @@ function normalizeStripePlan(plan: string | null | undefined): "create" | "start
   const p = (plan ?? "").toLowerCase();
   if (p === "create") return "create";
   if (p === "starter") return "starter";
-  if (p === "elite" || p === "business") return "elite";
+  if (p === "elite" || p === "business" || p === "agence") return "elite";
   if (p === "lifetime") return "lifetime";
   if (p === "free") return "free";
   return "pro";

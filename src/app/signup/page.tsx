@@ -18,6 +18,15 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function getOrCreateDeviceId(): string {
+    const key = "fyxx_device_id";
+    const existing = window.localStorage.getItem(key);
+    if (existing) return existing;
+    const generated = window.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    window.localStorage.setItem(key, generated);
+    return generated;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -27,7 +36,7 @@ export default function SignupPage() {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, deviceId: getOrCreateDeviceId() }),
       });
 
       const result = await res.json();

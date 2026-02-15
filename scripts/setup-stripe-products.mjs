@@ -1,5 +1,5 @@
 /**
- * Creates the 4 products (Create, Starter, Pro, Elite) and prices in Stripe,
+ * Creates FyxxLabs products/prices in Stripe,
  * then prints the env vars to paste into .env.local.
  */
 import Stripe from "stripe";
@@ -28,7 +28,7 @@ const products = [
     name: "Create",
     description: "FyxxLabs Create — Génération complète d'une boutique Shopify (paiement unique)",
     prices: [
-      { envKey: "STRIPE_PRICE_CREATE_ONE_TIME", unit_amount: 1900, currency: "eur", interval: null },
+      { envKey: "STRIPE_PRICE_CREATE_ONE_TIME", unit_amount: 1499, currency: "eur", interval: null },
     ],
   },
   {
@@ -75,6 +75,15 @@ for (const prod of products) {
   }
 }
 
+// First-subscription 50% coupon
+const firstTrialCoupon = await stripe.coupons.create({
+  percent_off: 50,
+  duration: "once",
+  name: "FYXX_FIRST_TRIAL_50",
+  metadata: { app: "fyxxlabs", offer: "first_subscription_50" },
+});
+priceIds.STRIPE_COUPON_FIRST_TRIAL_50 = firstTrialCoupon.id;
+
 // ── Update .env.local ─────────────────────────────────────────────────
 let updatedEnv = envContent;
 for (const [key, value] of Object.entries(priceIds)) {
@@ -87,7 +96,7 @@ for (const [key, value] of Object.entries(priceIds)) {
 }
 writeFileSync(envPath, updatedEnv, "utf-8");
 
-console.log("\n✅ .env.local mis à jour avec les Price IDs !");
+console.log("\n✅ .env.local mis à jour avec les Price IDs + coupon !");
 console.log("\n── Résumé ──────────────────────────────────────");
 for (const [key, value] of Object.entries(priceIds)) {
   console.log(`${key}=${value}`);

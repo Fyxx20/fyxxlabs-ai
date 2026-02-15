@@ -12,6 +12,10 @@ CREATE INDEX IF NOT EXISTS idx_profiles_role ON public.profiles(role);
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can read own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can read all profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+
 -- is_admin(uid) - doit exister AVANT les policies qui l'utilisent
 CREATE OR REPLACE FUNCTION public.is_admin(uid UUID)
 RETURNS BOOLEAN AS $$
@@ -46,26 +50,32 @@ FROM public.stores st
 WHERE s.store_id = st.id AND s.user_id IS NULL;
 
 -- Policy: admin can read all scans
+DROP POLICY IF EXISTS "Admins can read all scans" ON public.scans;
 CREATE POLICY "Admins can read all scans" ON public.scans
   FOR SELECT USING (public.is_admin(auth.uid()));
 
 -- Policy: admin can read all stores
+DROP POLICY IF EXISTS "Admins can read all stores" ON public.stores;
 CREATE POLICY "Admins can read all stores" ON public.stores
   FOR SELECT USING (public.is_admin(auth.uid()));
 
 -- Policy: admin can read all subscriptions
+DROP POLICY IF EXISTS "Admins can read all subscriptions" ON public.subscriptions;
 CREATE POLICY "Admins can read all subscriptions" ON public.subscriptions
   FOR SELECT USING (public.is_admin(auth.uid()));
 
 -- Policy: admin can read all coach_messages
+DROP POLICY IF EXISTS "Admins can read all coach_messages" ON public.coach_messages;
 CREATE POLICY "Admins can read all coach_messages" ON public.coach_messages
   FOR SELECT USING (public.is_admin(auth.uid()));
 
 -- Policy: admin can read all audit_events
+DROP POLICY IF EXISTS "Admins can read all audit_events" ON public.audit_events;
 CREATE POLICY "Admins can read all audit_events" ON public.audit_events
   FOR SELECT USING (public.is_admin(auth.uid()));
 
 -- Policy: admin can read all user_onboarding
+DROP POLICY IF EXISTS "Admins can read all user_onboarding" ON public.user_onboarding;
 CREATE POLICY "Admins can read all user_onboarding" ON public.user_onboarding
   FOR SELECT USING (public.is_admin(auth.uid()));
 
@@ -111,6 +121,7 @@ CREATE TABLE IF NOT EXISTS public.admin_settings (
 ALTER TABLE public.admin_settings ENABLE ROW LEVEL SECURITY;
 
 -- Only admins can read/write
+DROP POLICY IF EXISTS "Admins can manage admin_settings" ON public.admin_settings;
 CREATE POLICY "Admins can manage admin_settings" ON public.admin_settings
   FOR ALL USING (public.is_admin(auth.uid()));
 

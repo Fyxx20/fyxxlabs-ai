@@ -19,6 +19,9 @@ CREATE INDEX IF NOT EXISTS idx_generated_stores_user ON public.generated_stores(
 -- RLS
 ALTER TABLE public.generated_stores ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own generated stores" ON public.generated_stores;
+DROP POLICY IF EXISTS "Users can insert their own generated stores" ON public.generated_stores;
+DROP POLICY IF EXISTS "Users can delete their own generated stores" ON public.generated_stores;
 CREATE POLICY "Users can view their own generated stores"
   ON public.generated_stores FOR SELECT
   USING (auth.uid() = user_id);

@@ -56,7 +56,7 @@ export function PaywallModal({ open, onOpenChange }: PaywallModalProps) {
           ))}
         </ul>
         <p className="text-xs text-muted-foreground">
-          Plans actifs: Create 29€ (one-shot), Pro 39€/mois, Agence 79€/mois.
+          CREATE 14,99 € (au lieu de 29 €) puis abonnements: PRO 39 €/mois ou AGENCE 79 €/mois.
         </p>
         <div className="flex gap-2 pt-2">
           <Button asChild className="flex-1">

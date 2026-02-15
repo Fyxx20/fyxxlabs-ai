@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_scan_events_scan_id_ts ON public.scan_events(scan
 ALTER TABLE public.scan_events ENABLE ROW LEVEL SECURITY;
 
 -- Lecture : utilisateur peut voir les events des scans de ses boutiques
+DROP POLICY IF EXISTS "Users can read scan_events of own stores" ON public.scan_events;
 CREATE POLICY "Users can read scan_events of own stores"
   ON public.scan_events FOR SELECT
   USING (

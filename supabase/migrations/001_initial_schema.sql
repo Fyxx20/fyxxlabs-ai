@@ -85,36 +85,45 @@ ALTER TABLE public.user_onboarding ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_events ENABLE ROW LEVEL SECURITY;
 
 -- Policies: users see only their data
+DROP POLICY IF EXISTS "Users can CRUD own stores" ON public.stores;
 CREATE POLICY "Users can CRUD own stores" ON public.stores
   FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can read/update own subscription" ON public.subscriptions;
 CREATE POLICY "Users can read/update own subscription" ON public.subscriptions
   FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can read scans of own stores" ON public.scans;
 CREATE POLICY "Users can read scans of own stores" ON public.scans
   FOR SELECT USING (
     EXISTS (SELECT 1 FROM public.stores s WHERE s.id = scans.store_id AND s.user_id = auth.uid())
   );
+DROP POLICY IF EXISTS "Users can insert scans for own stores" ON public.scans;
 CREATE POLICY "Users can insert scans for own stores" ON public.scans
   FOR INSERT WITH CHECK (
     EXISTS (SELECT 1 FROM public.stores s WHERE s.id = store_id AND s.user_id = auth.uid())
   );
+DROP POLICY IF EXISTS "Users can update scans of own stores" ON public.scans;
 CREATE POLICY "Users can update scans of own stores" ON public.scans
   FOR UPDATE USING (
     EXISTS (SELECT 1 FROM public.stores s WHERE s.id = scans.store_id AND s.user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Users can CRUD coach_messages for own stores" ON public.coach_messages;
 CREATE POLICY "Users can CRUD coach_messages for own stores" ON public.coach_messages
   FOR ALL USING (
     auth.uid() = user_id AND
     EXISTS (SELECT 1 FROM public.stores s WHERE s.id = store_id AND s.user_id = auth.uid())
   );
 
+DROP POLICY IF EXISTS "Users can read/update own onboarding" ON public.user_onboarding;
 CREATE POLICY "Users can read/update own onboarding" ON public.user_onboarding
   FOR ALL USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own audit_events" ON public.audit_events;
 CREATE POLICY "Users can insert own audit_events" ON public.audit_events
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "Users can read own audit_events" ON public.audit_events;
 CREATE POLICY "Users can read own audit_events" ON public.audit_events
   FOR SELECT USING (auth.uid() = user_id);
 

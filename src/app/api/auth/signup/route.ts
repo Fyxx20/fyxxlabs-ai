@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 /**
@@ -8,7 +9,7 @@ import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, deviceId } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -24,7 +25,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!deviceId || typeof deviceId !== "string" || deviceId.length < 8) {
+      return NextResponse.json(
+        { error: "Identifiant appareil invalide." },
+        { status: 400 }
+      );
+    }
+
     const sb = getSupabaseAdmin();
+    const userAgent = req.headers.get("user-agent") ?? null;
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      null;
+    const pepper = process.env.SIGNUP_DEVICE_PEPPER ?? "fyxxlabs-device-v1";
+    const deviceHash = createHash("sha256")
+      .update(`${deviceId}:${pepper}`)
+      .digest("hex");
+
+    const { data: existingDevice } = await sb
+      .from("signup_devices")
+      .select("id, user_id")
+      .eq("device_hash", deviceHash)
+      .maybeSingle();
+
+    if (existingDevice?.user_id) {
+      return NextResponse.json(
+        { error: "Un compte existe déjà sur cet appareil. Connecte-toi directement." },
+        { status: 409 }
+      );
+    }
 
     // Create user with email already confirmed
     const { data, error } = await sb.auth.admin.createUser({
@@ -50,6 +80,32 @@ export async function POST(req: NextRequest) {
 
     // Ensure profile row exists (trigger may handle this, but ensure)
     if (data.user) {
+      const { error: deviceInsertError } = await sb
+        .from("signup_devices")
+        .insert({
+          user_id: data.user.id,
+          device_hash: deviceHash,
+          ip_address: ip,
+          user_agent: userAgent,
+        });
+
+      if (deviceInsertError) {
+        await sb.auth.admin.deleteUser(data.user.id);
+        if (
+          deviceInsertError.message.includes("unique") ||
+          deviceInsertError.message.includes("duplicate")
+        ) {
+          return NextResponse.json(
+            { error: "Un compte existe déjà sur cet appareil." },
+            { status: 409 }
+          );
+        }
+        return NextResponse.json(
+          { error: "Impossible de valider cet appareil." },
+          { status: 400 }
+        );
+      }
+
       const { error: profileError } = await sb
         .from("profiles")
         .upsert(

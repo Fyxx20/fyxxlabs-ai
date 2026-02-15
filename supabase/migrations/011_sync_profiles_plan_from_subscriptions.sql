@@ -3,6 +3,11 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS plan TEXT NOT NULL DEFAULT 'trial'
   CHECK (plan IN ('trial', 'free', 'pro', 'lifetime'));
 ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_plan_check;
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_plan_check
+  CHECK (plan IN ('trial', 'free', 'create', 'starter', 'pro', 'elite', 'business', 'lifetime'));
+ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS trial_started_at TIMESTAMPTZ;
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ;

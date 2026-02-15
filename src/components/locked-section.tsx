@@ -7,8 +7,8 @@ import Link from "next/link";
 const BENEFITS = [
   "Checklist complète",
   "Toutes les issues détaillées avec correctifs",
-  "Assistant FyxxLabs expert (illimité sur Pro/Agence)",
-  "Scans illimités + plan d'action personnalisé",
+  "Assistant FyxxLabs inclus sur PRO et AGENCE",
+  "Fonctionnalités avancées selon plan",
 ];
 
 interface LockedSectionProps {
@@ -22,7 +22,7 @@ interface LockedSectionProps {
 
 export function LockedSection({
   title = "Accès partiel — passe sur une version supérieure FyxxLabs",
-  subtitle = "Create 29€ (one-shot), Pro 39€/mois, Agence 79€/mois.",
+  subtitle = "CREATE 14,99 € (offre fondateur), PRO 39 €/mois, AGENCE 79 €/mois.",
   ctaLabel = "Débloquer l'analyse complète",
   onUnlockClick,
   className = "",

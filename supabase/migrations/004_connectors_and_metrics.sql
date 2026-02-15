@@ -27,6 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_store_integrations_status ON public.store_integra
 
 ALTER TABLE public.store_integrations ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "store_integrations_select_own" ON public.store_integrations;
+DROP POLICY IF EXISTS "store_integrations_insert_own" ON public.store_integrations;
+DROP POLICY IF EXISTS "store_integrations_update_own" ON public.store_integrations;
+DROP POLICY IF EXISTS "store_integrations_delete_own" ON public.store_integrations;
 CREATE POLICY "store_integrations_select_own"
   ON public.store_integrations FOR SELECT
   USING (
@@ -76,6 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_store_metrics_daily_store_day ON public.store_met
 
 ALTER TABLE public.store_metrics_daily ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "store_metrics_daily_select_own" ON public.store_metrics_daily;
 CREATE POLICY "store_metrics_daily_select_own"
   ON public.store_metrics_daily FOR SELECT
   USING (

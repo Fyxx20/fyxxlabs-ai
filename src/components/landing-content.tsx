@@ -841,15 +841,16 @@ const EXAMPLES = [
 const PLANS = [
   {
     name: "CREATE",
-    price: "29",
+    price: "14,99",
     unit: "€",
-    period: "paiement unique",
+    period: "paiement unique — offre fondateur",
     color: "primary",
+    oldPrice: "29€",
     features: [
-      "Génération boutique IA",
-      "Pages légales auto + branding",
-      "Export Shopify",
-      "Idéal pour lancer une première boutique",
+      "1 boutique complète générée par IA",
+      "Fiche produit optimisée + branding auto",
+      "Pages légales + FAQ + structure",
+      "Export Shopify prêt + SEO de base",
     ],
     cta: "Créer une boutique",
     popular: false,
@@ -859,30 +860,30 @@ const PLANS = [
     price: "39",
     unit: "€",
     period: "/mois",
-    color: "accent",
+    color: "primary",
     features: [
-      "Scan Shopify illimité + score /100",
-      "Recommandations UX + winner finder + chatbot expert",
-      "5 créations/jour (max 20/mois)",
-      "IA illimitée, firewall anti-abus, dashboard performance",
+      "5 créations / jour (max 20 / mois)",
+      "Scan illimité + IA illimitée",
+      "Winner finder + analyse concurrentielle",
+      "Optimisation conversion + dashboard perf",
     ],
-    cta: "Commencer Pro",
-    popular: true,
+    cta: "Passer en Pro",
+    popular: false,
   },
   {
     name: "AGENCE",
     price: "79",
     unit: "€",
     period: "/mois",
-    color: "cyan",
+    color: "accent",
     features: [
-      "Tout le plan PRO",
-      "10 créations/jour (max 60/mois)",
-      "Export Shopify avancé multi-boutique",
-      "Support prioritaire + rapports PDF + analyses auto",
+      "10 créations / jour (max 60 / mois)",
+      "Export avancé + support prioritaire",
+      "Gestion multi-projets",
+      "Rapports avancés",
     ],
-    cta: "Commencer Agence",
-    popular: false,
+    cta: "Passer en Agence",
+    popular: true,
   },
 ];
 
@@ -1509,6 +1510,11 @@ export function LandingContent({
                   <span className="font-mono text-5xl font-bold text-white">{plan.price}</span>
                   <span className="text-lg text-slate-400">{plan.unit}</span>
                 </div>
+                {"oldPrice" in plan && plan.oldPrice ? (
+                  <p className="mt-1 text-sm text-slate-500">
+                    <span className="line-through">{plan.oldPrice}</span> <span className="text-violet-300">offre limitée</span>
+                  </p>
+                ) : null}
                 {plan.period && (
                   <p className="mt-1 text-sm text-slate-500">{plan.period}</p>
                 )}
