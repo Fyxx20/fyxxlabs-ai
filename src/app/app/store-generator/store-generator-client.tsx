@@ -177,6 +177,7 @@ export function StoreGeneratorClient({
   // Step 2: Select
   const [brandName, setBrandName] = useState("YOUR BRAND");
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
+  const [optimizedImages, setOptimizedImages] = useState<string[] | null>(null);
 
   // Step 3: Customize
   const [pageData, setPageData] = useState<StorePageData>(emptyPageData());
@@ -228,6 +229,7 @@ export function StoreGeneratorClient({
       const product = data.products[0];
       setScraped(product);
       setSelectedImages(new Set(product.images.map((_: string, i: number) => i)));
+      setOptimizedImages(null);
       setStep("select");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
@@ -298,6 +300,7 @@ export function StoreGeneratorClient({
       await new Promise((r) => setTimeout(r, 800));
 
       setPageData(data.page);
+      setOptimizedImages(Array.isArray(data.optimizedImages) ? data.optimizedImages : null);
       setStep("customize");
     } catch (err) {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -318,7 +321,9 @@ export function StoreGeneratorClient({
     setProgressLabel("⏳ Connexion à Shopify…");
 
     try {
-      const imgs = scraped.images.filter((_, i) => selectedImages.has(i));
+      const imgs = optimizedImages && optimizedImages.length > 0
+        ? optimizedImages
+        : scraped.images.filter((_, i) => selectedImages.has(i));
 
       const res = await fetch("/api/store/generate-store", {
         method: "POST",
@@ -362,7 +367,9 @@ export function StoreGeneratorClient({
               setCreateResults(event.results ?? []);
               // Save to history
               const firstResult = (event.results ?? [])[0];
-              const imgs = scraped ? scraped.images.filter((_, i) => selectedImages.has(i)) : [];
+              const imgs = optimizedImages && optimizedImages.length > 0
+                ? optimizedImages
+                : scraped ? scraped.images.filter((_, i) => selectedImages.has(i)) : [];
               try {
                 await fetch("/api/store/generated-history", {
                   method: "POST",
@@ -396,7 +403,7 @@ export function StoreGeneratorClient({
       setStep("customize");
       setLoading(false);
     }
-  }, [pageData, scraped, selectedImages, storeId]);
+  }, [pageData, scraped, selectedImages, storeId, optimizedImages]);
 
   /* ─── Page data updaters ─── */
   const updateProduct = (field: string, value: unknown) => {
@@ -474,6 +481,7 @@ export function StoreGeneratorClient({
     setPageData(emptyPageData());
     setBrandName("YOUR BRAND");
     setSelectedImages(new Set());
+    setOptimizedImages(null);
     setCreateResults([]);
     setError(null);
     setProgress(0);
@@ -483,7 +491,9 @@ export function StoreGeneratorClient({
 
   /* ─── Selected images for preview ─── */
   const previewImages = scraped
-    ? scraped.images.filter((_, i) => selectedImages.has(i))
+    ? optimizedImages && optimizedImages.length > 0
+      ? optimizedImages
+      : scraped.images.filter((_, i) => selectedImages.has(i))
     : [];
 
   /* ─── RENDER ─── */

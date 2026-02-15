@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createShopifyProduct } from "@/lib/connectors/shopify";
 import { callOpenAIJson } from "@/lib/ai/openaiClient";
+import { optimizeBatch } from "@/lib/image-optimizer";
+import { analyzePhysicalMarket } from "@/lib/market-analysis";
+import { computePhysicalPricing } from "@/lib/pricing-engine";
 import * as cheerio from "cheerio";
 
 export const maxDuration = 60;
@@ -763,6 +766,42 @@ export async function POST(req: NextRequest) {
           de: "allemand",
         }[language ?? "fr"] ?? "français";
 
+      const selectedImages = (body as { selectedImages?: string[] }).selectedImages ?? [];
+      const sourceImages = selectedImages.length
+        ? selectedImages
+        : (scrapedProduct.images ?? []).slice(0, 8);
+
+      const optimized = await optimizeBatch({
+        userId: user.id,
+        imageUrls: sourceImages,
+        context: "physical_builder",
+      });
+      const optimizedImages = optimized.map((o) => o.outputImageUrl);
+
+      const sourcePriceParsed = scrapedProduct.price
+        ? Number(String(scrapedProduct.price).replace(/[^\d.,]/g, "").replace(",", "."))
+        : null;
+      const market = await analyzePhysicalMarket({
+        sourcePrice: Number.isFinite(sourcePriceParsed ?? NaN) ? sourcePriceParsed : null,
+        currency: scrapedProduct.currency,
+      });
+      const pricing = computePhysicalPricing({
+        market,
+        sourceCost: Number.isFinite(sourcePriceParsed ?? NaN) ? sourcePriceParsed : null,
+      });
+
+      const pricingContext = `
+PRICING INTELLIGENT (obligatoire):
+- Devise: ${pricing.currency}
+- Prix Safe: ${pricing.safe}
+- Prix Optimal: ${pricing.optimal}
+- Prix Aggressive: ${pricing.aggressive}
+- Marge min estimée: ${pricing.estimatedMinMarginPct}%
+- Marge optimale estimée: ${pricing.estimatedOptimalMarginPct}%
+- Positionnement: ${pricing.positioning}
+- Concurrence (low/avg/high): ${pricing.explanation.competitorLow ?? "N/A"} / ${pricing.explanation.competitorAvg ?? "N/A"} / ${pricing.explanation.competitorHigh ?? "N/A"}
+Utilise le prix Optimal comme prix principal. Tu peux utiliser Aggressive en compare_at_price si pertinent.`;
+
       const userPrompt = `GÉNÈRE une page produit Shopify haute conversion COMPLÈTE en ${langLabel}.
 
 DONNÉES DU PRODUIT SOURCE:
@@ -772,13 +811,16 @@ DONNÉES DU PRODUIT SOURCE:
 - Marque originale: ${scrapedProduct.brand ?? "Inconnue"}
 - Catégorie: ${scrapedProduct.category ?? "Inconnue"}
 - ${scrapedProduct.images?.length ?? 0} images disponibles
+- Images optimisées IA disponibles: ${optimizedImages.length}
 
 ${brandName && brandName !== "YOUR BRAND" ? `MARQUE SOUHAITÉE: "${brandName}" — utilise ce nom exactement.` : "INVENTE un nom de marque court, premium et mémorable (2-3 syllabes, facile à prononcer, qui sonne luxe/moderne)."}
+
+${pricingContext}
 
 INSTRUCTIONS:
 1. Réécris ENTIÈREMENT le titre et la description — NE copie PAS le texte source
 2. Crée un univers de marque cohérent et premium autour du produit
-3. Les prix doivent utiliser la devise ${scrapedProduct.currency === "EUR" ? "€ (EUR)" : "$ (USD)"} avec une marge x2.5 à x4
+3. Les prix doivent utiliser la devise ${pricing.currency} et rester cohérents avec le pricing intelligent fourni
 4. Chaque section doit vendre le produit — AUCUN texte générique ou fade
 5. Le copywriting doit créer du DÉSIR, de l'URGENCE et de la CONFIANCE
 
@@ -797,7 +839,23 @@ Génère le JSON complet avec TOUTES les sections: brand_name, brand_color, bann
           (result as Record<string, unknown>).brand_name = brandName;
         }
 
-        return NextResponse.json({ page: result });
+        const asRecord = result as Record<string, unknown>;
+        const product = (asRecord.product as Record<string, unknown> | undefined) ?? {};
+        if (!product.price || Number(product.price) <= 0) {
+          product.price = pricing.optimal;
+        }
+        if (!product.compare_at_price || Number(product.compare_at_price) <= Number(product.price)) {
+          product.compare_at_price = pricing.aggressive;
+        }
+        asRecord.product = product;
+        asRecord.optimized_images = optimizedImages;
+        asRecord.pricing_recommendation = pricing;
+
+        return NextResponse.json({
+          page: asRecord,
+          optimizedImages,
+          pricing,
+        });
       } catch (err) {
         return NextResponse.json(
           {
