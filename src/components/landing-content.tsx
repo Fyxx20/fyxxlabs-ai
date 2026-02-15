@@ -889,24 +889,24 @@ const PLANS = [
 
 const FAQS = [
   {
-    q: "Les textes générés sont-ils vraiment uniques ?",
-    a: "Oui. Chaque texte est généré par notre IA spécialisée e-commerce. Aucun copier-coller : tout est original, optimisé SEO et adapté à votre niche.",
+    q: "FyxxLabs est-il adapté si je débute en e-commerce ?",
+    a: "Oui. FyxxLabs est conçu pour vous faire gagner du temps, même sans équipe ni compétence technique avancée. Vous partez d'un lien produit et obtenez une base boutique claire, structurée et exploitable.",
   },
   {
-    q: "Le contenu est-il conforme légalement ?",
-    a: "Absolument. FyxxLabs génère des CGV, politique de confidentialité et mentions légales conformes au droit européen et au RGPD.",
+    q: "Qu'est-ce que j'obtiens exactement avec CREATE à 14,99 € ?",
+    a: "Vous obtenez une boutique complète générée par IA: branding, fiche produit optimisée, pages légales, FAQ et structure prête à l'export Shopify. C'est l'offre idéale pour tester rapidement un concept sans engagement mensuel.",
   },
   {
-    q: "C'est compatible avec Shopify ?",
-    a: "Oui, l'export est conçu nativement pour Shopify. Vous importez votre boutique en quelques clics avec tous les éléments : produits, pages, navigation.",
+    q: "Quelle différence entre PRO (39 €/mois) et AGENCE (79 €/mois) ?",
+    a: "PRO est parfait pour scaler une activité solo avec un volume régulier. AGENCE est pensé pour un usage intensif: plus de capacité de création, gestion multi-projets, export avancé et support prioritaire.",
   },
   {
-    q: "Puis-je obtenir un remboursement ?",
-    a: "Vous pouvez annuler votre abonnement à tout moment. Les plans mensuels sont résiliables en fin de période. Le plan CREATE à l'unité n'est pas remboursable après génération.",
+    q: "Est-ce que le contenu est vraiment orienté conversion ?",
+    a: "Oui. Les contenus sont structurés pour la vente: promesse claire, bénéfices, traitement des objections, FAQ et sections clés. L'objectif est de réduire le temps de production tout en gardant un niveau marketing solide.",
   },
   {
-    q: "Combien de temps faut-il pour générer une boutique ?",
-    a: "En moyenne 60 secondes. L'IA analyse le produit, crée le branding, rédige les textes et structure la boutique complète en un temps record.",
+    q: "Y a-t-il un engagement ou un risque ?",
+    a: "Les plans mensuels sont résiliables en fin de période, sans engagement long terme. CREATE est un paiement unique pour tester l'outil. Vous gardez une logique simple: tester vite, mesurer, puis monter en puissance si rentable.",
   },
 ];
 
