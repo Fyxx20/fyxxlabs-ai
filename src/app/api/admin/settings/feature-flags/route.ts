@@ -7,6 +7,11 @@ type FeatureFlagsPayload = {
   scan_rate_limit_minutes?: number;
   max_pages_per_scan?: number;
   max_scans_per_day_paid?: number;
+  enable_ai_image_optimizer?: boolean;
+  enable_smart_pricing?: boolean;
+  enable_digital_builder?: boolean;
+  enable_scan_image_improve?: boolean;
+  enforce_generation_limits?: boolean;
 };
 
 function toSafeInt(value: unknown, fallback: number, min: number, max: number): number {
@@ -42,6 +47,11 @@ export async function POST(request: Request) {
     scan_rate_limit_minutes: toSafeInt(body.scan_rate_limit_minutes, Number(previous.scan_rate_limit_minutes ?? 10), 1, 120),
     max_pages_per_scan: toSafeInt(body.max_pages_per_scan, Number(previous.max_pages_per_scan ?? 8), 1, 100),
     max_scans_per_day_paid: toSafeInt(body.max_scans_per_day_paid, Number(previous.max_scans_per_day_paid ?? 50), 1, 1000),
+    enable_ai_image_optimizer: Boolean(body.enable_ai_image_optimizer ?? previous.enable_ai_image_optimizer ?? true),
+    enable_smart_pricing: Boolean(body.enable_smart_pricing ?? previous.enable_smart_pricing ?? true),
+    enable_digital_builder: Boolean(body.enable_digital_builder ?? previous.enable_digital_builder ?? true),
+    enable_scan_image_improve: Boolean(body.enable_scan_image_improve ?? previous.enable_scan_image_improve ?? true),
+    enforce_generation_limits: Boolean(body.enforce_generation_limits ?? previous.enforce_generation_limits ?? true),
   };
 
   const { error } = await admin.from("admin_settings").upsert(

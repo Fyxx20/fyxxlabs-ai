@@ -19,6 +19,11 @@ export default async function AdminSettingsPage() {
     scan_rate_limit_minutes: Number(flags.scan_rate_limit_minutes ?? 10),
     max_pages_per_scan: Number(flags.max_pages_per_scan ?? 8),
     max_scans_per_day_paid: Number(flags.max_scans_per_day_paid ?? 50),
+    enable_ai_image_optimizer: Boolean(flags.enable_ai_image_optimizer ?? true),
+    enable_smart_pricing: Boolean(flags.enable_smart_pricing ?? true),
+    enable_digital_builder: Boolean(flags.enable_digital_builder ?? true),
+    enable_scan_image_improve: Boolean(flags.enable_scan_image_improve ?? true),
+    enforce_generation_limits: Boolean(flags.enforce_generation_limits ?? true),
   };
 
   return (
@@ -60,6 +65,26 @@ export default async function AdminSettingsPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-slate-300">max_scans_per_day_paid</dt>
               <dd>{String(flags.max_scans_per_day_paid ?? 50)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-300">enable_ai_image_optimizer</dt>
+              <dd>{String(flags.enable_ai_image_optimizer ?? true)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-300">enable_smart_pricing</dt>
+              <dd>{String(flags.enable_smart_pricing ?? true)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-300">enable_digital_builder</dt>
+              <dd>{String(flags.enable_digital_builder ?? true)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-300">enable_scan_image_improve</dt>
+              <dd>{String(flags.enable_scan_image_improve ?? true)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-slate-300">enforce_generation_limits</dt>
+              <dd>{String(flags.enforce_generation_limits ?? true)}</dd>
             </div>
           </dl>
         </CardContent>

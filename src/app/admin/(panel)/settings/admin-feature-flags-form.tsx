@@ -13,6 +13,11 @@ type Flags = {
   scan_rate_limit_minutes: number;
   max_pages_per_scan: number;
   max_scans_per_day_paid: number;
+  enable_ai_image_optimizer: boolean;
+  enable_smart_pricing: boolean;
+  enable_digital_builder: boolean;
+  enable_scan_image_improve: boolean;
+  enforce_generation_limits: boolean;
 };
 
 export function AdminFeatureFlagsForm({ initialFlags }: { initialFlags: Flags }) {
@@ -63,6 +68,96 @@ export function AdminFeatureFlagsForm({ initialFlags }: { initialFlags: Flags })
             }`}
           >
             {flags.enable_lighthouse_paid ? "Activé" : "Désactivé"}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div>
+            <p className="text-sm font-medium text-white">AI Image Optimizer</p>
+            <p className="text-xs text-slate-300">Active l'optimisation d'images IA dans les builders.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlags((f) => ({ ...f, enable_ai_image_optimizer: !f.enable_ai_image_optimizer }))}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              flags.enable_ai_image_optimizer
+                ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200"
+                : "border-white/20 bg-white/5 text-slate-200"
+            }`}
+          >
+            {flags.enable_ai_image_optimizer ? "Activé" : "Désactivé"}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div>
+            <p className="text-sm font-medium text-white">Smart Pricing</p>
+            <p className="text-xs text-slate-300">Active le moteur de pricing stratégique.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlags((f) => ({ ...f, enable_smart_pricing: !f.enable_smart_pricing }))}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              flags.enable_smart_pricing
+                ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200"
+                : "border-white/20 bg-white/5 text-slate-200"
+            }`}
+          >
+            {flags.enable_smart_pricing ? "Activé" : "Désactivé"}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div>
+            <p className="text-sm font-medium text-white">Digital Builder</p>
+            <p className="text-xs text-slate-300">Active le parcours /create/digital.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlags((f) => ({ ...f, enable_digital_builder: !f.enable_digital_builder }))}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              flags.enable_digital_builder
+                ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200"
+                : "border-white/20 bg-white/5 text-slate-200"
+            }`}
+          >
+            {flags.enable_digital_builder ? "Activé" : "Désactivé"}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div>
+            <p className="text-sm font-medium text-white">Scan Improve Images</p>
+            <p className="text-xs text-slate-300">Active l'action "Améliorer les images avec IA" dans les scans.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlags((f) => ({ ...f, enable_scan_image_improve: !f.enable_scan_image_improve }))}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              flags.enable_scan_image_improve
+                ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200"
+                : "border-white/20 bg-white/5 text-slate-200"
+            }`}
+          >
+            {flags.enable_scan_image_improve ? "Activé" : "Désactivé"}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between rounded-lg border border-white/10 bg-white/5 p-3">
+          <div>
+            <p className="text-sm font-medium text-white">Enforcer limites génération</p>
+            <p className="text-xs text-slate-300">Applique les limites backend PRO/AGENCE sur les créations.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setFlags((f) => ({ ...f, enforce_generation_limits: !f.enforce_generation_limits }))}
+            className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+              flags.enforce_generation_limits
+                ? "border-emerald-400/40 bg-emerald-500/20 text-emerald-200"
+                : "border-white/20 bg-white/5 text-slate-200"
+            }`}
+          >
+            {flags.enforce_generation_limits ? "Activé" : "Désactivé"}
           </button>
         </div>
 

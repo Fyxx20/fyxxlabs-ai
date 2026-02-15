@@ -3,12 +3,17 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { fetchShopifyProducts } from "@/lib/connectors/shopify";
 import { optimizeBatch } from "@/lib/image-optimizer";
+import { getRuntimeFeatureFlags } from "@/lib/feature-flags";
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const flags = await getRuntimeFeatureFlags();
+  if (!flags.enable_scan_image_improve) {
+    return NextResponse.json({ error: "Action désactivée par feature flag." }, { status: 403 });
+  }
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },

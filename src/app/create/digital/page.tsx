@@ -3,8 +3,20 @@ import { cookies } from "next/headers";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
 import { CreateDigitalClient } from "./create-digital-client";
+import { getRuntimeFeatureFlags } from "@/lib/feature-flags";
 
 export default async function CreateDigitalPage() {
+  const flags = await getRuntimeFeatureFlags();
+  if (!flags.enable_digital_builder) {
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <p className="text-sm text-muted-foreground">
+          Le module digital est en déploiement progressif et reste temporairement désactivé.
+        </p>
+      </div>
+    );
+  }
+
   const supabase = await createServerSupabaseClient();
   const {
     data: { user },

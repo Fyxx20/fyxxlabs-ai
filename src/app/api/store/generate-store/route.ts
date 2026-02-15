@@ -8,6 +8,7 @@ import { computePhysicalPricing } from "@/lib/pricing-engine";
 import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { createGenerationJobLog, enforceGenerationQuota, finishGenerationJobLog } from "@/lib/generation-guards";
+import { getRuntimeFeatureFlags } from "@/lib/feature-flags";
 import * as cheerio from "cheerio";
 import { z } from "zod";
 
@@ -798,6 +799,7 @@ export async function POST(req: NextRequest) {
         );
       }
 
+      const flags = await getRuntimeFeatureFlags();
       const { data: profile } = await supabase
         .from("profiles")
         .select("plan, trial_started_at, trial_ends_at, scans_used")
@@ -809,19 +811,21 @@ export async function POST(req: NextRequest) {
         .eq("user_id", user.id)
         .maybeSingle();
       const entitlements = getEntitlements(profile ?? null, subscription ?? null);
-      try {
-        await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "";
-        if (msg.startsWith("PLAN_DAILY_LIMIT:")) {
-          const limit = msg.split(":")[1];
-          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par jour pour ton plan.` }, { status: 429 });
+      if (flags.enforce_generation_limits) {
+        try {
+          await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "";
+          if (msg.startsWith("PLAN_DAILY_LIMIT:")) {
+            const limit = msg.split(":")[1];
+            return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par jour pour ton plan.` }, { status: 429 });
+          }
+          if (msg.startsWith("PLAN_MONTHLY_LIMIT:")) {
+            const limit = msg.split(":")[1];
+            return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par mois pour ton plan.` }, { status: 429 });
+          }
+          return NextResponse.json({ error: "Ton plan actuel ne permet pas de lancer une génération." }, { status: 403 });
         }
-        if (msg.startsWith("PLAN_MONTHLY_LIMIT:")) {
-          const limit = msg.split(":")[1];
-          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par mois pour ton plan.` }, { status: 429 });
-        }
-        return NextResponse.json({ error: "Ton plan actuel ne permet pas de lancer une génération." }, { status: 403 });
       }
 
       const jobId = await createGenerationJobLog({
@@ -851,24 +855,41 @@ export async function POST(req: NextRequest) {
         ? selectedImages
         : (scrapedProduct.images ?? []).slice(0, 8);
 
-      const optimized = await optimizeBatch({
-        userId: user.id,
-        imageUrls: sourceImages,
-        context: "physical_builder",
-      });
-      const optimizedImages = optimized.map((o) => o.outputImageUrl);
+      const optimizedImages = flags.enable_ai_image_optimizer
+        ? (await optimizeBatch({
+            userId: user.id,
+            imageUrls: sourceImages,
+            context: "physical_builder",
+          })).map((o) => o.outputImageUrl)
+        : sourceImages;
 
       const sourcePriceParsed = scrapedProduct.price
         ? Number(String(scrapedProduct.price).replace(/[^\d.,]/g, "").replace(",", "."))
         : null;
-      const market = await analyzePhysicalMarket({
-        sourcePrice: Number.isFinite(sourcePriceParsed ?? NaN) ? sourcePriceParsed : null,
-        currency: scrapedProduct.currency,
-      });
-      const pricing = computePhysicalPricing({
-        market,
-        sourceCost: Number.isFinite(sourcePriceParsed ?? NaN) ? sourcePriceParsed : null,
-      });
+      const pricing = flags.enable_smart_pricing
+        ? computePhysicalPricing({
+            market: await analyzePhysicalMarket({
+              sourcePrice: Number.isFinite(sourcePriceParsed ?? NaN) ? sourcePriceParsed : null,
+              currency: scrapedProduct.currency,
+            }),
+            sourceCost: Number.isFinite(sourcePriceParsed ?? NaN) ? sourcePriceParsed : null,
+          })
+        : {
+            currency: scrapedProduct.currency || "EUR",
+            safe: sourcePriceParsed ? Number((sourcePriceParsed * 2).toFixed(2)) : 29.99,
+            optimal: sourcePriceParsed ? Number((sourcePriceParsed * 2.6).toFixed(2)) : 39.99,
+            aggressive: sourcePriceParsed ? Number((sourcePriceParsed * 3.1).toFixed(2)) : 49.99,
+            estimatedMinMarginPct: 30,
+            estimatedOptimalMarginPct: 55,
+            positioning: "mid" as const,
+            explanation: {
+              why: ["Mode fallback: smart pricing désactivé par feature flag."],
+              competitorLow: null,
+              competitorAvg: null,
+              competitorHigh: null,
+              baselineCost: sourcePriceParsed ?? 0,
+            },
+          };
 
       const pricingContext = `
 PRICING INTELLIGENT (obligatoire):

@@ -9,6 +9,7 @@ import { generateDigitalVisualPack } from "@/lib/image-optimizer";
 import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { createGenerationJobLog, enforceGenerationQuota, finishGenerationJobLog } from "@/lib/generation-guards";
+import { getRuntimeFeatureFlags } from "@/lib/feature-flags";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -134,8 +135,12 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const { action } = body as { action: string };
+    const flags = await getRuntimeFeatureFlags();
 
     if (action === "generate-page") {
+      if (!flags.enable_digital_builder) {
+        return NextResponse.json({ error: "Digital builder temporairement désactivé." }, { status: 503 });
+      }
       const { brief } = body as { brief: DigitalBrief };
       if (!brief?.productType || !brief?.promise) {
         return NextResponse.json({ error: "Brief incomplet" }, { status: 400 });
@@ -152,19 +157,21 @@ export async function POST(req: NextRequest) {
         .eq("user_id", user.id)
         .maybeSingle();
       const entitlements = getEntitlements(profile ?? null, subscription ?? null);
-      try {
-        await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : "";
-        if (msg.startsWith("PLAN_DAILY_LIMIT:")) {
-          const limit = msg.split(":")[1];
-          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par jour pour ton plan.` }, { status: 429 });
+      if (flags.enforce_generation_limits) {
+        try {
+          await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "";
+          if (msg.startsWith("PLAN_DAILY_LIMIT:")) {
+            const limit = msg.split(":")[1];
+            return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par jour pour ton plan.` }, { status: 429 });
+          }
+          if (msg.startsWith("PLAN_MONTHLY_LIMIT:")) {
+            const limit = msg.split(":")[1];
+            return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par mois pour ton plan.` }, { status: 429 });
+          }
+          return NextResponse.json({ error: "Ton plan actuel ne permet pas de lancer une génération." }, { status: 403 });
         }
-        if (msg.startsWith("PLAN_MONTHLY_LIMIT:")) {
-          const limit = msg.split(":")[1];
-          return NextResponse.json({ error: `Limite atteinte: ${limit} créations max par mois pour ton plan.` }, { status: 429 });
-        }
-        return NextResponse.json({ error: "Ton plan actuel ne permet pas de lancer une génération." }, { status: 403 });
       }
 
       const jobId = await createGenerationJobLog({
@@ -180,19 +187,44 @@ export async function POST(req: NextRequest) {
       });
 
       try {
-        const market = await analyzeDigitalMarket({
-          productType: brief.productType,
-          complexity: brief.level === "advanced" ? "high" : brief.level === "intermediate" ? "mid" : "low",
-          audienceMaturity: brief.audience.toLowerCase().includes("expert") ? "expert" : brief.audience.toLowerCase().includes("warm") ? "warm" : "cold",
-          promiseStrength: brief.promise.length > 80 ? "high" : brief.promise.length > 35 ? "mid" : "low",
-          country: brief.country,
-        });
-        const pricing = computeDigitalPricing({ market });
-        const visuals = await generateDigitalVisualPack({
-          userId: user.id,
-          title: `${brief.productType} ${brief.promise}`,
-          tone: brief.tone,
-        });
+        const pricing = flags.enable_smart_pricing
+          ? computeDigitalPricing({
+              market: await analyzeDigitalMarket({
+                productType: brief.productType,
+                complexity: brief.level === "advanced" ? "high" : brief.level === "intermediate" ? "mid" : "low",
+                audienceMaturity: brief.audience.toLowerCase().includes("expert") ? "expert" : brief.audience.toLowerCase().includes("warm") ? "warm" : "cold",
+                promiseStrength: brief.promise.length > 80 ? "high" : brief.promise.length > 35 ? "mid" : "low",
+                country: brief.country,
+              }),
+            })
+          : {
+              currency: "EUR",
+              safe: 19.99,
+              optimal: 39.99,
+              aggressive: 59.99,
+              estimatedMinMarginPct: 40,
+              estimatedOptimalMarginPct: 65,
+              positioning: "mid" as const,
+              explanation: {
+                why: ["Mode fallback: smart pricing désactivé par feature flag."],
+                competitorLow: null,
+                competitorAvg: null,
+                competitorHigh: null,
+                baselineCost: 0,
+              },
+            };
+        const visuals = flags.enable_ai_image_optimizer
+          ? await generateDigitalVisualPack({
+              userId: user.id,
+              title: `${brief.productType} ${brief.promise}`,
+              tone: brief.tone,
+            })
+          : {
+              coverUrl: "/placeholder.svg",
+              heroUrl: "/placeholder.svg",
+              mockupUrls: ["/placeholder.svg"],
+              provider: "flag-disabled",
+            };
 
         const generated = await callOpenAIJsonWithSchema({
           schema: DigitalPageSchema,
