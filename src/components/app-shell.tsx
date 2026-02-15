@@ -68,6 +68,7 @@ const navGroups = [
       { href: "/app/auto-fix", label: "Auto-Fix IA", icon: Wand2 },
       { href: "/app/import-product", label: "Importer produit", icon: Package },
       { href: "/app/store-generator", label: "Créer boutique", icon: Rocket },
+      { href: "/create/digital", label: "Boutique digitale", icon: Sparkles },
       { href: "/app/coach", label: "Coach IA", icon: MessageSquare },
       { href: "/app/ad-copy", label: "Générateur Pubs", icon: Megaphone },
       { href: "/app/email-templates", label: "Email Marketing", icon: Mail },
