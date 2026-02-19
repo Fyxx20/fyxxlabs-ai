@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
 import { computeDisplayScore } from "@/lib/score";
-import { ArrowRight, Lock, Zap, TrendingUp, ShoppingCart, ScanSearch, BarChart3, Sparkles, Rocket, Wand2, FolderKanban } from "lucide-react";
+import { ArrowRight, Lock, Zap, TrendingUp, ShoppingCart, ScanSearch, BarChart3, Sparkles, Rocket } from "lucide-react";
 
 export default async function DashboardPage() {
   const ctx = await getAppContext();
@@ -180,13 +180,6 @@ export default async function DashboardPage() {
               </div>
               <p className="mt-1 text-xs text-slate-300">Audit conversion, pricing and image quality.</p>
             </Link>
-            <Link href="/app/image-optimizer" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
-              <div className="flex items-center gap-2">
-                <Wand2 className="h-4 w-4 text-amber-300" />
-                <p className="font-semibold">Image Optimizer</p>
-              </div>
-              <p className="mt-1 text-xs text-slate-300">Enhance product visuals with AI.</p>
-            </Link>
           </CardContent>
         </Card>
 
@@ -202,12 +195,6 @@ export default async function DashboardPage() {
               <Button className="w-full">
                 Voir les plans
                 <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/app/projects" className="block">
-              <Button variant="outline" className="w-full">
-                <FolderKanban className="mr-2 h-4 w-4" />
-                Open Projects
               </Button>
             </Link>
           </CardContent>
