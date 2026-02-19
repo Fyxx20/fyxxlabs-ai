@@ -31,6 +31,7 @@ import {
   History,
   Trash2,
   Pencil,
+  RefreshCcw,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -90,6 +91,7 @@ interface GenPhase {
 }
 
 const GEN_PHASE_DEFS = [
+  { icon: "🖼️", label: "Amélioration IA des images" },
   { icon: "🔍", label: "Analyse du produit source" },
   { icon: "🎨", label: "Création de l'identité de marque" },
   { icon: "📝", label: "Rédaction du copywriting" },
@@ -98,6 +100,8 @@ const GEN_PHASE_DEFS = [
   { icon: "🏷️", label: "Pricing & SEO" },
   { icon: "✨", label: "Finalisation" },
 ];
+
+type ImageStyle = "style_a" | "style_b" | "style_c";
 
 /* ─── Languages ─── */
 const LANGUAGES = [
@@ -152,6 +156,19 @@ function emptyPageData(): StorePageData {
   };
 }
 
+async function parseApiPayload(res: Response): Promise<Record<string, unknown>> {
+  const raw = await res.text();
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    if (!res.ok) {
+      throw new Error(`Réponse serveur invalide (${res.status}): ${raw.slice(0, 140)}`);
+    }
+    return {};
+  }
+}
+
 /* ─── Main Component ─── */
 export function StoreGeneratorClient({
   storeId,
@@ -179,6 +196,8 @@ export function StoreGeneratorClient({
   const [selectedImages, setSelectedImages] = useState<Set<number>>(new Set());
   const [optimizedImages, setOptimizedImages] = useState<string[] | null>(null);
   const [optimizingImages, setOptimizingImages] = useState(false);
+  const [imageStyle, setImageStyle] = useState<ImageStyle>("style_a");
+  const [regenCount, setRegenCount] = useState(0);
 
   // Step 3: Customize
   const [pageData, setPageData] = useState<StorePageData>(emptyPageData());
@@ -223,11 +242,11 @@ export function StoreGeneratorClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "scrape", urls: [url.trim()] }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur d'extraction");
-      if (!data.products || data.products.length === 0) throw new Error("Aucun produit trouvé");
+      const data = await parseApiPayload(res);
+      if (!res.ok) throw new Error(String(data.error ?? "Erreur d'extraction"));
+      if (!Array.isArray(data.products) || data.products.length === 0) throw new Error("Aucun produit trouvé");
 
-      const product = data.products[0];
+      const product = data.products[0] as ScrapedProduct;
       setScraped(product);
       setSelectedImages(new Set(product.images.map((_: string, i: number) => i)));
       setOptimizedImages(null);
@@ -255,6 +274,7 @@ export function StoreGeneratorClient({
     setGenPhases([...phases]);
     setProgressLabel(GEN_PHASE_DEFS[0].label);
 
+    const selectedCount = Math.max(1, selectedImages.size);
     progressTimerRef.current = setInterval(() => {
       setProgress((p) => {
         if (p >= 92) return p;
@@ -270,7 +290,15 @@ export function StoreGeneratorClient({
             status: i < phaseIdx ? "done" : i === phaseIdx ? "active" : "pending",
           }))
         );
-        setProgressLabel(GEN_PHASE_DEFS[phaseIdx].label);
+        if (phaseIdx === 0) {
+          const imageProgress = Math.max(
+            1,
+            Math.min(selectedCount, Math.round(((next / 92) * selectedCount) * 1.15))
+          );
+          setProgressLabel(`Improving images ${imageProgress}/${selectedCount}...`);
+        } else {
+          setProgressLabel(GEN_PHASE_DEFS[phaseIdx].label);
+        }
         return next;
       });
     }, 900);
@@ -287,12 +315,13 @@ export function StoreGeneratorClient({
           brandName,
           selectedImages: imgs,
           language,
+          imageStyle,
         }),
       });
 
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur IA");
+      const data = await parseApiPayload(res);
+      if (!res.ok) throw new Error(String(data.error ?? "Erreur IA"));
 
       // Complete all phases
       setGenPhases((prev) => prev.map((ph) => ({ ...ph, status: "done" as const })));
@@ -300,8 +329,11 @@ export function StoreGeneratorClient({
       setProgressLabel("✅ Boutique générée !");
       await new Promise((r) => setTimeout(r, 800));
 
-      setPageData(data.page);
-      setOptimizedImages(Array.isArray(data.optimizedImages) ? data.optimizedImages : null);
+      setPageData(data.page as StorePageData);
+      setOptimizedImages(Array.isArray(data.optimizedImages) ? (data.optimizedImages as string[]) : null);
+      if (data.warning) {
+        setError(String(data.warning));
+      }
       setStep("customize");
     } catch (err) {
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -310,7 +342,7 @@ export function StoreGeneratorClient({
       setLoading(false);
       setGenPhases([]);
     }
-  }, [scraped, selectedImages, brandName, language]);
+  }, [scraped, selectedImages, brandName, language, imageStyle]);
 
   /* ─── Step 4: Create on Shopify ─── */
   const handleCreate = useCallback(async () => {
@@ -322,9 +354,10 @@ export function StoreGeneratorClient({
     setProgressLabel("⏳ Connexion à Shopify…");
 
     try {
-      const imgs = optimizedImages && optimizedImages.length > 0
-        ? optimizedImages
-        : scraped.images.filter((_, i) => selectedImages.has(i));
+      const imgs = optimizedImages && optimizedImages.length > 0 ? optimizedImages : [];
+      if (imgs.length === 0) {
+        throw new Error("Les images doivent être optimisées par IA avant publication Shopify.");
+      }
 
       const res = await fetch("/api/store/generate-store", {
         method: "POST",
@@ -338,8 +371,8 @@ export function StoreGeneratorClient({
       });
 
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Erreur");
+        const data = await parseApiPayload(res);
+        throw new Error(String(data.error ?? "Erreur"));
       }
 
       const reader = res.body?.getReader();
@@ -495,10 +528,11 @@ export function StoreGeneratorClient({
           action: "optimize-images",
           sourceImages,
           storeId,
+          style: imageStyle,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Erreur optimisation IA");
+      const data = await parseApiPayload(res);
+      if (!res.ok) throw new Error(String(data.error ?? "Erreur optimisation IA"));
 
       const optimized = Array.isArray(data.optimizedImages) ? data.optimizedImages : [];
       const merged = [...(optimizedImages ?? scraped.images)];
@@ -511,7 +545,43 @@ export function StoreGeneratorClient({
     } finally {
       setOptimizingImages(false);
     }
-  }, [scraped, selectedImages, storeId, optimizedImages]);
+  }, [scraped, selectedImages, storeId, optimizedImages, imageStyle]);
+
+  const handleRegenerateSingleImage = useCallback(async (idx: number) => {
+    if (!scraped || regenCount >= 20) return;
+    const source = scraped.images[idx];
+    if (!source) return;
+    setOptimizingImages(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/image/optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sourceUrls: [source],
+          style: imageStyle,
+          kind: "gallery",
+          force: true,
+          variantKey: `${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 8)}`,
+          storeId,
+        }),
+      });
+      const data = await parseApiPayload(res);
+      if (!res.ok) throw new Error(String(data.error ?? "Erreur régénération"));
+      const nextUrl = Array.isArray(data.optimizedImages) ? data.optimizedImages[0] : null;
+      if (!nextUrl) throw new Error("Aucune image régénérée");
+      setOptimizedImages((prev) => {
+        const base = [...(prev ?? scraped.images)];
+        base[idx] = nextUrl;
+        return base;
+      });
+      setRegenCount((c) => c + 1);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur régénération");
+    } finally {
+      setOptimizingImages(false);
+    }
+  }, [scraped, regenCount, imageStyle, storeId]);
 
   const reset = () => {
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -522,6 +592,8 @@ export function StoreGeneratorClient({
     setBrandName("YOUR BRAND");
     setSelectedImages(new Set());
     setOptimizedImages(null);
+    setImageStyle("style_a");
+    setRegenCount(0);
     setCreateResults([]);
     setError(null);
     setProgress(0);
@@ -907,19 +979,49 @@ export function StoreGeneratorClient({
             />
           </div>
 
-          {/* AI image generation placeholder */}
-          <div className="bg-muted/30 rounded-xl border-2 border-dashed border-muted-foreground/20 p-8 text-center">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={handleOptimizeImages}
-              disabled={optimizingImages || loading || selectedImages.size === 0}
-            >
-              <Sparkles className="h-4 w-4" />
-              {optimizingImages ? "Optimisation IA en cours..." : "Générer des images avec l'IA"}
-            </Button>
-            <p className="text-xs text-muted-foreground mt-2">
-              {optimizedImages ? "Images optimisées prêtes." : "Optimise les images sélectionnées avant génération."}
+          {/* Mandatory image style + AI optimization */}
+          <div className="rounded-xl border bg-muted/20 p-5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold">Style d&apos;images IA (obligatoire)</p>
+              <Badge variant="outline">0 image brute importée sur Shopify</Badge>
+            </div>
+            <div className="grid gap-2 md:grid-cols-3">
+              {[
+                { id: "style_a", label: "Style A", desc: "Minimal studio (clair, premium)" },
+                { id: "style_b", label: "Style B", desc: "Premium dark (spotlight discret)" },
+                { id: "style_c", label: "Style C", desc: "Lifestyle soft (bokeh neutre)" },
+              ].map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => setImageStyle(s.id as ImageStyle)}
+                  className={`rounded-lg border p-3 text-left transition ${
+                    imageStyle === s.id ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted/50"
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{s.label}</p>
+                  <p className="text-xs text-muted-foreground">{s.desc}</p>
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                className="gap-2"
+                onClick={handleOptimizeImages}
+                disabled={optimizingImages || loading || selectedImages.size === 0}
+              >
+                <Sparkles className="h-4 w-4" />
+                {optimizingImages ? "Prévisualisation IA..." : "Prévisualiser l'optimisation"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {optimizedImages
+                  ? "Prévisualisation prête. Le pipeline IA est de toute façon appliqué automatiquement à la génération."
+                  : "Le pipeline IA s&apos;applique automatiquement pendant Generate."}
+              </p>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Régénération fond par image: {regenCount}/20 (limite session).
             </p>
           </div>
 
@@ -965,9 +1067,22 @@ export function StoreGeneratorClient({
                     </div>
                     {/* AI edit overlay */}
                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent px-2 py-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className="text-[10px] text-white font-medium flex items-center gap-1">
-                        <Sparkles className="h-3 w-3" /> Modifier avec IA
-                      </span>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-white font-medium flex items-center gap-1">
+                          <Sparkles className="h-3 w-3" /> IA premium
+                        </span>
+                        <span
+                          role="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleRegenerateSingleImage(i);
+                          }}
+                          className="inline-flex items-center gap-1 rounded bg-black/40 px-1.5 py-0.5 text-[10px] text-white hover:bg-black/60"
+                        >
+                          <RefreshCcw className="h-2.5 w-2.5" />
+                          Refaire fond
+                        </span>
+                      </div>
                     </div>
                   </button>
                 );
