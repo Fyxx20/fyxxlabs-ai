@@ -43,22 +43,27 @@ interface StoreRow {
 /* ─── Navigation structure with groups ─── */
 const navGroups = [
   {
-    label: "Principal",
+    label: "Création",
     items: [
       { href: "/app/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-      { href: "/app/store-generator", label: "Create Physical", icon: Rocket },
-      { href: "/app/create-digital", label: "Create Digital", icon: Sparkles },
-      { href: "/app/scans", label: "Scan", icon: ScanSearch },
-      { href: "/app/settings", label: "Settings", icon: Settings },
+      { href: "/app/store-generator", label: "Créer une boutique", icon: Rocket },
+      { href: "/app/create-digital", label: "Créer un digital", icon: Sparkles },
     ],
   },
   {
-    label: "Gestion",
+    label: "Analyse",
+    items: [
+      { href: "/app/scans", label: "Scan", icon: ScanSearch },
+      { href: "/app/issues", label: "Problèmes", icon: AlertCircle },
+      { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
+    ],
+  },
+  {
+    label: "Compte",
     items: [
       { href: "/app/integrations", label: "Ma boutique", icon: Store },
       { href: "/app/billing", label: "Facturation", icon: CreditCard },
-      { href: "/app/issues", label: "Problèmes", icon: AlertCircle },
-      { href: "/app/analytics", label: "Analytics", icon: BarChart3 },
+      { href: "/app/settings", label: "Paramètres", icon: Settings },
     ],
   },
 ];
