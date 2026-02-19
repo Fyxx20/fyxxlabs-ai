@@ -1,9 +1,6 @@
 import { redirect } from "next/navigation";
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getEntitlements } from "@/lib/auth/entitlements";
-import { resolveSelectedStore, STORE_SELECTION_COOKIE } from "@/lib/store-selection";
+import { getAppContext } from "@/lib/app/app-context";
 import { ScoreRing } from "@/components/score-ring";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,39 +9,16 @@ import { computeDisplayScore } from "@/lib/score";
 import { ArrowRight, Lock, Zap, TrendingUp, ShoppingCart, ScanSearch, BarChart3, Sparkles, Rocket, Wand2, FolderKanban } from "lucide-react";
 
 export default async function DashboardPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const ctx = await getAppContext();
+  const user = ctx.user;
   if (!user) redirect("/login");
 
-  const { data: stores } = await supabase
-    .from("stores")
-    .select("id, name, website_url")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
-
-  const cookieStore = await cookies();
-  const selectedStoreId = cookieStore.get(STORE_SELECTION_COOKIE)?.value ?? null;
-  const currentStore = resolveSelectedStore(stores ?? [], selectedStoreId);
-  if (!currentStore?.id) {
-    redirect("/onboarding");
-  }
+  const supabase = ctx.supabase;
+  const currentStore = ctx.currentStore;
+  if (!currentStore?.id) redirect("/onboarding");
   const storeId = currentStore.id;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan, trial_started_at, trial_ends_at, scans_used")
-    .eq("user_id", user.id)
-    .single();
-
-  const { data: subscription } = await supabase
-    .from("subscriptions")
-    .select("plan, status")
-    .eq("user_id", user.id)
-    .single();
-
-  const entitlements = getEntitlements(profile ?? null, subscription ?? null);
+  const entitlements = ctx.entitlements;
   const monthlyCreationLimit =
     entitlements.plan === "elite" || entitlements.plan === "lifetime"
       ? 60
@@ -53,20 +27,35 @@ export default async function DashboardPage() {
         : entitlements.plan === "starter"
           ? 8
           : 3;
-  const monthStart = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1, 0, 0, 0));
-  const { count: creationsThisMonth } = await supabase
-    .from("generation_jobs")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .in("job_kind", ["physical_create", "digital_create"])
-    .gte("created_at", monthStart.toISOString());
 
-  const { data: integrations } = await supabase
-    .from("store_integrations")
-    .select("provider, status")
-    .eq("store_id", storeId)
-    .eq("status", "connected");
-  const connectedIntegration = (integrations ?? [])[0];
+  const monthStart = new Date(
+    Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1, 0, 0, 0)
+  );
+
+  const [{ count: creationsThisMonth }, { data: integrations }, { data: lastScan }] = await Promise.all([
+    supabase
+      .from("generation_jobs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .in("job_kind", ["physical_create", "digital_create"])
+      .gte("created_at", monthStart.toISOString()),
+    supabase
+      .from("store_integrations")
+      .select("provider, status")
+      .eq("store_id", storeId)
+      .eq("status", "connected"),
+    supabase
+      .from("scans")
+      // Important: avoid `issues_json` here (can be very large and slow).
+      .select("id, status, score_global, scores_json, trial_single_advice, summary, created_at, priority_action")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  const connectedIntegration = (integrations ?? [])[0] ?? null;
+  const totalStores = ctx.stores.length;
 
   const { data: metricsRows } = connectedIntegration
     ? await supabase
@@ -74,28 +63,21 @@ export default async function DashboardPage() {
         .select("day, revenue, orders_count, total_customers")
         .eq("store_id", storeId)
         .eq("provider", connectedIntegration.provider)
-        .gte("day", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+        .gte(
+          "day",
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+        )
         .order("day", { ascending: false })
-    : { data: [] };
+    : { data: [] as any[] };
   const totalRevenue = (metricsRows ?? []).reduce((s, r) => s + Number(r.revenue ?? 0), 0);
   const totalOrders = (metricsRows ?? []).reduce((s, r) => s + (r.orders_count ?? 0), 0);
-  const totalStores = (stores ?? []).length;
-
-  const { data: lastScan } = await supabase
-    .from("scans")
-    .select("id, status, score_global, scores_json, issues_json, trial_single_advice, summary, created_at")
-    .eq("store_id", storeId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .single();
 
   const scores = (lastScan?.scores_json as Record<string, number> | null) ?? null;
   const displayScore = computeDisplayScore(
     (lastScan?.scores_json as Record<string, unknown> | null) ?? null,
     lastScan?.score_global
   );
-  const issuesPayload = lastScan?.issues_json as { next_best_action?: { title?: string; steps?: string[] } } | null;
-  const nextBestAction = issuesPayload?.next_best_action;
+  const nextBestAction = (lastScan as { priority_action?: { title?: string; steps?: string[] } } | null)?.priority_action ?? null;
   const revenuePotential = Math.max(0, Math.min(100, Math.round(displayScore * 1.05)));
 
   const pillarData = [

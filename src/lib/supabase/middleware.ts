@@ -53,8 +53,50 @@ export async function updateSession(request: NextRequest) {
   const isUserAuth = pathname.startsWith("/login") || pathname.startsWith("/signup");
   const isOnboarding = pathname.startsWith("/onboarding");
 
-  // --- Admin: ne jamais aller sur /app ni /onboarding → direct /admin
-  if ((isApp || isOnboarding) && user) {
+  // --- Protected user app: require session + onboarding if needed + not banned
+  if (isApp) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("redirectTo", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+    const [{ data: profile }, { data: onboarding }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("role, is_banned")
+        .eq("user_id", user.id)
+        .single(),
+      supabase
+        .from("user_onboarding")
+        .select("completed")
+        .eq("user_id", user.id)
+        .single(),
+    ]);
+
+    // Admin: ne jamais aller sur /app → direct /admin
+    if (isPrivilegedRoleOrEmail((profile as { role?: string | null } | null)?.role, user.email)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/dashboard";
+      url.search = "";
+      return NextResponse.redirect(url);
+    }
+
+    if ((profile as { is_banned?: boolean } | null)?.is_banned) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "banned");
+      return NextResponse.redirect(url);
+    }
+    if (!onboarding?.completed) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+  }
+
+  // --- Admin: ne jamais aller sur /onboarding → direct /admin
+  if (isOnboarding && user) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("role")
@@ -64,37 +106,6 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = "/admin/dashboard";
       url.search = "";
-      return NextResponse.redirect(url);
-    }
-  }
-
-  // --- Protected user app: require session + onboarding if needed + not banned
-  if (isApp) {
-    if (!user) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("redirectTo", request.nextUrl.pathname);
-      return NextResponse.redirect(url);
-    }
-    const { data: appProfile } = await supabase
-      .from("profiles")
-      .select("is_banned")
-      .eq("user_id", user.id)
-      .single();
-    if ((appProfile as { is_banned?: boolean } | null)?.is_banned) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/login";
-      url.searchParams.set("error", "banned");
-      return NextResponse.redirect(url);
-    }
-    const { data: onboarding } = await supabase
-      .from("user_onboarding")
-      .select("completed")
-      .eq("user_id", user.id)
-      .single();
-    if (!onboarding?.completed) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
       return NextResponse.redirect(url);
     }
   }

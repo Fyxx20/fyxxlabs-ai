@@ -27,25 +27,25 @@
   }
 
   .dark {
-    --background: 220 13% 10%;
-    --foreground: 0 0% 100%;
-    --card: 220 13% 15%;
-    --card-foreground: 0 0% 100%;
-    --primary: 225 100% 60%;
+    /* FyxxLabs premium dark (neutral slate, glass-ready) */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 40% 8%;
+    --card-foreground: 210 40% 98%;
+    --primary: 258 90% 66%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 225 100% 20%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 225 100% 20%;
-    --muted-foreground: 0 0% 80%;
-    --accent: 340 100% 60%;
+    --secondary: 223 25% 12%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 223 25% 12%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 190 95% 40%;
     --accent-foreground: 0 0% 100%;
-    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 238 84% 55%;
-    --popover: 222.2 84% 4.9%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 258 90% 66%;
+    --popover: 222 40% 8%;
     --popover-foreground: 210 40% 98%;
   }
 }
