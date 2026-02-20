@@ -43,9 +43,14 @@ interface StoreRow {
 /* ─── Navigation structure with groups ─── */
 const navGroups = [
   {
-    label: "Création",
+    label: "Accueil",
     items: [
       { href: "/app/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Création",
+    items: [
       { href: "/app/create-store", label: "Création boutique", icon: Rocket },
     ],
   },
