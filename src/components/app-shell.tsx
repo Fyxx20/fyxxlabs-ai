@@ -46,8 +46,7 @@ const navGroups = [
     label: "Création",
     items: [
       { href: "/app/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-      { href: "/app/store-generator", label: "Créer une boutique", icon: Rocket },
-      { href: "/app/create-digital", label: "Créer un digital", icon: Sparkles },
+      { href: "/app/create-store", label: "Création boutique", icon: Rocket },
     ],
   },
   {

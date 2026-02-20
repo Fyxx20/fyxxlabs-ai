@@ -159,19 +159,12 @@ export default async function DashboardPage() {
             <CardTitle className="text-base text-white">Quick actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3 sm:grid-cols-2">
-            <Link href="/app/store-generator" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
+            <Link href="/app/create-store" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
               <div className="flex items-center gap-2">
                 <Rocket className="h-4 w-4 text-cyan-300" />
-                <p className="font-semibold">Create Physical</p>
+                <p className="font-semibold">Création boutique</p>
               </div>
-              <p className="mt-1 text-xs text-slate-300">Build a premium physical-product store.</p>
-            </Link>
-            <Link href="/app/create-digital" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-violet-300" />
-                <p className="font-semibold">Create Digital</p>
-              </div>
-              <p className="mt-1 text-xs text-slate-300">Generate a full digital business in 3 steps.</p>
+              <p className="mt-1 text-xs text-slate-300">Physique ou digital, en 1 clic.</p>
             </Link>
             <Link href="/app/scans" className="rounded-xl border border-white/10 bg-white/[0.03] p-4 hover:bg-white/[0.05]">
               <div className="flex items-center gap-2">
