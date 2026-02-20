@@ -10,6 +10,11 @@ import { DOMAIN_PROMPTS } from "@/lib/ai/prompts/domain-prompts";
 import { getEntitlements } from "@/lib/auth/entitlements";
 import { createGenerationJobLog, enforceGenerationQuota, finishGenerationJobLog } from "@/lib/generation-guards";
 import { getRuntimeFeatureFlags } from "@/lib/feature-flags";
+import {
+  EmotionSchema,
+  deriveLuxuryBriefFromOnboarding,
+  suggestDigitalIdeas,
+} from "@/lib/ai/digital-luxury";
 import { z } from "zod";
 
 export const maxDuration = 60;
@@ -69,6 +74,7 @@ interface DigitalPagePayload {
     heroUrl: string;
     mockupUrls: string[];
   };
+  testimonials?: Array<{ name: string; role?: string; quote: string }>;
 }
 
 const DigitalPageSchema = z.object({
@@ -84,6 +90,17 @@ const DigitalPageSchema = z.object({
   faq: z.array(z.object({ question: z.string().min(3), answer: z.string().min(3) })).min(2),
   guarantee: z.string().min(8),
   legal: z.array(z.string().min(2)).min(2),
+  testimonials: z
+    .array(
+      z.object({
+        name: z.string().min(2),
+        role: z.string().min(2).optional(),
+        quote: z.string().min(10),
+      })
+    )
+    .min(2)
+    .max(6)
+    .optional(),
   legalPages: z
     .object({
       cgu: z.string().min(30),
@@ -114,6 +131,15 @@ function buildDigitalProductHtml(page: DigitalPagePayload): string {
   const crossSellHtml = page.crossSell.map((o) => `<li style="margin:6px 0">🔁 ${o}</li>`).join("");
   const checklistHtml = page.launchChecklist.map((o) => `<li style="margin:6px 0">✅ ${o}</li>`).join("");
   const legalHtml = page.legal.map((l) => `<li style="margin:6px 0">${l}</li>`).join("");
+  const testimonialsHtml = (page.testimonials ?? [])
+    .map(
+      (t) =>
+        `<div style="border:1px solid #e5e7eb;border-radius:12px;padding:12px;margin:10px 0">
+          <p style="font-weight:700;margin:0">${t.name}${t.role ? ` <span style="font-weight:400;color:#6b7280">— ${t.role}</span>` : ""}</p>
+          <p style="margin:6px 0 0;color:#374151">“${t.quote}”</p>
+        </div>`
+    )
+    .join("");
 
   return `
 <section style="font-family:Inter,Arial,sans-serif;max-width:900px;margin:0 auto;line-height:1.6;color:#111827">
@@ -134,6 +160,7 @@ function buildDigitalProductHtml(page: DigitalPagePayload): string {
   <ul>${checklistHtml}</ul>
   <h2 style="font-size:22px;margin-top:16px">Garantie</h2>
   <p>${page.guarantee}</p>
+  ${testimonialsHtml ? `<h2 style="font-size:22px;margin-top:16px">Témoignages (exemples)</h2>${testimonialsHtml}` : ""}
   <h2 style="font-size:22px;margin-top:16px">FAQ</h2>
   ${faqHtml}
   <h2 style="font-size:22px;margin-top:16px">Mentions digitales</h2>
@@ -209,6 +236,209 @@ export async function POST(req: NextRequest) {
         .gte("created_at", monthStart);
       const limit = entitlements.plan === "elite" || entitlements.plan === "lifetime" ? 60 : entitlements.plan === "pro" ? 20 : 3;
       return NextResponse.json({ used: count ?? 0, limit });
+    }
+
+    if (action === "suggest-idea") {
+      const themeName = String((body as any).theme ?? "").trim();
+      const personaLabel = String((body as any).persona ?? "").trim();
+      const emotionRaw = String((body as any).emotion ?? "luxury");
+      const emotion = EmotionSchema.safeParse(emotionRaw).success ? (emotionRaw as any) : "luxury";
+      const language = String((body as any).language ?? "fr").slice(0, 5) || "fr";
+      const input = String((body as any).input ?? "").trim();
+
+      if (!input || input.length < 6) {
+        return NextResponse.json({ suggestions: [] });
+      }
+
+      const suggestions = await suggestDigitalIdeas({
+        themeName: themeName || "Premium",
+        personaLabel: personaLabel || "Créateur",
+        emotion,
+        language,
+        partial: input,
+      });
+
+      return NextResponse.json({ suggestions });
+    }
+
+    if (action === "generate-luxury") {
+      if (!flags.enable_digital_builder) {
+        return NextResponse.json({ error: "Digital builder temporairement désactivé." }, { status: 503 });
+      }
+
+      // Guard quota (same model as generate-page)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan, trial_started_at, trial_ends_at, scans_used")
+        .eq("user_id", user.id)
+        .single();
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("plan, status")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      const entitlements = getEntitlements(profile ?? null, subscription ?? null);
+      await enforceGenerationQuota({ userId: user.id, plan: entitlements.plan });
+
+      const themeName = String((body as any).themeName ?? "").trim() || "Premium";
+      const personaLabel = String((body as any).personaLabel ?? "").trim() || "Créateur";
+      const emotionRaw = String((body as any).emotion ?? "luxury");
+      const emotion = EmotionSchema.safeParse(emotionRaw).success ? (emotionRaw as any) : "luxury";
+      const language = String((body as any).language ?? "fr").slice(0, 5) || "fr";
+      const country = String((body as any).country ?? "FR").slice(0, 3) || "FR";
+      const idea = String((body as any).idea ?? "").trim();
+
+      if (!idea || idea.length < 12) {
+        return NextResponse.json({ error: "Brief incomplet (idée trop courte)." }, { status: 400 });
+      }
+
+      const derived = await deriveLuxuryBriefFromOnboarding({
+        themeName,
+        personaLabel,
+        emotion,
+        language,
+        country,
+        idea,
+      });
+
+      const jobId = await createGenerationJobLog({
+        userId: user.id,
+        jobKind: "digital_create",
+        source: "builder",
+        step: "generate-luxury",
+        inputPayload: {
+          theme_name: themeName,
+          persona: personaLabel,
+          emotion,
+          product_name: derived.productName,
+          product_type: derived.productType,
+          language: derived.language,
+          country: derived.country,
+        },
+      });
+
+      try {
+        const pricing = flags.enable_smart_pricing
+          ? computeDigitalPricing({
+              market: await analyzeDigitalMarket({
+                productType: derived.productType,
+                complexity: derived.level === "advanced" ? "high" : derived.level === "intermediate" ? "mid" : "low",
+                audienceMaturity: derived.audience.toLowerCase().includes("expert")
+                  ? "expert"
+                  : derived.audience.toLowerCase().includes("warm")
+                    ? "warm"
+                    : "cold",
+                promiseStrength: derived.promise.length > 80 ? "high" : derived.promise.length > 35 ? "mid" : "low",
+                country: derived.country,
+              }),
+            })
+          : {
+              currency: "EUR",
+              safe: 19.99,
+              optimal: 39.99,
+              aggressive: 59.99,
+              estimatedMinMarginPct: 40,
+              estimatedOptimalMarginPct: 65,
+              positioning: "mid" as const,
+              explanation: {
+                why: ["Mode fallback: smart pricing désactivé par feature flag."],
+                competitorLow: null,
+                competitorAvg: null,
+                competitorHigh: null,
+                baselineCost: 0,
+              },
+            };
+
+        const visuals = flags.enable_ai_image_optimizer
+          ? await generateDigitalVisualPack({
+              userId: user.id,
+              title: `${derived.productName} — ${derived.promise}`,
+              tone: derived.tone,
+            })
+          : {
+              coverUrl: "/placeholder.svg",
+              heroUrl: "/placeholder.svg",
+              mockupUrls: ["/placeholder.svg"],
+              provider: "flag-disabled",
+            };
+
+        const generated = await callOpenAIJsonWithSchema({
+          schema: DigitalPageSchema,
+          system: `${DOMAIN_PROMPTS.copy}\n\n${DOMAIN_PROMPTS.pricing}\n\n${DOMAIN_PROMPTS.branding}\n\n${DOMAIN_PROMPTS.legal}`,
+          user: `Génère une landing digitale ultra persuasive en ${derived.language}.
+
+Contexte:
+- Thème visuel: ${derived.themeName}
+- Persona: ${derived.personaLabel}
+- Emotion principale: ${derived.emotion}
+
+Brief produit:
+- Nom produit: ${derived.productName}
+- Type: ${derived.productType}
+- Audience: ${derived.audience}
+- Promesse: ${derived.promise}
+- Niveau: ${derived.level}
+- Ton: ${derived.tone}
+- Pays cible: ${derived.country}
+- One-liner hero: ${derived.oneLiner}
+
+Pricing recommandé (obligatoire):
+- Safe: ${pricing.safe}
+- Optimal: ${pricing.optimal}
+- Aggressive: ${pricing.aggressive}
+- Positioning: ${pricing.positioning}
+
+Exigences copy:
+- Structure claire: Hero → Douleur → Solution → Offre → Objections → FAQ → Garantie → CTA.
+- Utilise AIDA (sans le mentionner explicitement).
+- Témoignages: tu peux en produire 2 à 4 comme "exemples" (pas de stats).
+- Interdiction de chiffres inventés (ex: \"15 concurrents\"). Si tu estimes, précise que c'est une estimation heuristique.
+
+Retourne du JSON avec:
+brandName, title, subtitle, hero, offer[], objections[], upsell[], crossSell[], launchChecklist[], faq[{question,answer}], guarantee, legal[], testimonials?[{name,role?,quote}], legalPages{cgu,privacy,refund}, transactionalEmails{delivery_subject,delivery_body,support_subject,support_body}.
+Réponds uniquement en JSON strict, sans markdown.`,
+          schemaHint:
+            "{brandName,title,subtitle,hero,offer[],objections[],upsell[],crossSell[],launchChecklist[],faq[{question,answer}],guarantee,legal[],testimonials?[{name,role?,quote}],legalPages{cgu,privacy,refund},transactionalEmails{delivery_subject,delivery_body,support_subject,support_body}}",
+          temperature: 0.65,
+          maxTokens: 2700,
+          retries: 2,
+        });
+
+        const page: DigitalPagePayload = {
+          ...generated,
+          pricing: {
+            currency: pricing.currency,
+            safe: pricing.safe,
+            optimal: pricing.optimal,
+            aggressive: pricing.aggressive,
+            positioning: pricing.positioning,
+            why: pricing.explanation.why,
+          },
+          visuals: {
+            coverUrl: visuals.coverUrl,
+            heroUrl: visuals.heroUrl,
+            mockupUrls: visuals.mockupUrls,
+          },
+        };
+
+        await finishGenerationJobLog({
+          jobId,
+          success: true,
+          outputPayload: {
+            pricing_optimal: pricing.optimal,
+            visuals_count: visuals.mockupUrls.length + 2,
+          },
+        });
+
+        return NextResponse.json({ page, pricing, visuals, derived });
+      } catch (err) {
+        await finishGenerationJobLog({
+          jobId,
+          success: false,
+          errorMessage: err instanceof Error ? err.message : "DIGITAL_LUXURY_GENERATION_FAILED",
+        });
+        throw err;
+      }
     }
 
     if (action === "generate-page") {

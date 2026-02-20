@@ -111,7 +111,7 @@ export default function CreateStoreHubPage() {
         <div className="group relative">
           {/* Full-card clickable surface */}
           <Link
-            href="/app/create-digital"
+            href="/app/create-store/digital"
             aria-label="Démarrer un produit digital"
             className="absolute inset-0 z-20 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-400/40"
           />
